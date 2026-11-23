@@ -1272,6 +1272,7 @@ function startGame(THREE) {
     const benchDx = x - workbenchPosition.x;
     const benchDz = z - workbenchPosition.z;
     if (benchDx * benchDx + benchDz * benchDz < 1.45) return true;
+    if (kitchenPosition) { const dx=x-kitchenPosition.x,dz=z-kitchenPosition.z; if(dx*dx+dz*dz<1.15)return true; }
     if (builtCabin) {
       const dx=x-builtCabin.x,dz=z-builtCabin.z;
       const lx=dx*Math.cos(builtCabin.yaw)-dz*Math.sin(builtCabin.yaw),lz=dx*Math.sin(builtCabin.yaw)+dz*Math.cos(builtCabin.yaw);
@@ -1631,6 +1632,7 @@ function startGame(THREE) {
   function animate() {
     requestAnimationFrame(animate);
     const delta = Math.min(clock.getDelta(), 0.05);
+    if(kitchenFire){kitchenFire.time+=delta;const flicker=1+Math.sin(kitchenFire.time*13)*0.12+Math.sin(kitchenFire.time*21)*0.06;kitchenFire.flame.scale.set(1, flicker, 1);kitchenFire.flame.rotation.y=kitchenFire.time*1.8;kitchenFire.flameCore.scale.y=0.9+Math.sin(kitchenFire.time*17)*0.12;kitchenFire.light.intensity=1.25+Math.sin(kitchenFire.time*15)*0.22;}
     gameTimeAccumulator+=delta;
     while(gameTimeAccumulator>=5){gameTimeAccumulator-=5;advanceGameMinutes(1);}
     let forward = 0;
