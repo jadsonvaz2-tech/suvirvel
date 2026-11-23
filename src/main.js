@@ -322,9 +322,23 @@ function startGame(THREE) {
   const crownMesh = new THREE.InstancedMesh(crownGeometry, crownMaterial, treeSpots.length);
   const crownTopMesh = new THREE.InstancedMesh(crownTopGeometry, crownMaterial, treeSpots.length);
   const dummy = new THREE.Object3D();
+  const treeRemainsMaterial = new THREE.MeshStandardMaterial({ color: 0x806044, roughness: 1 });
+  const logMaterial = new THREE.MeshStandardMaterial({ color: 0x9a7046, roughness: 1 });
+  function addTreeRemains(tree, groundY = groundHeight(tree.x, tree.z)) {
+    const stump = new THREE.Mesh(new THREE.CylinderGeometry(0.42 * tree.scale, 0.5 * tree.scale, 0.62, 7), treeRemainsMaterial);
+    stump.position.set(tree.x, groundY + 0.31, tree.z);
+    stump.rotation.y = tree.turn;
+    scene.add(stump);
+    const log = new THREE.Mesh(new THREE.CylinderGeometry(0.28 * tree.scale, 0.32 * tree.scale, 2.0 * tree.scale, 7), logMaterial);
+    log.rotation.z = Math.PI / 2;
+    log.rotation.y = tree.turn;
+    log.position.set(tree.x + 0.95 * tree.scale, groundY + 0.32 * tree.scale, tree.z + 0.55 * tree.scale);
+    scene.add(log);
+  }
   treeSpots.forEach((tree, index) => {
     const y = groundHeight(tree.x, tree.z);
     const s = tree.scale;
+    const tint = new THREE.Color().setHSL(0.29 + random() * 0.035, 0.32, 0.22 + random() * 0.12);
     if (felledTrees.has(index)) {
       addTreeRemains(tree, y);
       dummy.position.set(0, -1000, 0);
@@ -348,7 +362,6 @@ function startGame(THREE) {
     dummy.scale.set(s * 0.78, s * 0.78, s * 0.78);
     dummy.updateMatrix();
     crownTopMesh.setMatrixAt(index, dummy.matrix);
-    const tint = new THREE.Color().setHSL(0.29 + random() * 0.035, 0.32, 0.22 + random() * 0.12);
     crownMesh.setColorAt(index, tint);
     crownTopMesh.setColorAt(index, tint.clone().multiplyScalar(1.12));
   });
@@ -356,20 +369,6 @@ function startGame(THREE) {
   trunkMesh.instanceMatrix.needsUpdate = true;
   crownMesh.instanceMatrix.needsUpdate = true;
   crownTopMesh.instanceMatrix.needsUpdate = true;
-
-  const treeRemainsMaterial = new THREE.MeshStandardMaterial({ color: 0x806044, roughness: 1 });
-  const logMaterial = new THREE.MeshStandardMaterial({ color: 0x9a7046, roughness: 1 });
-  function addTreeRemains(tree, groundY = groundHeight(tree.x, tree.z)) {
-    const stump = new THREE.Mesh(new THREE.CylinderGeometry(0.42 * tree.scale, 0.5 * tree.scale, 0.62, 7), treeRemainsMaterial);
-    stump.position.set(tree.x, groundY + 0.31, tree.z);
-    stump.rotation.y = tree.turn;
-    scene.add(stump);
-    const log = new THREE.Mesh(new THREE.CylinderGeometry(0.28 * tree.scale, 0.32 * tree.scale, 2.0 * tree.scale, 7), logMaterial);
-    log.rotation.z = Math.PI / 2;
-    log.rotation.y = tree.turn;
-    log.position.set(tree.x + 0.95 * tree.scale, groundY + 0.32 * tree.scale, tree.z + 0.55 * tree.scale);
-    scene.add(log);
-  }
 
   // Pedras espalhadas nas clareiras e perto das margens.
   const rockGeometry = new THREE.DodecahedronGeometry(1, 0);
@@ -598,7 +597,7 @@ function startGame(THREE) {
           ? saved.collectedResources.filter((id) => ["branch-pile-01", "stone-cluster-01", "berry-bush-01"].includes(id))
           : [],
         felledTrees: Array.isArray(saved.felledTrees) ? saved.felledTrees.filter((index) => Number.isInteger(index) && index >= 0 && index < 470) : [],
-        treeHits: saved.treeHits && typeof saved.treeHits === "object" ? Object.fromEntries(Object.entries(saved.treeHits).filter(([key, value]) => /^\\d+$/.test(key) && Number.isInteger(value) && value >= 0 && value < 3)) : {}
+        treeHits: saved.treeHits && typeof saved.treeHits === "object" ? Object.fromEntries(Object.entries(saved.treeHits).filter(([key, value]) => /^\d+$/.test(key) && Number.isInteger(value) && value >= 0 && value < 3)) : {}
       };
     } catch {
       return null;
@@ -871,12 +870,9 @@ function startGame(THREE) {
   function finishTreeFelling(index, groundY) {
     const tree = treeSpots[index];
     addTreeRemains(tree, groundY);
-    felledTrees.add(index);
     treeHitCounts.delete(index);
-    inventory.wood = Math.min(9999, inventory.wood + 4);
-    updateInventoryUI();
     saveProgress(true);
-    showToast("+4 madeiras · árvore derrubada");
+    showToast("Árvore derrubada · +4 madeiras na mochila");
   }
   function chopCurrentTree() {
     const target = currentTreeTarget;
@@ -885,6 +881,10 @@ function startGame(THREE) {
     const hits = (treeHitCounts.get(target.index) ?? 0) + 1;
     treeHitCounts.set(target.index, hits);
     if (hits >= 3) {
+      felledTrees.add(target.index);
+      treeHitCounts.delete(target.index);
+      inventory.wood = Math.min(9999, inventory.wood + 4);
+      updateInventoryUI();
       createFallingTree(target.index);
       currentTreeTarget = null;
       canChopTree = false;
