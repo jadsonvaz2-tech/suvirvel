@@ -252,6 +252,7 @@ function startGame(THREE) {
     gameTime.hour=Math.floor(wrapped/60);gameTime.minute=wrapped%60;updateGameClockUI();
     refreshFarmVisuals();
     refreshAnimalProduction();
+    refreshResourceRespawns();
   }
   updateGameClockUI();
   const resourceBase = saved?.resourceBase ?? {
@@ -271,6 +272,11 @@ function startGame(THREE) {
   }
 
   const collectedResources = new Set(saved?.collectedResources ?? []);
+  const resourceRespawnAt = new Map(Object.entries(saved?.resourceRespawnAt ?? {}).filter(([id, value]) =>
+    ["branch-pile-01","branch-pile-02","branch-pile-03","branch-pile-04","branch-pile-05","branch-pile-06","stone-cluster-01","stone-cluster-02","stone-cluster-03","berry-bush-01"].includes(id) &&
+    Number.isSafeInteger(value) && value >= 0
+  ));
+  const resourceDefinitions = new Map();
   const collectibleNodes = [];
   const collectibleMeshes = [];
 
@@ -305,7 +311,14 @@ function startGame(THREE) {
   }
 
   function addResourceNode(id, itemKey, label, amount, x, z, accent, build) {
-    if (collectedResources.has(id)) return;
+    resourceDefinitions.set(id, { id, itemKey, label, amount, x, z, accent, build });
+    if (collectibleNodes.some((node) => node.id === id)) return;
+    if (collectedResources.has(id)) {
+      const respawnAt = resourceRespawnAt.get(id);
+      if (Number.isSafeInteger(respawnAt) && totalGameMinutes() < respawnAt) return;
+      collectedResources.delete(id);
+      resourceRespawnAt.delete(id);
+    }
     const root = new THREE.Group();
     root.position.set(x, groundHeight(x, z), z);
     build(root);
@@ -319,6 +332,16 @@ function startGame(THREE) {
       }
     });
     collectibleNodes.push(node);
+  }
+
+  function refreshResourceRespawns() {
+    for (const [id, respawnAt] of resourceRespawnAt) {
+      if (totalGameMinutes() >= respawnAt && !collectibleNodes.some((node) => node.id === id)) {
+        const definition = resourceDefinitions.get(id);
+        if (definition) addResourceNode(definition.id, definition.itemKey, definition.label, definition.amount,
+          definition.x, definition.z, definition.accent, definition.build);
+      }
+    }
   }
 
   // Recursos maiores e etiquetas flutuantes para que sejam fáceis de localizar.
@@ -354,9 +377,12 @@ function startGame(THREE) {
   addExtraBranchPile("branch-pile-02",-7.5,7.5);
   addExtraBranchPile("branch-pile-03",7.5,7.5);
   addExtraBranchPile("branch-pile-04",0,16);
+  // Estoque extra visível perto da clareira para quem já coletou os primeiros montes.
+  addExtraBranchPile("branch-pile-05",-5.2,10.5);
+  addExtraBranchPile("branch-pile-06",5.2,10.5);
 
   const stoneSpot = resourcePosition(1.55, 3.65);
-  addResourceNode("stone-cluster-01", "stones", "Pedras", 4, stoneSpot.x, stoneSpot.z, "#bfc6c2", (root) => {
+  function buildStonePile(root) {
     const material = new THREE.MeshStandardMaterial({ color: 0x969b91, roughness: 1, flatShading: true });
     const geometry = new THREE.DodecahedronGeometry(0.48, 0);
     [[-0.42,0.35,0,1.05],[0.2,0.32,0.12,0.9],[0.48,0.28,-0.36,0.82],[-0.12,0.25,-0.5,0.88],[0.03,0.66,-0.14,0.72]].forEach(([x,y,z,s]) => {
@@ -365,7 +391,12 @@ function startGame(THREE) {
       mesh.scale.set(s*1.15,s*0.82,s);
       root.add(mesh);
     });
-  });
+  }
+  addResourceNode("stone-cluster-01", "stones", "Pedras", 4, stoneSpot.x, stoneSpot.z, "#bfc6c2", buildStonePile);
+  for (const [id, side, forward] of [["stone-cluster-02",-5.2,14],["stone-cluster-03",5.2,14]]) {
+    const spot = resourcePosition(side, forward);
+    addResourceNode(id, "stones", "Pedras", 4, spot.x, spot.z, "#bfc6c2", buildStonePile);
+  }
 
   const berrySpot = resourcePosition(0, 5.35);
   addResourceNode("berry-bush-01", "berries", "Frutas", 3, berrySpot.x, berrySpot.z, "#d77b87", (root) => {
@@ -1198,8 +1229,14 @@ function startGame(THREE) {
             }
           : null,
         collectedResources: Array.isArray(saved.collectedResources)
-          ? saved.collectedResources.filter((id) => ["branch-pile-01", "branch-pile-02", "branch-pile-03", "branch-pile-04", "stone-cluster-01", "berry-bush-01"].includes(id))
+          ? saved.collectedResources.filter((id) => ["branch-pile-01", "branch-pile-02", "branch-pile-03", "branch-pile-04", "branch-pile-05", "branch-pile-06", "stone-cluster-01", "stone-cluster-02", "stone-cluster-03", "berry-bush-01"].includes(id))
           : [],
+        resourceRespawnAt: saved.resourceRespawnAt && typeof saved.resourceRespawnAt === "object"
+          ? Object.fromEntries(Object.entries(saved.resourceRespawnAt).filter(([id,value]) =>
+              ["branch-pile-01","branch-pile-02","branch-pile-03","branch-pile-04","branch-pile-05","branch-pile-06","stone-cluster-01","stone-cluster-02","stone-cluster-03","berry-bush-01"].includes(id) &&
+              Number.isSafeInteger(value) && value >= 0
+            ))
+          : {},
         felledTrees: Array.isArray(saved.felledTrees) ? saved.felledTrees.filter((index) => Number.isInteger(index) && index >= 0 && index < 470) : [],
         treeHits: saved.treeHits && typeof saved.treeHits === "object" ? Object.fromEntries(Object.entries(saved.treeHits).filter(([key, value]) => /^\d+$/.test(key) && Number.isInteger(value) && value >= 0 && value < 3)) : {}
       };
@@ -1227,6 +1264,7 @@ function startGame(THREE) {
         gameTime: { ...gameTime },
         resourceBase: { ...resourceBase },
         collectedResources: [...collectedResources],
+        resourceRespawnAt: Object.fromEntries(resourceRespawnAt),
         felledTrees: [...felledTrees],
         treeHits: Object.fromEntries(treeHitCounts),
         builtCabin: builtCabin ? { ...builtCabin } : null
@@ -1520,6 +1558,7 @@ function startGame(THREE) {
     if (!node || collectedResources.has(node.id)) return;
     inventory[node.itemKey] = Math.min(9999, inventory[node.itemKey] + node.amount);
     collectedResources.add(node.id);
+    resourceRespawnAt.set(node.id, totalGameMinutes() + 360);
     scene.remove(node.root);
     for (let i = collectibleMeshes.length - 1; i >= 0; i--) {
       if (collectibleMeshes[i].userData.resourceNode === node) collectibleMeshes.splice(i, 1);
