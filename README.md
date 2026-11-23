@@ -2,7 +2,7 @@
 
 Protótipo de sobrevivência e exploração medieval em 3D, para PC e celular, inspirado no gênero de construção e vida medieval.
 
-## Primeira entrega — Fase 1
+## Fase 1 — Mundo e movimentação
 
 - Vale 3D procedural com terreno ondulado, floresta, rio e morros.
 - Câmera em primeira pessoa com olhar de 360°.
@@ -37,6 +37,17 @@ Os modelos são provisórios (low-poly). Construção, coleta, agricultura, anim
 ## Publicação
 
 O GitHub Pages publica automaticamente a branch `main` usando o publicador nativo do GitHub. O workflow em `.github/workflows/deploy.yml` valida a sintaxe JavaScript e a presença dos arquivos essenciais; ele não faz uma segunda publicação, evitando conflitos com o publicador nativo.
+
+## Fase 2 — Sobrevivência inicial
+
+- Indicadores de vida, fome, sede e vigor.
+- Fome e sede diminuem gradualmente enquanto o jogo está ativo.
+- Correr com Shift consome vigor; ficar parado recupera vigor.
+- Quando fome ou sede chegam a zero, a vida começa a diminuir.
+- Os quatro atributos são salvos localmente junto da posição do jogador.
+- HUD adaptado para monitor e telas de celular.
+
+Os indicadores começam em 100%. Nesta etapa ainda não há itens para comer, beber ou curar; esses meios de recuperação serão adicionados em etapas posteriores, sem avançar além do escopo aprovado.
 
 ## Próximas etapas
 

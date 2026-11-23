@@ -6,6 +6,13 @@ const errorBox = document.getElementById("error");
 const joystickWrap = document.getElementById("joystick-wrap");
 const joystickBase = document.getElementById("joystick-base");
 const joystickThumb = document.getElementById("joystick-thumb");
+const survivalUI = {
+  status: document.getElementById("survival-status"),
+  health: { value: document.getElementById("health-value"), fill: document.getElementById("health-fill") },
+  hunger: { value: document.getElementById("hunger-value"), fill: document.getElementById("hunger-fill") },
+  thirst: { value: document.getElementById("thirst-value"), fill: document.getElementById("thirst-fill") },
+  energy: { value: document.getElementById("energy-value"), fill: document.getElementById("energy-fill") }
+};
 
 async function bootGame() {
   try {
@@ -208,6 +215,31 @@ function startGame(THREE) {
     yaw: saved?.yaw ?? 0,
     pitch: saved?.pitch ?? -0.04
   };
+  const survival = {
+    health: saved?.health ?? 100,
+    hunger: saved?.hunger ?? 100,
+    thirst: saved?.thirst ?? 100,
+    energy: saved?.energy ?? 100
+  };
+  let survivalUiTimer = 0;
+  function updateSurvivalUI(force = false) {
+    if (!force && survivalUiTimer < 0.2) return;
+    survivalUiTimer = 0;
+    for (const name of ["health", "hunger", "thirst", "energy"]) {
+      const value = THREE.MathUtils.clamp(survival[name], 0, 100);
+      survivalUI[name].value.textContent = Math.round(value) + "%";
+      survivalUI[name].fill.style.width = value + "%";
+      survivalUI[name].fill.parentElement.parentElement.classList.toggle("low", value < 25);
+    }
+    let label = "ESTÁVEL";
+    let mood = "";
+    if (survival.health <= 0) { label = "DESMAIADO"; mood = "danger"; }
+    else if (survival.health < 25 || survival.hunger < 12 || survival.thirst < 12) { label = "CRÍTICO"; mood = "danger"; }
+    else if (survival.hunger < 25 || survival.thirst < 25 || survival.energy < 20) { label = "ATENÇÃO"; mood = "warning"; }
+    survivalUI.status.textContent = label;
+    survivalUI.status.className = mood;
+  }
+  updateSurvivalUI(true);
   const playerHeight = 1.72;
   const armGroup = new THREE.Group();
   const sleeveMaterial = new THREE.MeshStandardMaterial({ color: 0x756044, roughness: 1 });
@@ -241,11 +273,16 @@ function startGame(THREE) {
       const saved = JSON.parse(value);
       if (!saved || !Number.isFinite(saved.x) || !Number.isFinite(saved.z)) return null;
       if (Math.abs(saved.x) > 104 || Math.abs(saved.z) > 104) return null;
+      const safeStat = (value) => Number.isFinite(value) ? THREE.MathUtils.clamp(value, 0, 100) : 100;
       return {
         x: saved.x,
         z: saved.z,
         yaw: Number.isFinite(saved.yaw) ? saved.yaw : 0,
-        pitch: Number.isFinite(saved.pitch) ? THREE.MathUtils.clamp(saved.pitch, -1.15, 1.15) : -0.04
+        pitch: Number.isFinite(saved.pitch) ? THREE.MathUtils.clamp(saved.pitch, -1.15, 1.15) : -0.04,
+        health: safeStat(saved.health),
+        hunger: safeStat(saved.hunger),
+        thirst: safeStat(saved.thirst),
+        energy: safeStat(saved.energy)
       };
     } catch {
       return null;
@@ -258,7 +295,8 @@ function startGame(THREE) {
     lastSave = now;
     try {
       localStorage.setItem("legado-do-vale-prototipo", JSON.stringify({
-        x: player.x, z: player.z, yaw: player.yaw, pitch: player.pitch
+        x: player.x, z: player.z, yaw: player.yaw, pitch: player.pitch,
+        health: survival.health, hunger: survival.hunger, thirst: survival.thirst, energy: survival.energy
       }));
     } catch { /* O jogo continua mesmo sem armazenamento disponível. */ }
   }
@@ -372,7 +410,8 @@ function startGame(THREE) {
     strafe += joystick.x;
     const length = Math.hypot(forward, strafe);
     if (length > 1) { forward /= length; strafe /= length; }
-    const running = keys.has("shift");
+    const hasMoveInput = length > 0.06;
+    const running = keys.has("shift") && hasMoveInput && survival.energy > 0.5;
     const speed = running ? 9.2 : 5.3;
     const sin = Math.sin(player.yaw);
     const cos = Math.cos(player.yaw);
@@ -383,8 +422,28 @@ function startGame(THREE) {
       const nextZ = player.z + moveZ;
       if (!isBlocked(nextX, player.z)) player.x = nextX;
       if (!isBlocked(player.x, nextZ)) player.z = nextZ;
-      saveProgress();
     }
+
+    // Necessidades básicas: o tempo afeta fome e sede; movimento exige vigor.
+    survival.hunger = Math.max(0, survival.hunger - 0.075 * delta);
+    survival.thirst = Math.max(0, survival.thirst - 0.14 * delta);
+    const isMoving = hasMoveInput;
+    if (isMoving && running) {
+      survival.energy = Math.max(0, survival.energy - 14 * delta);
+    } else if (isMoving) {
+      survival.energy = Math.max(0, survival.energy - 0.45 * delta);
+    } else {
+      survival.energy = Math.min(100, survival.energy + 9 * delta);
+    }
+
+    if (survival.hunger <= 0 || survival.thirst <= 0) {
+      const unmetNeeds = Number(survival.hunger <= 0) + Number(survival.thirst <= 0);
+      survival.health = Math.max(0, survival.health - (1.15 * unmetNeeds) * delta);
+    }
+
+    survivalUiTimer += delta;
+    updateSurvivalUI();
+    saveProgress();
     applyCamera();
     renderer.render(scene, camera);
   }

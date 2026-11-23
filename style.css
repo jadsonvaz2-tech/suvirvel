@@ -40,6 +40,20 @@ kbd { min-width: 17px; padding: 4px 5px; border: 1px solid rgba(241,232,210,.28)
 .error { position: absolute; z-index: 20; inset: 20px; display: grid; place-items: center; padding: 25px; border: 1px solid #b88465; border-radius: 12px; color: #fff0dc; background: rgba(35,27,22,.95); text-align: center; white-space: pre-wrap; }
 .hidden { display: none !important; }
 @media (max-width: 700px), (pointer: coarse) {
+  .survival-panel {
+    top: max(61px, calc(env(safe-area-inset-top) + 55px));
+    left: 50%;
+    right: auto;
+    width: min(320px, calc(100vw - 26px));
+    padding: 8px 10px 9px;
+    transform: translateX(-50%);
+  }
+  .survival-heading { margin-bottom: 7px; font-size: 6px; }
+  .survival-heading strong { font-size: 6px; }
+  .survival-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 7px; }
+  .stat-top { display: grid; grid-template-columns: 1fr; gap: 2px; margin-bottom: 4px; font-size: 7px; }
+  .stat-top b { font-size: 8px; }
+  .stat-track { height: 4px; }
   .topbar { padding: max(13px, env(safe-area-inset-top)) 14px 12px; }
   .brand-mark { width: 34px; height: 34px; }
   .brand strong { font-size: 10px; }
@@ -57,3 +71,50 @@ kbd { min-width: 17px; padding: 4px 5px; border: 1px solid rgba(241,232,210,.28)
   .footer-note { display: none; }
   .crosshair { width: 13px; height: 13px; }
 }
+
+/* Painel de sobrevivência — HUD da Fase 2 */
+.survival-panel {
+  position: absolute;
+  z-index: 3;
+  top: 94px;
+  right: 24px;
+  width: 214px;
+  padding: 11px 12px 12px;
+  border: 1px solid rgba(241,232,210,.22);
+  border-radius: 9px;
+  color: var(--cream);
+  background: rgba(22,34,25,.76);
+  box-shadow: 0 8px 24px rgba(12,22,15,.18);
+  backdrop-filter: blur(9px);
+  pointer-events: none;
+}
+.survival-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 10px;
+  color: rgba(241,232,210,.7);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: .13em;
+}
+.survival-heading strong {
+  color: #a9c78a;
+  font-size: 7px;
+  letter-spacing: .08em;
+}
+.survival-heading strong.warning { color: #e9bd72; }
+.survival-heading strong.danger { color: #e58a76; }
+.survival-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 11px; }
+.survival-stat { min-width: 0; }
+.stat-top { display: flex; align-items: center; justify-content: space-between; gap: 4px; margin-bottom: 5px; color: rgba(241,232,210,.78); font-size: 8px; font-weight: 800; letter-spacing: .08em; }
+.stat-top b { color: var(--cream); font-size: 9px; font-variant-numeric: tabular-nums; }
+.stat-track { height: 5px; overflow: hidden; border-radius: 6px; background: rgba(0,0,0,.35); box-shadow: inset 0 1px 2px rgba(0,0,0,.25); }
+.stat-track i { display: block; width: 100%; height: 100%; border-radius: inherit; transition: width .18s linear, background-color .18s linear; background: #9fc47a; }
+.stat-health .stat-track i { background: #c86f62; }
+.stat-hunger .stat-track i { background: #d5ac63; }
+.stat-thirst .stat-track i { background: #69a9c7; }
+.stat-energy .stat-track i { background: #a6bd76; }
+.survival-stat.low .stat-track i { background: #dc8067; }
+.survival-stat.low .stat-top b { color: #f0a18e; }
