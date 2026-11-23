@@ -103,3 +103,12 @@ Esta etapa inclui coleta, mochila, alimentação e hidratação; fabricação e 
 - A construção custa 12 madeiras e 8 galhos. Confirme com E ou CONSTRUIR.
 - A cabana pronta e sua posição/orientação ficam salvas localmente e reaparecem ao atualizar a página.
 - É possível construir uma primeira cabana nesta etapa; o modo pode ser cancelado com ESC ou no botão ×.
+
+
+## Fase 2 — Interior da cabana e baú
+
+- Aproxime-se da entrada e pressione E (ou use o botão de ação no celular) para abrir ou fechar a porta.
+- Com a porta aberta, atravesse a entrada para acessar o interior; as paredes continuam bloqueando a passagem.
+- Um baú de madeira fica dentro da cabana. Aproxime-se dele e pressione E ou toque em ABRIR BAÚ.
+- Guarde ou retire unidades de madeira, galhos, pedras e frutas usando os botões do baú.
+- A porta, o conteúdo do baú, a mochila e a posição do personagem são salvos localmente. O progresso permanece após atualizar a página.

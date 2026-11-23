@@ -23,6 +23,9 @@ const buildingRotate = document.getElementById("building-rotate");
 const buildingConfirm = document.getElementById("building-confirm");
 const buildingStatus = document.getElementById("building-status");
 const buildingMaterials = document.getElementById("building-materials");
+const chestPanel = document.getElementById("chest-panel");
+const chestClose = document.getElementById("chest-close");
+const chestItems = document.getElementById("chest-items");
 const interactionType = document.getElementById("interaction-type");
 const interactionVerb = document.getElementById("interaction-verb");
 const collectButton = document.getElementById("collect-button");
@@ -337,6 +340,10 @@ function startGame(THREE) {
   const cabinWoodLight = new THREE.MeshStandardMaterial({ color: 0x9b7048, roughness: 0.95 });
   const cabinRoof = new THREE.MeshStandardMaterial({ color: 0x55483a, roughness: 1 });
   const cabinDark = new THREE.MeshStandardMaterial({ color: 0x34291f, roughness: 1 });
+  let cabinModel = null, cabinDoorPivot = null;
+  let cabinDoorOpen = saved?.cabinDoorOpen === true;
+  let cabinDoorAngle = cabinDoorOpen ? Math.PI / 2 : 0, cabinDoorTarget = cabinDoorAngle;
+  let chestLid = null, chestTargetAngle = 0, chestCurrentAngle = 0;
   function createCabinModel() {
     const root = new THREE.Group();
     const addBox = (w,h,d,x,y,z,material,rz=0) => {
@@ -353,7 +360,15 @@ function startGame(THREE) {
       addBox(4.35,0.34,0.28,0,y,2.48,cabinWood);
     }
     addBox(1.35,0.32,0.3,0,2.8,-2.48,cabinWoodLight);
-    addBox(1.25,2.15,0.12,0,1.32,-2.56,cabinDark);
+    const doorPivot = new THREE.Group();
+    doorPivot.position.set(-0.62,1.32,-2.56);
+    const doorLeaf = new THREE.Mesh(new THREE.BoxGeometry(1.22,2.15,0.12),cabinDark);
+    doorLeaf.position.set(0.61,0,0); doorPivot.add(doorLeaf);
+    const doorBrace = new THREE.Mesh(new THREE.BoxGeometry(1.08,0.12,0.15),cabinWoodLight);
+    doorBrace.position.set(0.61,-0.62,0); doorPivot.add(doorBrace);
+    const doorHandle = new THREE.Mesh(new THREE.SphereGeometry(0.075,8,6),new THREE.MeshStandardMaterial({color:0xc5a15f,metalness:0.55,roughness:0.45}));
+    doorHandle.position.set(1.05,0,0.09); doorPivot.add(doorHandle);
+    root.add(doorPivot); root.userData.doorPivot=doorPivot;
     addBox(0.12,2.25,0.16,-0.68,1.28,-2.54,cabinWoodLight);
     addBox(0.12,2.25,0.16,0.68,1.28,-2.54,cabinWoodLight);
     addBox(1.45,0.14,0.18,0,2.43,-2.54,cabinWoodLight);
@@ -370,6 +385,27 @@ function startGame(THREE) {
     addBox(3.05,0.2,5.9,1.48,3.25,0,cabinRoof,0.58);
     addBox(0.18,0.2,5.9,0,4.12,0,cabinWoodLight);
     return root;
+  }
+  function createCabinChest() {
+    const chest=new THREE.Group();
+    const wood=new THREE.MeshStandardMaterial({color:0x79502f,roughness:0.92});
+    const metal=new THREE.MeshStandardMaterial({color:0xb38a4d,metalness:0.35,roughness:0.65});
+    const body=new THREE.Mesh(new THREE.BoxGeometry(1.05,0.62,0.72),wood); body.position.y=0.38; chest.add(body);
+    for(const x of [-0.36,0.36]){const band=new THREE.Mesh(new THREE.BoxGeometry(0.09,0.68,0.76),metal);band.position.set(x,0.39,0);chest.add(band);}
+    chestLid=new THREE.Group();
+    const lid=new THREE.Mesh(new THREE.BoxGeometry(1.08,0.18,0.76),new THREE.MeshStandardMaterial({color:0x98683d,roughness:0.9}));
+    lid.position.set(0,0.09,0);chestLid.add(lid);chestLid.position.set(0,0.7,-0.34);chest.add(chestLid);
+    const lock=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.2,0.07),metal);lock.position.set(0,0.53,-0.39);chest.add(lock);
+    return chest;
+  }
+  function placeCabin() {
+    cabinModel=createCabinModel();
+    cabinModel.position.set(builtCabin.x,groundHeight(builtCabin.x,builtCabin.z),builtCabin.z);
+    cabinModel.rotation.y=builtCabin.yaw;
+    cabinDoorPivot=cabinModel.userData.doorPivot; cabinDoorPivot.rotation.y=cabinDoorAngle; scene.add(cabinModel);
+    const chest=createCabinChest();
+    chest.position.set(builtCabin.x+1.18*Math.cos(builtCabin.yaw)+1.15*Math.sin(builtCabin.yaw),groundHeight(builtCabin.x,builtCabin.z),builtCabin.z-1.18*Math.sin(builtCabin.yaw)+1.15*Math.cos(builtCabin.yaw));
+    chest.rotation.y=builtCabin.yaw; scene.add(chest);
   }
   function cabinGhost(model) {
     const ghost=model.clone(true);
@@ -444,12 +480,10 @@ function startGame(THREE) {
     if (inventory.wood<12 || inventory.branches<8) { showToast("Faltam materiais: 12 madeiras e 8 galhos."); updateInventoryUI(); return; }
     const position=buildPreview.position,yaw=buildPreview.rotation.y;
     inventory.wood-=12; inventory.branches-=8; builtCabin={x:position.x,z:position.z,yaw};
-    const cabin=createCabinModel(); cabin.position.set(builtCabin.x,groundHeight(builtCabin.x,builtCabin.z),builtCabin.z); cabin.rotation.y=builtCabin.yaw; scene.add(cabin);
+    placeCabin();
     stopBuilding(); updateInventoryUI(); saveProgress(true); showToast("Cabana construída! Seu primeiro abrigo está pronto.");
   }
-  if (builtCabin) {
-    const cabin=createCabinModel(); cabin.position.set(builtCabin.x,groundHeight(builtCabin.x,builtCabin.z),builtCabin.z); cabin.rotation.y=builtCabin.yaw; scene.add(cabin);
-  }
+  if (builtCabin) placeCabin();
   buildToggle.addEventListener("click",startBuilding);
   buildingClose.addEventListener("click",stopBuilding);
   buildingRotate.addEventListener("click",rotateBuilding);
@@ -576,6 +610,8 @@ function startGame(THREE) {
     wood: saved?.inventory?.wood ?? 0
   };
   const tools = { axe: saved?.tools?.axe === true };
+  const storage = { branches:saved?.storage?.branches??0, stones:saved?.storage?.stones??0, berries:saved?.storage?.berries??0, wood:saved?.storage?.wood??0 };
+  let canUseCabinDoor=false, canUseStorageChest=false;
   let currentResourceTarget = null;
   let canDrinkWater = false;
   let canUseWorkbench = false;
@@ -741,6 +777,8 @@ function startGame(THREE) {
           wood: safeCount(saved.inventory?.wood)
         },
         tools: { axe: saved.tools?.axe === true },
+        storage: { branches:safeCount(saved.storage?.branches), stones:safeCount(saved.storage?.stones), berries:safeCount(saved.storage?.berries), wood:safeCount(saved.storage?.wood) },
+        cabinDoorOpen: saved.cabinDoorOpen === true,
         builtCabin: saved.builtCabin && Number.isFinite(saved.builtCabin.x) && Number.isFinite(saved.builtCabin.z) && Math.abs(saved.builtCabin.x)<=96 && Math.abs(saved.builtCabin.z)<=96 ? { x:saved.builtCabin.x, z:saved.builtCabin.z, yaw:Number.isFinite(saved.builtCabin.yaw)?saved.builtCabin.yaw:0 } : null,
         resourceBase: saved.resourceBase &&
           Number.isFinite(saved.resourceBase.x) && Number.isFinite(saved.resourceBase.z)
@@ -771,6 +809,8 @@ function startGame(THREE) {
         health: survival.health, hunger: survival.hunger, thirst: survival.thirst, energy: survival.energy,
         inventory: { ...inventory },
         tools: { ...tools },
+        storage: { ...storage },
+        cabinDoorOpen,
         resourceBase: { ...resourceBase },
         collectedResources: [...collectedResources],
         felledTrees: [...felledTrees],
@@ -873,7 +913,11 @@ function startGame(THREE) {
     if (!event.repeat && key === "e") { if (buildMode) confirmBuilding(); else performCurrentInteraction(); }
     if (!event.repeat && key === "i") toggleInventory();
     if (!event.repeat && key === "r" && buildMode) rotateBuilding();
-    if (!event.repeat && key === "escape") { if (buildMode) stopBuilding(); else closeCrafting(); }
+    if (!event.repeat && key === "escape") {
+      if(buildMode)stopBuilding();
+      else if(!chestPanel.classList.contains("hidden"))closeChest();
+      else closeCrafting();
+    }
     keys.add(key);
   });
   window.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()));
@@ -900,7 +944,13 @@ function startGame(THREE) {
     if (builtCabin) {
       const dx=x-builtCabin.x,dz=z-builtCabin.z;
       const lx=dx*Math.cos(builtCabin.yaw)-dz*Math.sin(builtCabin.yaw),lz=dx*Math.sin(builtCabin.yaw)+dz*Math.cos(builtCabin.yaw);
-      if (Math.abs(lx)<2.5 && Math.abs(lz)<2.9) return true;
+      const footprint=Math.abs(lx)<2.48 && Math.abs(lz)<2.82;
+      if(footprint){
+        const side=Math.abs(lx)>2.02 && Math.abs(lz)<2.68;
+        const rear=lz>2.34;
+        const front=lz< -2.34 && !(cabinDoorOpen && Math.abs(lx)<0.72);
+        if(side||rear||front)return true;
+      }
     }
     return false;
   }
@@ -928,6 +978,15 @@ function startGame(THREE) {
     canDrinkWater = !match && bankDistance >= 8.2 && bankDistance <= 12.4 && survival.thirst < 99.5;
     const benchDistance = Math.hypot(workbenchPosition.x - player.x, workbenchPosition.z - player.z);
     canUseWorkbench = !match && !canDrinkWater && benchDistance <= 5.2;
+    canUseCabinDoor=false; canUseStorageChest=false;
+    if(builtCabin && !match && !canDrinkWater && !canUseWorkbench){
+      const dx=player.x-builtCabin.x,dz=player.z-builtCabin.z;
+      const lx=dx*Math.cos(builtCabin.yaw)-dz*Math.sin(builtCabin.yaw);
+      const lz=dx*Math.sin(builtCabin.yaw)+dz*Math.cos(builtCabin.yaw);
+      const inside=Math.abs(lx)<1.95 && Math.abs(lz)<2.18;
+      canUseCabinDoor=Math.hypot(lx,lz+2.8)<3.45 && Math.abs(lx)<1.55;
+      canUseStorageChest=inside && Math.hypot(lx-1.18,lz-1.15)<2.15;
+    }
     let treeMatch = null;
     let bestTreeDistance = Infinity;
     for (let i = 0; i < treeSpots.length; i++) {
@@ -945,7 +1004,7 @@ function startGame(THREE) {
     currentTreeTarget = !match && !canDrinkWater && !canUseWorkbench ? treeMatch : null;
     canChopTree = Boolean(currentTreeTarget && tools.axe);
     currentResourceTarget = match;
-    const hasInteraction = Boolean(match) || canDrinkWater || canUseWorkbench || Boolean(currentTreeTarget);
+    const hasInteraction = Boolean(match) || canDrinkWater || canUseWorkbench || canUseCabinDoor || canUseStorageChest || Boolean(currentTreeTarget);
     interactionPrompt.classList.toggle("hidden", !hasInteraction);
     collectButton.classList.toggle("hidden", !hasInteraction || !isMobile);
 
@@ -959,11 +1018,16 @@ function startGame(THREE) {
       interactionName.textContent = "Água do rio";
       interactionVerb.textContent = "beber água";
       collectButton.textContent = "BEBER ÁGUA";
-    } else if (canUseWorkbench) {
-      interactionType.textContent = "OFICINA DE CAMPO";
-      interactionName.textContent = "Bancada de fabricação";
-      interactionVerb.textContent = "usar bancada";
-      collectButton.textContent = "USAR BANCADA";
+    } else if (canUseCabinDoor) {
+      interactionType.textContent = "SUA CABANA";
+      interactionName.textContent = cabinDoorOpen ? "Porta aberta" : "Porta fechada";
+      interactionVerb.textContent = cabinDoorOpen ? "fechar porta" : "abrir porta";
+      collectButton.textContent = cabinDoorOpen ? "FECHAR PORTA" : "ABRIR PORTA";
+    } else if (canUseStorageChest) {
+      interactionType.textContent = "ARMAZENAMENTO";
+      interactionName.textContent = "Baú de recursos";
+      interactionVerb.textContent = "abrir baú";
+      collectButton.textContent = "ABRIR BAÚ";
     } else if (currentTreeTarget) {
       interactionType.textContent = "ÁRVORE";
       interactionName.textContent = canChopTree ? "Madeira · " + (3 - (treeHitCounts.get(currentTreeTarget.index) ?? 0)) + " golpes" : "Machado necessário";
@@ -1063,12 +1127,36 @@ function startGame(THREE) {
       updateResourceTarget();
     }
   }
-  function performCurrentInteraction() {
-    if (currentResourceTarget) collectCurrentResource();
-    else if (canDrinkWater) drinkWater();
-    else if (canUseWorkbench) openCrafting();
-    else if (canChopTree) chopCurrentTree();
-    else if (currentTreeTarget && !tools.axe) showToast("Você precisa fabricar um machado na bancada.");
+  const storageLabels={branches:"Galhos",stones:"Pedras",berries:"Frutas",wood:"Madeira"};
+  function updateChestUI(){
+    chestItems.innerHTML=Object.keys(storageLabels).map(key=>'<div class="chest-item"><span>'+storageLabels[key]+'</span><strong>'+inventory[key]+' / '+storage[key]+'</strong><div><button type="button" data-chest-action="store" data-item="'+key+'">GUARDAR 1</button><button type="button" data-chest-action="take" data-item="'+key+'">RETIRAR 1</button></div></div>').join("");
+  }
+  function openChest(){updateChestUI();chestPanel.classList.remove("hidden");chestTargetAngle=-0.82;}
+  function closeChest(){chestPanel.classList.add("hidden");chestTargetAngle=0;}
+  function transferStorage(action,key){
+    if(!Object.hasOwn(storage,key)||!Object.hasOwn(inventory,key))return;
+    if(action==="store"&&inventory[key]>0&&storage[key]<9999){inventory[key]--;storage[key]++;}
+    else if(action==="take"&&storage[key]>0&&inventory[key]<9999){storage[key]--;inventory[key]++;}
+    else{showToast(action==="store"?"Não há unidades disponíveis na mochila.":"Não há unidades guardadas no baú.");return;}
+    updateInventoryUI();updateChestUI();saveProgress(true);
+  }
+  chestItems.addEventListener("click",event=>{const b=event.target.closest("button[data-chest-action]");if(b)transferStorage(b.dataset.chestAction,b.dataset.item);});
+  chestClose.addEventListener("click",closeChest);
+  function toggleCabinDoor(){
+    if(!canUseCabinDoor||!builtCabin)return;
+    cabinDoorOpen=!cabinDoorOpen;cabinDoorTarget=cabinDoorOpen?Math.PI/2:0;
+    saveProgress(true);showToast(cabinDoorOpen?"Você abriu a porta da cabana.":"Você fechou a porta da cabana.");updateResourceTarget();
+  }
+  function performCurrentInteraction(){
+    if(!chestPanel.classList.contains("hidden"))return;
+    if(buildMode){confirmBuilding();return;}
+    if(currentResourceTarget)collectCurrentResource();
+    else if(canDrinkWater)drinkWater();
+    else if(canUseWorkbench)openCrafting();
+    else if(canUseCabinDoor)toggleCabinDoor();
+    else if(canUseStorageChest)openChest();
+    else if(canChopTree)chopCurrentTree();
+    else if(currentTreeTarget&&!tools.axe)showToast("Você precisa fabricar um machado na bancada.");
   }
   collectButton.addEventListener("click", performCurrentInteraction);
 
@@ -1118,6 +1206,8 @@ function startGame(THREE) {
     survivalUiTimer += delta;
     updateSurvivalUI();
     if (buildMode) { buildPreviewTimer += delta; if (buildPreviewTimer >= 0.12) { buildPreviewTimer = 0; updateBuildPreview(); } }
+    if(cabinDoorPivot){cabinDoorAngle+=(cabinDoorTarget-cabinDoorAngle)*Math.min(1,delta*8);cabinDoorPivot.rotation.y=cabinDoorAngle;}
+    if(chestLid){chestCurrentAngle+=(chestTargetAngle-chestCurrentAngle)*Math.min(1,delta*9);chestLid.rotation.x=chestCurrentAngle;}
     if (axeSwingTimer > 0) {
       axeSwingTimer = Math.max(0, axeSwingTimer - delta);
       const swingProgress = 1 - axeSwingTimer / 0.34;

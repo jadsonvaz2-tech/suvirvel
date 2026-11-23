@@ -331,3 +331,14 @@ kbd { min-width: 17px; padding: 4px 5px; border: 1px solid rgba(241,232,210,.28)
 .building-actions kbd { margin-left:3px; }
 .building-help { display:block; margin-top:10px; color:var(--muted); font-size:8px; text-align:center; }
 @media (max-width:700px),(pointer:coarse) { .build-toggle { top:195px; right:13px; padding:8px 9px; font-size:8px; } }
+
+
+/* Interior da cabana e armazenamento */
+.chest-panel { position:absolute; z-index:14; top:50%; left:50%; width:min(390px,calc(100vw - 30px)); max-height:min(78vh,620px); overflow:auto; padding:17px; border:1px solid rgba(212,177,107,.62); border-radius:11px; color:var(--cream); background:rgba(22,34,25,.97); box-shadow:0 16px 42px rgba(0,0,0,.42); backdrop-filter:blur(12px); transform:translate(-50%,-50%); }
+.chest-panel.hidden { display:none !important; }
+.chest-items { display:grid; gap:8px; }
+.chest-item { display:grid; grid-template-columns:1fr auto; gap:7px; align-items:center; padding:9px; border:1px solid rgba(241,232,210,.14); border-radius:7px; background:rgba(255,255,255,.045); }
+.chest-item>span { color:rgba(241,232,210,.88); font-size:11px; font-weight:800; }
+.chest-item>strong { color:var(--gold); font-size:11px; font-variant-numeric:tabular-nums; }
+.chest-item>div { grid-column:1/-1; display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+.chest-item button { min-height:34px; border:1px solid rgba(212,177,107,.42); border-radius:6px; color:var(--cream); background:rgba(111,82,42,.48); font:inherit; font-size:8px; font-weight:900; letter-spacing:.06em; cursor:pointer; }

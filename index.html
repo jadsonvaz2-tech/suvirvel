@@ -70,6 +70,15 @@
       <small>Pressione <kbd>E</kbd> para <span id="interaction-verb">recolher</span></small>
     </section>
     <button type="button" id="collect-button" class="collect-button hidden">RECOLHER</button>
+    <section id="chest-panel" class="chest-panel hidden" aria-label="Baú de armazenamento">
+      <header class="inventory-header">
+        <div><span class="eyebrow">ARMAZENAMENTO</span><strong>BAÚ DE RECURSOS</strong></div>
+        <button type="button" id="chest-close" class="inventory-close" aria-label="Fechar baú">×</button>
+      </header>
+      <p class="building-description">Guarde recursos para liberar espaço na mochila ou retire o que precisar. Cada toque transfere uma unidade.</p>
+      <div id="chest-items" class="chest-items"></div>
+      <small class="building-help">O conteúdo é salvo automaticamente neste dispositivo.</small>
+    </section>
     <section id="building-panel" class="building-panel hidden" aria-label="Construção da primeira cabana">
       <header class="inventory-header">
         <div><span class="eyebrow">CONSTRUÇÃO</span><strong>PRIMEIRA CABANA</strong></div>
