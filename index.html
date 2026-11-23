@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#243b2b">
+  <meta name="description" content="Legado do Vale 3D — protótipo medieval de exploração em primeira pessoa para PC e celular.">
+  <title>Legado do Vale 3D</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <main id="game">
+    <div id="loading" class="loading">
+      <div class="loading-mark">LV</div>
+      <strong>Legado do Vale 3D</strong>
+      <span>Preparando o vale medieval...</span>
+    </div>
+    <div id="error" class="error hidden"></div>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">LV</span>
+        <div><strong>LEGADO DO VALE</strong><small>PROTÓTIPO 3D · FASE 01</small></div>
+      </div>
+      <div class="top-status"><span class="status-dot"></span> EXPLORAÇÃO</div>
+    </header>
+    <div class="crosshair" aria-hidden="true"><i></i><b></b></div>
+    <section class="location-card">
+      <span class="eyebrow">REGIÃO INICIAL</span>
+      <strong>Vale Central</strong>
+      <span class="location-note">Um novo começo espera por você.</span>
+    </section>
+    <div class="bottom-hint" id="desktop-hint">
+      <span><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> MOVER</span>
+      <span><kbd>SHIFT</kbd> CORRER</span>
+      <span>SEGURE E ARRASTE O MOUSE · OLHAR 360°</span>
+    </div>
+    <div class="mobile-hint" id="mobile-hint">
+      <span>JOYSTICK · MOVER</span>
+      <span>ARRASTE A TELA · OLHAR 360°</span>
+    </div>
+    <div class="joystick-wrap" id="joystick-wrap" aria-label="Controle de movimentação">
+      <div class="joystick-base" id="joystick-base"><div class="joystick-thumb" id="joystick-thumb"></div></div>
+    </div>
+    <div class="look-label">OLHAR</div>
+    <footer class="footer-note"><span>PROTÓTIPO DE DESENVOLVIMENTO</span><span>UM MUNDO EM CONSTRUÇÃO</span></footer>
+  </main>
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>
