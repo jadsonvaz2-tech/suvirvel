@@ -81,6 +81,10 @@
             <div class="inventory-item inventory-item-food"><span class="item-icon item-food">🥕</span><span class="item-name">Cenouras</span><strong id="carrots-count">0</strong><button type="button" data-eat-crop="carrots" class="eat-berry-button" disabled>COMER 1</button></div>
             <div class="inventory-item inventory-item-food"><span class="item-icon item-food">🥬</span><span class="item-name">Repolhos</span><strong id="cabbages-count">0</strong><button type="button" data-eat-crop="cabbages" class="eat-berry-button" disabled>COMER 1</button></div>
             <div class="inventory-item inventory-item-food"><span class="item-icon item-food">🥚</span><span class="item-name">Ovos</span><strong id="eggs-count">0</strong><button type="button" data-eat-animal-food="eggs" class="eat-berry-button" disabled>COMER 1</button></div>
+            <div class="inventory-item inventory-item-food"><span class="item-icon item-food">🍞</span><span class="item-name">Pão caseiro</span><strong id="bread-count">0</strong><button type="button" data-eat-meal="bread" class="eat-berry-button" disabled>COMER 1</button></div>
+            <div class="inventory-item inventory-item-food"><span class="item-icon item-food">🍳</span><span class="item-name">Omelete</span><strong id="omelet-count">0</strong><button type="button" data-eat-meal="omelet" class="eat-berry-button" disabled>COMER 1</button></div>
+            <div class="inventory-item inventory-item-food"><span class="item-icon item-food">🥣</span><span class="item-name">Sopa de legumes</span><strong id="vegetable-soup-count">0</strong><button type="button" data-eat-meal="vegetableSoup" class="eat-berry-button" disabled>COMER 1</button></div>
+            <div class="inventory-item inventory-item-food"><span class="item-icon item-food">🫐</span><span class="item-name">Mingau de frutas</span><strong id="berry-porridge-count">0</strong><button type="button" data-eat-meal="berryPorridge" class="eat-berry-button" disabled>COMER 1</button></div>
           </div>
         </section>
         <section class="inventory-category">
@@ -115,6 +119,12 @@
       <p id="farm-plot-status" class="building-description">Escolha uma semente para plantar.</p>
       <div id="farm-actions" class="farm-actions"></div>
       <small class="building-help">O crescimento acompanha o relógio do jogo e é salvo automaticamente.</small>
+    </section>
+    <section id="kitchen-panel" class="kitchen-panel hidden" aria-label="Cozinha e preparo de alimentos">
+      <header class="inventory-header"><div><span class="eyebrow">COZINHA</span><strong id="kitchen-title">COZINHA DO VALE</strong></div><button type="button" id="kitchen-close" class="inventory-close" aria-label="Fechar cozinha">×</button></header>
+      <p id="kitchen-status" class="building-description">Use lenha e ingredientes para preparar refeições.</p>
+      <div id="kitchen-recipes" class="kitchen-recipes"></div>
+      <small class="building-help">Cada preparo consome 1 madeira como combustível. As refeições ficam na mochila e podem ser consumidas quando precisar recuperar fome.</small>
     </section>
     <section id="animal-panel" class="animal-panel hidden" aria-label="Cuidar dos animais">
       <header class="inventory-header">

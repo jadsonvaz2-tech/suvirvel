@@ -14,7 +14,7 @@ Protótipo de sobrevivência e exploração medieval em 3D, para PC e celular, i
 - Leito do rio ajustado para manter a água visível ao longo do vale.
 - Validação dos dados recuperados do salvamento local.
 
-Os modelos são provisórios (low-poly). Construção, coleta, agricultura, animais, moradores e comércio serão adicionados nas próximas fases, depois da validação desta base.
+Os modelos são provisórios (low-poly). Construção, coleta, agricultura, criação de animais e cozinha já fazem parte do protótipo; moradores e comércio serão desenvolvidos nas próximas fases.
 
 ## Controles
 
@@ -144,6 +144,28 @@ Esta etapa inclui coleta, mochila, alimentação e hidratação; fabricação e 
 - Os ovos podem ser consumidos para recuperar 22 pontos de fome; a lã fica guardada na mochila para futuras receitas.
 - Animais, alimentação, produção pendente, ovos e lã são salvos automaticamente.
 
+
+## Fase 5 — Cozinha e preparo de alimentos
+
+- Ao construir a cabana, uma estação rústica com fogueira e panela aparece ao lado do abrigo.
+- Aproxime-se da fogueira e pressione E no PC ou use o botão de ação no celular para abrir as receitas.
+- Pão caseiro: 2 trigos + 1 madeira como combustível; recupera 45 pontos de fome.
+- Omelete: 2 ovos + 1 madeira; recupera 52 pontos de fome.
+- Sopa de legumes: 1 cenoura + 1 repolho + 1 madeira; recupera 62 pontos de fome.
+- Mingau de frutas: 2 frutas silvestres + 1 trigo + 1 madeira; recupera 55 pontos de fome.
+- Cada preparo consome os ingredientes e uma madeira, e adiciona uma refeição à mochila.
+- As refeições preparadas podem ser consumidas na mochila; quantidades e ingredientes continuam salvos localmente.
+
+## Fase 5 — Cozinha e preparo de alimentos
+
+- Ao construir a cabana, uma estação rústica com fogueira e panela aparece ao lado do abrigo.
+- Aproxime-se da fogueira e pressione E no PC ou use o botão de ação no celular para abrir as receitas.
+- Pão caseiro: 2 trigos + 1 madeira como combustível; recupera 45 pontos de fome.
+- Omelete: 2 ovos + 1 madeira; recupera 52 pontos de fome.
+- Sopa de legumes: 1 cenoura + 1 repolho + 1 madeira; recupera 62 pontos de fome.
+- Mingau de frutas: 2 frutas silvestres + 1 trigo + 1 madeira; recupera 55 pontos de fome.
+- Cada preparo consome os ingredientes e uma madeira, e adiciona uma refeição à mochila.
+- As refeições preparadas podem ser consumidas na mochila; quantidades e ingredientes continuam salvos localmente.
 
 ## Interface da mochila
 

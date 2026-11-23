@@ -367,6 +367,19 @@ kbd { min-width: 17px; padding: 4px 5px; border: 1px solid rgba(241,232,210,.28)
 .farm-actions button:disabled { opacity:.42; cursor:not-allowed; }
 
 
+/* Cozinha e preparo de alimentos */
+.kitchen-panel { position:absolute; z-index:19; top:50%; left:50%; width:min(440px,calc(100vw - 30px)); max-height:min(84vh,680px); overflow:auto; padding:17px; border:1px solid rgba(212,177,107,.72); border-radius:11px; color:var(--cream); background:rgba(25,34,25,.98); box-shadow:0 16px 42px rgba(0,0,0,.46); backdrop-filter:blur(12px); transform:translate(-50%,-50%); }
+.kitchen-panel.hidden { display:none !important; }
+.kitchen-recipes { display:grid; gap:8px; }
+.kitchen-recipe { display:grid; grid-template-columns:42px minmax(0,1fr) auto; gap:9px; align-items:center; padding:10px; border:1px solid rgba(212,177,107,.25); border-radius:8px; background:rgba(255,255,255,.045); }
+.kitchen-recipe-icon { display:grid; place-items:center; width:40px; height:40px; border-radius:7px; background:rgba(212,177,107,.13); font-size:23px; }
+.kitchen-recipe-copy { display:grid; gap:4px; min-width:0; }
+.kitchen-recipe-copy strong { font-family:Georgia,serif; font-size:13px; font-weight:600; }
+.kitchen-recipe-copy small { color:var(--muted); font-size:8px; line-height:1.4; }
+.kitchen-recipe button { min-height:36px; padding:0 9px; border:1px solid rgba(212,177,107,.6); border-radius:6px; color:#fff1ce; background:rgba(111,82,42,.68); font:inherit; font-size:8px; font-weight:900; letter-spacing:.05em; cursor:pointer; }
+.kitchen-recipe button:disabled { opacity:.38; cursor:not-allowed; }
+@media (max-width:420px) { .kitchen-recipe { grid-template-columns:34px minmax(0,1fr); } .kitchen-recipe-icon { width:32px; height:32px; font-size:19px; } .kitchen-recipe button { grid-column:2; width:100%; } }
+
 /* Criação de animais */
 .item-wool { color:#e5dfcf; }
 .animal-panel { position:absolute; z-index:18; top:50%; left:50%; width:min(390px,calc(100vw - 32px)); max-height:min(82vh,650px); overflow:auto; padding:18px; border:1px solid rgba(178,151,112,.72); border-radius:11px; color:var(--cream); background:rgba(29,34,24,.98); box-shadow:0 16px 42px rgba(0,0,0,.46); backdrop-filter:blur(12px); transform:translate(-50%,-50%); }
