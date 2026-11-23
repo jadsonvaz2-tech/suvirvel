@@ -6,6 +6,7 @@ const errorBox = document.getElementById("error");
 const joystickWrap = document.getElementById("joystick-wrap");
 const joystickBase = document.getElementById("joystick-base");
 const joystickThumb = document.getElementById("joystick-thumb");
+const sprintButton = document.getElementById("sprint-button");
 const survivalUI = {
   status: document.getElementById("survival-status"),
   health: { value: document.getElementById("health-value"), fill: document.getElementById("health-fill") },
@@ -372,6 +373,22 @@ function startGame(THREE) {
   joystickWrap.addEventListener("pointerup", releaseJoystick);
   joystickWrap.addEventListener("pointercancel", releaseJoystick);
 
+  // Botão de corrida por toque para manter a mesma ação disponível no celular.
+  let mobileSprintActive = false;
+  function stopMobileSprint() {
+    mobileSprintActive = false;
+    sprintButton.classList.remove("pressed");
+  }
+  sprintButton.addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    mobileSprintActive = true;
+    sprintButton.classList.add("pressed");
+    sprintButton.setPointerCapture?.(event.pointerId);
+  });
+  sprintButton.addEventListener("pointerup", stopMobileSprint);
+  sprintButton.addEventListener("pointercancel", stopMobileSprint);
+  sprintButton.addEventListener("lostpointercapture", stopMobileSprint);
+
   window.addEventListener("keydown", (event) => {
     const key = event.key.toLowerCase();
     if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(key)) event.preventDefault();
@@ -411,7 +428,7 @@ function startGame(THREE) {
     const length = Math.hypot(forward, strafe);
     if (length > 1) { forward /= length; strafe /= length; }
     const hasMoveInput = length > 0.06;
-    const running = keys.has("shift") && hasMoveInput && survival.energy > 0.5;
+    const running = (keys.has("shift") || mobileSprintActive) && hasMoveInput && survival.energy > 0.5;
     const speed = running ? 9.2 : 5.3;
     const sin = Math.sin(player.yaw);
     const cos = Math.cos(player.yaw);

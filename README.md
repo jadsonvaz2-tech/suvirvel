@@ -26,6 +26,7 @@ Os modelos são provisórios (low-poly). Construção, coleta, agricultura, anim
 ### Celular
 - Joystick no canto inferior esquerdo: movimentar.
 - Arrastar a área livre da tela: olhar ao redor.
+- Segurar CORRER no canto inferior direito: correr enquanto houver vigor.
 
 ## Tecnologia
 
@@ -40,9 +41,9 @@ O GitHub Pages publica automaticamente a branch `main` usando o publicador nativ
 
 ## Fase 2 — Sobrevivência inicial
 
-- Indicadores de vida, fome, sede e vigor.
+- Indicadores de vida, fome, sede e vigor em HUD adaptado para PC e celular.
 - Fome e sede diminuem gradualmente enquanto o jogo está ativo.
-- Correr com Shift consome vigor; ficar parado recupera vigor.
+- Correr com Shift no PC ou segurando o botão CORRER no celular consome vigor; ficar parado recupera vigor.
 - Quando fome ou sede chegam a zero, a vida começa a diminuir.
 - Os quatro atributos são salvos localmente junto da posição do jogador.
 - HUD adaptado para monitor e telas de celular.
