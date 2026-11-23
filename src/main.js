@@ -1,4 +1,4 @@
-import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js";
+const THREE_MODULE_URL = "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js";
 
 const game = document.getElementById("game");
 const loading = document.getElementById("loading");
@@ -7,11 +7,16 @@ const joystickWrap = document.getElementById("joystick-wrap");
 const joystickBase = document.getElementById("joystick-base");
 const joystickThumb = document.getElementById("joystick-thumb");
 
-try {
-  startGame();
-} catch (error) {
-  showError(error);
+async function bootGame() {
+  try {
+    const THREE = await import(THREE_MODULE_URL);
+    startGame(THREE);
+  } catch (error) {
+    showError(error);
+  }
 }
+
+bootGame();
 
 function showError(error) {
   console.error(error);
@@ -20,7 +25,7 @@ function showError(error) {
   loading.classList.add("hidden");
 }
 
-function startGame() {
+function startGame(THREE) {
   const isMobile = matchMedia("(pointer: coarse)").matches || innerWidth <= 700;
   const scene = new THREE.Scene();
   const sky = new THREE.Color(0x9fc4d1);
@@ -48,7 +53,15 @@ function startGame() {
   function groundHeight(x, z) {
     let h = 1.05 + Math.sin(x * 0.045) * 0.72 + Math.cos(z * 0.04) * 0.78 + Math.sin((x + z) * 0.025) * 0.62;
     const d = riverDistance(x, z);
-    if (d < 9.5) h -= Math.pow(1 - d / 9.5, 1.35) * 2.65;
+
+    // Mantém todo o leito abaixo da água e suaviza as margens para evitar
+    // que o terreno cubra a superfície do rio em partes do percurso.
+    if (d < 10) {
+      const riverBed = WATER_Y - 0.55;
+      const bankBlend = THREE.MathUtils.clamp((d - 7.2) / 2.8, 0, 1);
+      const smoothBank = bankBlend * bankBlend * (3 - 2 * bankBlend);
+      h = riverBed + (h - riverBed) * smoothBank;
+    }
     return h;
   }
 
@@ -224,7 +237,16 @@ function startGame() {
   function readSave() {
     try {
       const value = localStorage.getItem("legado-do-vale-prototipo");
-      return value ? JSON.parse(value) : null;
+      if (!value) return null;
+      const saved = JSON.parse(value);
+      if (!saved || !Number.isFinite(saved.x) || !Number.isFinite(saved.z)) return null;
+      if (Math.abs(saved.x) > 104 || Math.abs(saved.z) > 104) return null;
+      return {
+        x: saved.x,
+        z: saved.z,
+        yaw: Number.isFinite(saved.yaw) ? saved.yaw : 0,
+        pitch: Number.isFinite(saved.pitch) ? THREE.MathUtils.clamp(saved.pitch, -1.15, 1.15) : -0.04
+      };
     } catch {
       return null;
     }
