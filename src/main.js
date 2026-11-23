@@ -151,16 +151,65 @@ function startGame(THREE) {
   }
   // Carrega o progresso antes de criar os recursos do cenário, para que
   // os pontos já recolhidos não sejam recriados após atualizar a página.
+  // O ponto de recursos é ancorado na posição inicial salva do jogador.
+  // Assim, a primeira área de coleta aparece perto do personagem mesmo em saves antigos.
   const saved = readSave();
-  const collectedResources = new Set(saved?.collectedResources ?? []);
+  const resourceBase = saved?.resourceBase ?? {
+    x: saved?.x ?? 0,
+    z: saved?.z ?? 35,
+    yaw: saved?.yaw ?? 0
+  };
+  const forwardX = -Math.sin(resourceBase.yaw);
+  const forwardZ = -Math.cos(resourceBase.yaw);
+  const rightX = Math.cos(resourceBase.yaw);
+  const rightZ = -Math.sin(resourceBase.yaw);
+  function resourcePosition(side, forward) {
+    return {
+      x: resourceBase.x + rightX * side + forwardX * forward,
+      z: resourceBase.z + rightZ * side + forwardZ * forward
+    };
+  }
 
+  const collectedResources = new Set(saved?.collectedResources ?? []);
   const collectibleNodes = [];
   const collectibleMeshes = [];
-  function addResourceNode(id, itemKey, label, amount, x, z, build) {
+
+  function makeResourceLabel(text, accent) {
+    const canvas = document.createElement("canvas");
+    canvas.width = 512;
+    canvas.height = 128;
+    const context = canvas.getContext("2d");
+    context.fillStyle = "rgba(20, 32, 24, 0.94)";
+    context.fillRect(8, 8, 496, 112);
+    context.strokeStyle = accent;
+    context.lineWidth = 7;
+    context.strokeRect(11, 11, 490, 106);
+    context.fillStyle = "#fff1d0";
+    context.font = "bold 40px Arial, sans-serif";
+    context.textAlign = "center";
+    context.textBaseline = "middle";
+    context.fillText(text, 256, 65);
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    const material = new THREE.SpriteMaterial({
+      map: texture,
+      transparent: true,
+      depthTest: false,
+      depthWrite: false
+    });
+    const sprite = new THREE.Sprite(material);
+    sprite.position.set(0, 2.6, 0);
+    sprite.scale.set(3.75, 0.94, 1);
+    sprite.renderOrder = 20;
+    return sprite;
+  }
+
+  function addResourceNode(id, itemKey, label, amount, x, z, accent, build) {
     if (collectedResources.has(id)) return;
     const root = new THREE.Group();
     root.position.set(x, groundHeight(x, z), z);
     build(root);
+    root.add(makeResourceLabel(label.toLocaleUpperCase("pt-BR") + "  +" + amount, accent));
     scene.add(root);
     const node = { id, itemKey, label, amount, root, x, z };
     root.traverse((object) => {
@@ -172,39 +221,48 @@ function startGame(THREE) {
     collectibleNodes.push(node);
   }
 
-  // Pequenos recursos iniciais, posicionados na clareira em frente ao jogador.
-  addResourceNode("branch-pile-01", "branches", "Galhos", 3, -2.7, 29.5, (root) => {
-    const material = new THREE.MeshStandardMaterial({ color: 0x795638, roughness: 1 });
-    const twig = new THREE.CylinderGeometry(0.075, 0.095, 1.15, 5);
-    [[0,0.12,0,0.12],[0.12,0.13,0.2,-0.28],[-0.13,0.15,-0.18,0.38]].forEach(([x,y,z,rz]) => {
+  // Recursos maiores e etiquetas flutuantes para que sejam fáceis de localizar.
+  const branchSpot = resourcePosition(-1.55, 3.65);
+  addResourceNode("branch-pile-01", "branches", "Galhos", 3, branchSpot.x, branchSpot.z, "#d5a15f", (root) => {
+    const material = new THREE.MeshStandardMaterial({ color: 0x8b6038, roughness: 1 });
+    const twig = new THREE.CylinderGeometry(0.105, 0.13, 1.75, 6);
+    [[0,0.19,0,0.18],[0.1,0.28,0.18,-0.3],[-0.12,0.37,-0.16,0.34],[0.03,0.48,-0.28,-0.12]].forEach(([x,y,z,rz]) => {
       const mesh = new THREE.Mesh(twig, material);
       mesh.position.set(x,y,z);
       mesh.rotation.set(0,0,Math.PI/2+rz);
       root.add(mesh);
     });
+    const leafMaterial = new THREE.MeshStandardMaterial({color:0x587343,roughness:1});
+    const leaf = new THREE.Mesh(new THREE.IcosahedronGeometry(0.18,0),leafMaterial);
+    leaf.position.set(0.65,0.25,0.08);
+    root.add(leaf);
   });
-  addResourceNode("stone-cluster-01", "stones", "Pedras", 4, 2.9, 27.8, (root) => {
-    const material = new THREE.MeshStandardMaterial({ color: 0x85877c, roughness: 1, flatShading: true });
-    const geometry = new THREE.DodecahedronGeometry(0.34, 0);
-    [[-0.3,0.23,0],[0.2,0.2,0.12],[0.38,0.18,-0.32],[-0.08,0.16,-0.42]].forEach(([x,y,z],index) => {
+
+  const stoneSpot = resourcePosition(1.55, 3.65);
+  addResourceNode("stone-cluster-01", "stones", "Pedras", 4, stoneSpot.x, stoneSpot.z, "#bfc6c2", (root) => {
+    const material = new THREE.MeshStandardMaterial({ color: 0x969b91, roughness: 1, flatShading: true });
+    const geometry = new THREE.DodecahedronGeometry(0.48, 0);
+    [[-0.42,0.35,0,1.05],[0.2,0.32,0.12,0.9],[0.48,0.28,-0.36,0.82],[-0.12,0.25,-0.5,0.88],[0.03,0.66,-0.14,0.72]].forEach(([x,y,z,s]) => {
       const mesh = new THREE.Mesh(geometry,material);
       mesh.position.set(x,y,z);
-      mesh.scale.set(1+index*0.05,0.8+index*0.04,0.9);
+      mesh.scale.set(s*1.15,s*0.82,s);
       root.add(mesh);
     });
   });
-  addResourceNode("berry-bush-01", "berries", "Frutas silvestres", 3, 0.4, 21.7, (root) => {
-    const leaf = new THREE.MeshStandardMaterial({ color: 0x376842, roughness: 1, flatShading: true });
-    const berry = new THREE.MeshStandardMaterial({ color: 0x9f3342, roughness: 0.75 });
-    const bushGeometry = new THREE.IcosahedronGeometry(0.65, 0);
-    [[-0.35,0.52,0],[0.25,0.48,0.12],[0,0.72,-0.32]].forEach(([x,y,z]) => {
+
+  const berrySpot = resourcePosition(0, 5.35);
+  addResourceNode("berry-bush-01", "berries", "Frutas", 3, berrySpot.x, berrySpot.z, "#d77b87", (root) => {
+    const leaf = new THREE.MeshStandardMaterial({ color: 0x3c7546, roughness: 1, flatShading: true });
+    const berry = new THREE.MeshStandardMaterial({ color: 0xd33e56, roughness: 0.68, emissive: 0x3c0710 });
+    const bushGeometry = new THREE.IcosahedronGeometry(0.82, 1);
+    [[-0.48,0.66,0],[0.38,0.62,0.18],[0,0.82,-0.38],[-0.05,0.48,0.36]].forEach(([x,y,z]) => {
       const mesh = new THREE.Mesh(bushGeometry,leaf);
       mesh.position.set(x,y,z);
-      mesh.scale.set(1.05,0.9,0.95);
+      mesh.scale.set(1.08,0.86,1);
       root.add(mesh);
     });
-    [[-0.45,0.68,0.12],[0.12,0.92,0.18],[0.42,0.62,-0.2],[-0.06,0.54,-0.47]].forEach(([x,y,z]) => {
-      const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.11,8,6),berry);
+    [[-0.56,0.82,0.14],[0.15,1.1,0.28],[0.57,0.8,-0.22],[-0.12,0.63,-0.58],[0.33,0.48,0.42]].forEach(([x,y,z]) => {
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.15,10,8),berry);
       mesh.position.set(x,y,z);
       root.add(mesh);
     });
@@ -390,6 +448,14 @@ function startGame(THREE) {
           stones: safeCount(saved.inventory?.stones),
           berries: safeCount(saved.inventory?.berries)
         },
+        resourceBase: saved.resourceBase &&
+          Number.isFinite(saved.resourceBase.x) && Number.isFinite(saved.resourceBase.z)
+          ? {
+              x: THREE.MathUtils.clamp(saved.resourceBase.x, -100, 100),
+              z: THREE.MathUtils.clamp(saved.resourceBase.z, -100, 100),
+              yaw: Number.isFinite(saved.resourceBase.yaw) ? saved.resourceBase.yaw : 0
+            }
+          : null,
         collectedResources: Array.isArray(saved.collectedResources)
           ? saved.collectedResources.filter((id) => ["branch-pile-01", "stone-cluster-01", "berry-bush-01"].includes(id))
           : []
@@ -408,6 +474,7 @@ function startGame(THREE) {
         x: player.x, z: player.z, yaw: player.yaw, pitch: player.pitch,
         health: survival.health, hunger: survival.hunger, thirst: survival.thirst, energy: survival.energy,
         inventory: { ...inventory },
+        resourceBase: { ...resourceBase },
         collectedResources: [...collectedResources]
       }));
     } catch { /* O jogo continua mesmo sem armazenamento disponível. */ }
@@ -526,19 +593,24 @@ function startGame(THREE) {
     return false;
   }
 
-  const resourceRaycaster = new THREE.Raycaster();
-  const screenCenter = new THREE.Vector2(0, 0);
   function updateResourceTarget() {
-    camera.updateMatrixWorld();
-    resourceRaycaster.setFromCamera(screenCenter, camera);
-    const hits = resourceRaycaster.intersectObjects(collectibleMeshes, false);
+    const facingX = -Math.sin(player.yaw);
+    const facingZ = -Math.cos(player.yaw);
     let match = null;
-    for (const hit of hits) {
-      const node = hit.object.userData.resourceNode;
-      if (!node || collectedResources.has(node.id)) continue;
-      const distance = Math.hypot(player.x - node.x, player.z - node.z);
-      if (distance <= 4.2) { match = node; break; }
+    let bestDistance = Infinity;
+
+    for (const node of collectibleNodes) {
+      if (collectedResources.has(node.id)) continue;
+      const dx = node.x - player.x;
+      const dz = node.z - player.z;
+      const distance = Math.hypot(dx, dz);
+      if (distance > 5.9 || distance < 0.1) continue;
+      const facing = (dx * facingX + dz * facingZ) / distance;
+      if (facing < 0.62 || distance >= bestDistance) continue;
+      match = node;
+      bestDistance = distance;
     }
+
     currentResourceTarget = match;
     interactionPrompt.classList.toggle("hidden", !match);
     collectButton.classList.toggle("hidden", !match || !isMobile);
