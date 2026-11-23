@@ -870,9 +870,12 @@ function startGame(THREE) {
     const eligibleHeirs=familyChildren.slice().sort((a,b)=>a.birthDay-b.birthDay);
     const selectedHeir=familyChildren.find(child=>child.id===dynastyState.heirId);
     const storedAssets=Object.values(inventory).reduce((sum,value)=>sum+(Number.isFinite(value)?Math.max(0,value):0),0)+Object.values(villageStock).reduce((sum,value)=>sum+(Number.isFinite(value)?Math.max(0,value):0),0);
+    const localRep=settlementReputation.vale||0;
+    const localRank=localRep>=35?"Grande líder regional":localRep>=20?"Prestigiado":localRep>=10?"Respeitado":localRep>=5?"Conhecido":"Estrangeiro";
+    const reputationMarkup='<section class="village-relationships"><h3 class="villager-invite-heading">REPUTAÇÃO · FAMA E INFLUÊNCIA</h3><p>Suas atitudes e compromissos constroem sua confiança perante os moradores.</p><div class="village-couple"><strong>🏘️ Assentamento do Vale</strong><span>'+localRank+' · '+localRep+'/35 pontos para o título máximo</span><div class="villager-needs-track"><i style="width:'+Math.min(100,localRep/35*100)+'%"></i></div><small>'+completedTradeContracts.size+' encomendas concluídas · Reputação comercial geral: '+tradeReputation+'</small></div><div class="village-couple"><strong>Próximos títulos</strong><small>Conhecido: 5 · Respeitado: 10 · Prestigiado: 20 · Grande líder regional: 35</small><small>Os títulos representam confiança crescente e preparam benefícios e missões especiais.</small></div><div class="village-couple"><strong>Outras vilas do reino</strong><small>As reputações de outras localidades serão ativadas quando essas vilas forem adicionadas ao mapa.</small></div></section>';
     const dynastyMarkup='<section class="village-relationships"><h3 class="villager-invite-heading">DINASTIA · HERANÇA E SUCESSÃO</h3><p>Fundador: Personagem principal · '+familyChildren.length+' descendentes registrados · '+villageHouses.length+' propriedades familiares</p><label class="villager-profession-label">HERDEIRO PRINCIPAL <select data-dynasty-heir><option value="">Escolher sucessor</option>'+eligibleHeirs.map(child=>'<option value="'+child.id+'" '+(dynastyState.heirId===child.id?"selected":"")+'>'+child.name+' · '+childDevelopment(child).stage+' · '+childDevelopment(child).ageYears+' ano(s)</option>').join("")+'</select></label><label class="villager-profession-label">RESIDÊNCIA PRINCIPAL DA FAMÍLIA <select data-dynasty-house><option value="">Selecionar propriedade</option>'+villageHouses.map((house,index)=>'<option value="'+house.id+'" '+(dynastyState.familyHouseId===house.id?"selected":"")+'>Casa '+(index+1)+'</option>').join("")+'</select></label><div class="village-couple"><strong>Patrimônio preparado para a sucessão</strong><span>'+coins+' moedas · '+villageHouses.length+' casas · '+storedAssets+' itens em inventário e depósito</span><small>'+(selectedHeir?'Sucessor escolhido: '+selectedHeir.name:'Nenhum sucessor escolhido')+' · '+(dynastyState.familyHouseId?'Residência familiar definida':'Residência familiar não definida')+'</small><small>A herança ficará vinculada ao sucessor e à residência escolhida. Nenhum bem ou moeda será transferido agora; a sucessão por falecimento será uma etapa futura.</small></div></section>';
         const stockMarkup='<section class="village-stock"><h3 class="villager-invite-heading">DEPÓSITO DA VILA</h3><p class="village-food-status">🍲 Provisões: <strong>'+villageFoodCount()+' refeições</strong> · '+villagers.length+' moradores<br><small>'+foodStatus+'</small></p><div class="village-stock-grid">'+Object.entries(villageStockLabels).map(([key,label])=>'<span>'+label+'</span><strong>'+String(villageStock[key]||0)+'</strong>').join("")+'</div><button type="button" data-deposit-village class="village-deposit-button">DEPOSITAR RECURSOS DA MOCHILA</button><small class="village-stock-note">Cada morador consome 1 refeição por dia, retirada automaticamente do depósito. A cozinheira prepara carne assada ou sopa quando há ingredientes.</small></section>';
-    villagersList.innerHTML=dynastyMarkup+relationshipMarkup+pregnancyMarkup+familyTreeMarkup+(villagers.length?villagers.map(v=>{
+    villagersList.innerHTML=reputationMarkup+dynastyMarkup+relationshipMarkup+pregnancyMarkup+familyTreeMarkup+(villagers.length?villagers.map(v=>{
       const distance=Math.hypot(v.x-player.x,v.z-player.z),direction=villagerDirection(v);
       const mood=v.happiness>=75?"Muito feliz":v.happiness>=50?"Satisfeito":v.happiness>=25?"Insatisfeito":"Muito insatisfeito";
       return '<article class="villager-directory-item"><div><strong>'+v.name+'</strong><span>'+v.role+' · '+mood+'</span><small class="villager-romance">'+villagerRelationshipLabel(v)+'</small><small>Felicidade '+Math.round(v.happiness)+'/100 · Fome '+Math.round(v.hunger)+'/100</small><div class="villager-needs-track"><i style="width:'+v.happiness+'%"></i></div><small>'+v.foodStatus+' · '+v.housingStatus+' · '+(v.atWork?"Trabalhando":"Em casa / deslocando-se")+' · '+direction+' · '+distance.toFixed(0)+' m · Casa '+v.houseId.replace("house-","")+'</small><label class="villager-profession-label">PROFISSÃO <select data-villager-profession="'+v.id+'">'+villagerDefinitions.map(def=>'<option value="'+def.role+'" '+(def.role===v.role?"selected":"")+' >'+def.role+'</option>').join("")+'</select></label></div><button type="button" data-face-villager="'+v.id+'">LOCALIZAR</button></article>';
@@ -1622,6 +1625,7 @@ function startGame(THREE) {
   };
   let coins = Number.isSafeInteger(saved?.coins) ? Math.max(0,Math.min(999999,saved.coins)) : 30;
   let tradeReputation=Number.isSafeInteger(saved?.tradeReputation)?Math.max(0,Math.min(9999,saved.tradeReputation)):0;
+  const settlementReputation={vale:Number.isSafeInteger(saved?.settlementReputation?.vale)?THREE.MathUtils.clamp(saved.settlementReputation.vale,0,9999):tradeReputation};
   const completedTradeContracts=new Set(Array.isArray(saved?.completedTradeContracts)?saved.completedTradeContracts.filter(id=>typeof id==="string"):[]);
   const inventory = {
     branches: saved?.inventory?.branches ?? 0,
@@ -1868,6 +1872,7 @@ function startGame(THREE) {
         pitch: Number.isFinite(saved.pitch) ? THREE.MathUtils.clamp(saved.pitch, -1.15, 1.15) : -0.04,
         coins: Number.isSafeInteger(saved.coins)?THREE.MathUtils.clamp(saved.coins,0,999999):30,
         tradeReputation:Number.isSafeInteger(saved.tradeReputation)?THREE.MathUtils.clamp(saved.tradeReputation,0,9999):0,
+        settlementReputation:{vale:Number.isSafeInteger(saved.settlementReputation?.vale)?THREE.MathUtils.clamp(saved.settlementReputation.vale,0,9999):(Number.isSafeInteger(saved.tradeReputation)?THREE.MathUtils.clamp(saved.tradeReputation,0,9999):0)},
         completedTradeContracts:Array.isArray(saved.completedTradeContracts)?saved.completedTradeContracts.filter(id=>typeof id==="string"&&id.length<80).slice(-100):[],
         health: safeStat(saved.health),
         hunger: safeStat(saved.hunger),
@@ -1961,6 +1966,7 @@ function startGame(THREE) {
         seedStarterPackClaimed: true,
         coins,
         tradeReputation,
+        settlementReputation:{...settlementReputation},
         completedTradeContracts:[...completedTradeContracts],
         completedVillagerTasks:[...completedVillagerTasks],
         tanneryState:{...tanneryState},
@@ -2218,7 +2224,7 @@ function startGame(THREE) {
     if(!contract||completedTradeContracts.has(id))return;
     if((inventory[contract.key]||0)<contract.quantity){showToast("Você ainda não tem todos os produtos da encomenda.");return;}
     inventory[contract.key]-=contract.quantity;coins=Math.min(999999,coins+contract.reward);
-    tradeReputation=Math.min(9999,tradeReputation+contract.rep);completedTradeContracts.add(id);
+    tradeReputation=Math.min(9999,tradeReputation+contract.rep);settlementReputation.vale=Math.min(9999,(settlementReputation.vale||0)+contract.rep);completedTradeContracts.add(id);
     const newlyUnlocked=tradeReputation>=5&&tradeReputation-contract.rep<5;
     showToast("Encomenda entregue! +"+contract.reward+" moedas e +"+contract.rep+" reputação."+ (newlyUnlocked?" Novos produtos desbloqueados!":""));
     updateInventoryUI();renderMerchantPanel();saveProgress(true);
