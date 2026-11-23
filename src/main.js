@@ -920,6 +920,14 @@ function startGame(THREE) {
     trousers: saved?.inventory?.trousers ?? 0,
     boots: saved?.inventory?.boots ?? 0
   };
+  // Pacote único para quem já tinha uma fazenda salva: sementes para retomar o cultivo.
+  let seedStarterPackClaimed = saved?.seedStarterPackClaimed === true;
+  if (saved && !seedStarterPackClaimed) {
+    inventory.wheatSeeds = Math.min(9999, inventory.wheatSeeds + 10);
+    inventory.carrotSeeds = Math.min(9999, inventory.carrotSeeds + 10);
+    inventory.cabbageSeeds = Math.min(9999, inventory.cabbageSeeds + 10);
+    seedStarterPackClaimed = true;
+  }
   const clothing = {tunic:saved?.clothing?.tunic===true,trousers:saved?.clothing?.trousers===true,boots:saved?.clothing?.boots===true};
   const tools = { axe: saved?.tools?.axe === true };
   const storage = { branches:saved?.storage?.branches??0, stones:saved?.storage?.stones??0, berries:saved?.storage?.berries??0, wood:saved?.storage?.wood??0 };
@@ -1118,6 +1126,7 @@ function startGame(THREE) {
         thirst: safeStat(saved.thirst),
         energy: safeStat(saved.energy), warmth: safeStat(saved.warmth),
         clothing:{tunic:saved.clothing?.tunic===true,trousers:saved.clothing?.trousers===true,boots:saved.clothing?.boots===true},
+        seedStarterPackClaimed: saved.seedStarterPackClaimed === true,
         inventory: {
           branches: safeCount(saved.inventory?.branches),
           stones: safeCount(saved.inventory?.stones),
@@ -1180,6 +1189,7 @@ function startGame(THREE) {
     try {
       localStorage.setItem("legado-do-vale-prototipo", JSON.stringify({
         x: player.x, z: player.z, yaw: player.yaw, pitch: player.pitch,
+        seedStarterPackClaimed: true,
         health: survival.health, hunger: survival.hunger, thirst: survival.thirst, energy: survival.energy, warmth: survival.warmth, clothing:{...clothing},
         inventory: { ...inventory },
         farmPlots: farmPlots.map(({id,crop,plantedAt})=>({id,crop,plantedAt})),
@@ -1636,9 +1646,13 @@ function startGame(THREE) {
     const definition=cropTypes[plot.crop];
     if(totalGameMinutes()-plot.plantedAt<definition.growth){showToast("A plantação ainda não está madura.");return;}
     inventory[definition.produce]=Math.min(9999,inventory[definition.produce]+1);
+    // Cada colheita devolve uma semente da mesma cultura; há 25% de chance de ganhar outra.
+    inventory[definition.seed]=Math.min(9999,inventory[definition.seed]+1);
+    const bonusSeed=Math.random()<0.25;
+    if(bonusSeed)inventory[definition.seed]=Math.min(9999,inventory[definition.seed]+1);
     plot.crop=null;plot.plantedAt=0;plot.visualStage=-1;refreshFarmPlotVisual(plot);
     updateInventoryUI();renderFarmPanel();saveProgress(true);
-    showToast("Colheita realizada · +1 "+definition.label.toLowerCase());
+    showToast("Colheita realizada · +1 "+definition.label.toLowerCase()+" · +"+(bonusSeed?2:1)+" semente(s)");
   }
   farmActions.addEventListener("click",event=>{
     const plant=event.target.closest("button[data-farm-plant]");

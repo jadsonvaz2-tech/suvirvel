@@ -185,3 +185,12 @@ Esta etapa inclui coleta, mochila, alimentação e hidratação; fabricação e 
 - O cabeçalho e o rodapé permanecem visíveis; somente a lista interna rola quando há muitos itens.
 - A grade se adapta à largura e à altura disponíveis em computadores e celulares, mantendo nomes, quantidades e ações dentro do painel.
 - A reorganização é somente visual: itens, quantidades, consumo e salvamento continuam usando o mesmo inventário existente.
+
+
+## Fase 7 — Sementes renováveis e pacote de retomada da horta
+
+- Em salvamentos existentes, o jogador recebe uma única vez +10 sementes de trigo, +10 de cenoura e +10 de repolho para retomar a produção.
+- Ao colher trigo, cenoura ou repolho, recebe de volta 1 semente da mesma cultura.
+- Cada colheita tem ainda 25% de chance de conceder uma segunda semente.
+- O pacote inicial é marcado no salvamento para não ser concedido novamente ao recarregar o jogo.
+- Sementes e colheitas continuam integradas à mochila e ao sistema de plantio já existente.
