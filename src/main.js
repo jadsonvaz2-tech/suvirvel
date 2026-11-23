@@ -10,6 +10,9 @@ const sprintButton = document.getElementById("sprint-button");
 const inventoryToggle = document.getElementById("inventory-toggle");
 const inventoryPanel = document.getElementById("inventory-panel");
 const inventoryClose = document.getElementById("inventory-close");
+const eatBerryButton = document.getElementById("eat-berry-button");
+const interactionType = document.getElementById("interaction-type");
+const interactionVerb = document.getElementById("interaction-verb");
 const collectButton = document.getElementById("collect-button");
 const interactionPrompt = document.getElementById("interaction-prompt");
 const interactionName = document.getElementById("interaction-name");
@@ -359,6 +362,7 @@ function startGame(THREE) {
     berries: saved?.inventory?.berries ?? 0
   };
   let currentResourceTarget = null;
+  let canDrinkWater = false;
   let interactionScanTimer = 0;
   let toastTimeout = 0;
   let survivalUiTimer = 0;
@@ -384,6 +388,13 @@ function startGame(THREE) {
     for (const key of ["branches", "stones", "berries"]) {
       inventoryUI[key].textContent = String(inventory[key]);
     }
+    const canEatBerry = inventory.berries > 0 && survival.hunger < 99.5;
+    eatBerryButton.disabled = !canEatBerry;
+    eatBerryButton.setAttribute(
+      "aria-label",
+      canEatBerry ? "Comer uma fruta para recuperar fome" :
+        inventory.berries < 1 ? "Você não tem frutas na mochila" : "Sua fome já está saciada"
+    );
   }
   function showToast(message) {
     gameToast.textContent = message;
@@ -391,6 +402,24 @@ function startGame(THREE) {
     window.clearTimeout(toastTimeout);
     toastTimeout = window.setTimeout(() => gameToast.classList.add("hidden"), 2100);
   }
+  function eatBerry() {
+    if (inventory.berries < 1) {
+      showToast("Você não tem frutas na mochila.");
+      return;
+    }
+    if (survival.hunger >= 100) {
+      showToast("Sua fome já está saciada.");
+      updateInventoryUI();
+      return;
+    }
+    inventory.berries -= 1;
+    survival.hunger = Math.min(100, survival.hunger + 25);
+    updateInventoryUI();
+    updateSurvivalUI(true);
+    saveProgress(true);
+    showToast("Você comeu 1 fruta · fome +25");
+  }
+  eatBerryButton.addEventListener("click", eatBerry);
   function toggleInventory(force) {
     const open = typeof force === "boolean" ? force : inventoryPanel.classList.contains("hidden");
     inventoryPanel.classList.toggle("hidden", !open);
@@ -570,7 +599,7 @@ function startGame(THREE) {
   window.addEventListener("keydown", (event) => {
     const key = event.key.toLowerCase();
     if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", " ", "e", "i"].includes(key)) event.preventDefault();
-    if (!event.repeat && key === "e") collectCurrentResource();
+    if (!event.repeat && key === "e") performCurrentInteraction();
     if (!event.repeat && key === "i") toggleInventory();
     keys.add(key);
   });
@@ -611,10 +640,34 @@ function startGame(THREE) {
       bestDistance = distance;
     }
 
+    const bankDistance = riverDistance(player.x, player.z);
+    canDrinkWater = !match && bankDistance >= 8.2 && bankDistance <= 12.4 && survival.thirst < 99.5;
     currentResourceTarget = match;
-    interactionPrompt.classList.toggle("hidden", !match);
-    collectButton.classList.toggle("hidden", !match || !isMobile);
-    if (match) interactionName.textContent = match.label + " · " + match.amount;
+    const hasInteraction = Boolean(match) || canDrinkWater;
+    interactionPrompt.classList.toggle("hidden", !hasInteraction);
+    collectButton.classList.toggle("hidden", !hasInteraction || !isMobile);
+
+    if (match) {
+      interactionType.textContent = "RECURSO AO ALCANCE";
+      interactionName.textContent = match.label + " · " + match.amount;
+      interactionVerb.textContent = "recolher";
+      collectButton.textContent = "RECOLHER";
+    } else if (canDrinkWater) {
+      interactionType.textContent = "MARGEM DO RIO";
+      interactionName.textContent = "Água do rio";
+      interactionVerb.textContent = "beber água";
+      collectButton.textContent = "BEBER ÁGUA";
+    }
+  }
+  function drinkWater() {
+    const bankDistance = riverDistance(player.x, player.z);
+    if (!canDrinkWater || bankDistance < 8.2 || bankDistance > 12.4 || survival.thirst >= 100) return;
+    survival.thirst = Math.min(100, survival.thirst + 35);
+    canDrinkWater = false;
+    updateSurvivalUI(true);
+    saveProgress(true);
+    showToast("Você bebeu água do rio · sede +35");
+    updateResourceTarget();
   }
   function collectCurrentResource() {
     const node = currentResourceTarget;
@@ -634,7 +687,11 @@ function startGame(THREE) {
     saveProgress(true);
     showToast("+" + node.amount + " · " + node.label + " recolhidos");
   }
-  collectButton.addEventListener("click", collectCurrentResource);
+  function performCurrentInteraction() {
+    if (currentResourceTarget) collectCurrentResource();
+    else if (canDrinkWater) drinkWater();
+  }
+  collectButton.addEventListener("click", performCurrentInteraction);
 
   const clock = new THREE.Clock();
   function animate() {

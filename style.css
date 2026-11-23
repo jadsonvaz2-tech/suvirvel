@@ -256,3 +256,26 @@ kbd { min-width: 17px; padding: 4px 5px; border: 1px solid rgba(241,232,210,.28)
   .collect-button:not(.hidden) { display: grid; place-items: center; }
   .game-toast { bottom: 232px; max-width: calc(100vw - 30px); font-size: 9px; }
 }
+
+
+/* Consumo de frutas e hidratação na margem do rio */
+.inventory-item-food { grid-template-columns: 28px minmax(0, 1fr) auto auto; }
+.eat-berry-button {
+  min-height: 29px;
+  padding: 0 8px;
+  border: 1px solid rgba(212,177,107,.5);
+  border-radius: 6px;
+  color: var(--cream);
+  background: rgba(92,75,42,.55);
+  font: inherit;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .06em;
+  cursor: pointer;
+}
+.eat-berry-button:disabled { opacity: .38; cursor: not-allowed; }
+@media (max-width: 700px), (pointer: coarse) {
+  .inventory-item-food { grid-template-columns: 26px minmax(0, 1fr) auto auto; gap: 6px; padding-inline: 7px; }
+  .eat-berry-button { padding: 0 6px; font-size: 7px; }
+  .collect-button { min-width: 108px; }
+}

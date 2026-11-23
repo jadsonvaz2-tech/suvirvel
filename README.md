@@ -48,7 +48,7 @@ O GitHub Pages publica automaticamente a branch `main` usando o publicador nativ
 - Os quatro atributos são salvos localmente junto da posição do jogador.
 - HUD adaptado para monitor e telas de celular.
 
-Os indicadores começam em 100%. Nesta etapa ainda não há itens para comer, beber ou curar; esses meios de recuperação serão adicionados em etapas posteriores, sem avançar além do escopo aprovado.
+Os indicadores começam em 100%. Frutas silvestres podem ser consumidas pela mochila para recuperar fome, e água pode ser bebida na margem segura do rio para recuperar sede. A vida continua sendo afetada quando fome ou sede chegam a zero.
 
 ## Próximas etapas
 
@@ -66,5 +66,8 @@ Os indicadores começam em 100%. Nesta etapa ainda não há itens para comer, be
 - A mochila abre com I no PC ou pelo botão MOCHILA.
 - Quantidades recolhidas são guardadas localmente junto dos atributos e posição.
 - Os pontos de coleta já recolhidos continuam recolhidos ao recarregar o jogo.
+- Na mochila, use COMER 1 para consumir uma fruta silvestre e recuperar 25 pontos de fome.
+- Na margem segura do rio, pressione E no PC ou toque em BEBER ÁGUA no celular para recuperar 35 pontos de sede.
+- Comer e beber atualizam os indicadores e salvam o progresso imediatamente.
 
-Esta versão é uma primeira demonstração de coleta e inventário; não inclui fabricação, consumo de alimentos ou construção.
+Esta etapa inclui coleta, mochila, alimentação e hidratação; fabricação e construção permanecem para etapas futuras.
