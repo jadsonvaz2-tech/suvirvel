@@ -45,6 +45,7 @@ const kitchenTitle = document.getElementById("kitchen-title");
 const kitchenStatus = document.getElementById("kitchen-status");
 const kitchenRecipes = document.getElementById("kitchen-recipes");
 const loomPanel = document.getElementById("loom-panel"), loomClose = document.getElementById("loom-close"), loomTitle = document.getElementById("loom-title"), loomStatus = document.getElementById("loom-status"), loomActions = document.getElementById("loom-actions");
+const tanneryPanel=document.getElementById("tannery-panel"),tanneryClose=document.getElementById("tannery-close"),tanneryTitle=document.getElementById("tannery-title"),tanneryStatus=document.getElementById("tannery-status"),tanneryActions=document.getElementById("tannery-actions");
 const gameClockUI = document.getElementById("game-clock");
 const interactionType = document.getElementById("interaction-type");
 const interactionVerb = document.getElementById("interaction-verb");
@@ -69,7 +70,7 @@ const inventoryUI = {
   omelet: document.getElementById("omelet-count"),
   vegetableSoup: document.getElementById("vegetable-soup-count"),
   berryPorridge: document.getElementById("berry-porridge-count"),
-  fabric: document.getElementById("fabric-count"), tunic: document.getElementById("tunic-count"), trousers: document.getElementById("trousers-count"), boots: document.getElementById("boots-count"), rawMeat:document.getElementById("raw-meat-count"), hide:document.getElementById("hide-count"), roastedMeat:document.getElementById("roasted-meat-count"), bow:document.getElementById("bow-count"), arrows:document.getElementById("arrows-count")
+  fabric: document.getElementById("fabric-count"), tannedLeather:document.getElementById("tanned-leather-count"), leatherBackpack:document.getElementById("leather-backpack-count"), tunic: document.getElementById("tunic-count"), trousers: document.getElementById("trousers-count"), boots: document.getElementById("boots-count"), rawMeat:document.getElementById("raw-meat-count"), hide:document.getElementById("hide-count"), roastedMeat:document.getElementById("roasted-meat-count"), bow:document.getElementById("bow-count"), arrows:document.getElementById("arrows-count")
 };
 let toastTimer = 0;
 const survivalUI = {
@@ -214,6 +215,7 @@ function startGame(THREE) {
     cabbages:{label:"Repolho",seed:"cabbageSeeds",produce:"cabbages",growth:600,hunger:34}
   };
   const totalGameMinutes=()=>((gameTime.day-1)*1440)+(gameTime.hour*60)+gameTime.minute;
+  const tanneryState={readyAt:Number.isSafeInteger(saved?.tanneryState?.readyAt)?Math.max(0,saved.tanneryState.readyAt):0,ready:saved?.tanneryState?.ready===true};
   const animalCare={
     chickens:{fedUntil:saved?.animalCare?.chickens?.fedUntil??0,nextAt:saved?.animalCare?.chickens?.nextAt??0,ready:saved?.animalCare?.chickens?.ready??0},
     sheep:{fedUntil:saved?.animalCare?.sheep?.fedUntil??0,nextAt:saved?.animalCare?.sheep?.nextAt??0,ready:saved?.animalCare?.sheep?.ready??0}
@@ -232,9 +234,13 @@ function startGame(THREE) {
     return {id,crop:prior&&Object.hasOwn(cropTypes,prior.crop)?prior.crop:null,plantedAt:prior&&Number.isSafeInteger(prior.plantedAt)?Math.max(0,prior.plantedAt):0,localX:5.1,localZ:(index-1)*2.2,group:null,cropGroup:null,visualStage:-1,x:0,z:0};
   });
   let currentFarmPlot=null,canUseFarmPlot=false;
-  let kitchenPosition=null,kitchenFire=null,canUseKitchen=false,loomPosition=null,canUseLoom=false;
+  let kitchenPosition=null,kitchenFire=null,canUseKitchen=false,loomPosition=null,canUseLoom=false,tanneryPosition=null,canUseTannery=false;
   let gameTimeAccumulator=0;
   function updateGameClockUI(){gameClockUI.textContent="DIA "+gameTime.day+" · "+String(gameTime.hour).padStart(2,"0")+":"+String(gameTime.minute).padStart(2,"0");}
+  function inventoryLoad(){return Object.values(inventory).reduce((total,value)=>total+(Number.isFinite(value)?value:0),0);}
+  function carryCapacity(){return tools.leatherBackpack?100:60;}
+  function canCarry(amount=1){if(inventoryLoad()+amount<=carryCapacity())return true;showToast("Mochila cheia · capacidade "+carryCapacity()+". Guarde itens no baú ou equipe a mochila de couro.");return false;}
+  function refreshTanneryProduction(){if(tanneryState.readyAt>0&&totalGameMinutes()>=tanneryState.readyAt){tanneryState.readyAt=0;tanneryState.ready=true;saveProgress(true);if(!tanneryPanel.classList.contains("hidden"))renderTanneryPanel();}}
   function updateColdExposure(minutes){
     const protection=(clothing.tunic?0.28:0)+(clothing.trousers?0.18:0)+(clothing.boots?0.14:0);
     let sheltered=false;
@@ -252,6 +258,7 @@ function startGame(THREE) {
     gameTime.hour=Math.floor(wrapped/60);gameTime.minute=wrapped%60;updateGameClockUI();
     refreshFarmVisuals();
     refreshAnimalProduction();
+    refreshTanneryProduction();
     refreshResourceRespawns();
   }
   updateGameClockUI();
@@ -729,11 +736,42 @@ function startGame(THREE) {
     loomActions.innerHTML=fabricButton+clothes;
   }
   function openLoomPanel(){if(!canUseLoom)return;loomTitle.textContent="TEAR E ROUPAS";renderLoomPanel();loomPanel.classList.remove("hidden");}
+  function renderTanneryPanel(){
+    const load=inventoryLoad();tanneryStatus.textContent="Couro cru: "+inventory.hide+" · Couro curtido: "+inventory.tannedLeather+" · Carga: "+load+"/"+carryCapacity();
+    let label="CURTIR 2 COUROS",note="Transforma 2 couros crus em 1 couro curtido · leva 4 horas do jogo",disabled=inventory.hide<2||tanneryState.readyAt>0||tanneryState.ready;
+    if(tanneryState.readyAt>0){const remaining=Math.max(0,tanneryState.readyAt-totalGameMinutes());label="CURTIMENTO EM ANDAMENTO";note="Faltam "+Math.ceil(remaining/60)+" hora(s) de jogo";disabled=true;}
+    if(tanneryState.ready){label="COLETAR COURO CURTIDO";note="O couro está pronto para ser recolhido";disabled=false;}
+    const process='<div class="tannery-action"><div><strong>🦬 Curtimento de couro</strong><small>'+note+'</small></div><button type="button" data-tannery-process="1" '+(disabled?"disabled":"")+'>'+label+'</button></div>';
+    const owned=inventory.leatherBackpack>0;
+    const backpack='<div class="tannery-action"><div><strong>🎒 Mochila de couro</strong><small>Receita: 3 couros curtidos + 2 tecidos · capacidade +40 espaços</small><small>'+(tools.leatherBackpack?"Equipada · +40 espaços":owned?"Guardada":"Ainda não fabricada")+'</small></div><button type="button" data-backpack-craft="1" '+(owned||inventory.tannedLeather<3||inventory.fabric<2?"disabled":"")+' >FABRICAR</button><button type="button" data-backpack-equip="1" '+(!owned?"disabled":"")+'>'+(tools.leatherBackpack?"RETIRAR":"EQUIPAR")+'</button></div>';
+    tanneryActions.innerHTML=process+backpack;
+  }
+  function openTanneryPanel(){if(!canUseTannery)return;tanneryTitle.textContent="CURTUME E COURO";renderTanneryPanel();tanneryPanel.classList.remove("hidden");}
+  function closeTanneryPanel(){tanneryPanel.classList.add("hidden");}
+  function handleTanneryAction(event){
+    const process=event.target.closest("button[data-tannery-process]"),craft=event.target.closest("button[data-backpack-craft]"),equip=event.target.closest("button[data-backpack-equip]");
+    if(process){if(tanneryState.ready){if(!canCarry(1))return;inventory.tannedLeather=Math.min(9999,inventory.tannedLeather+1);tanneryState.ready=false;showToast("Couro curtido recolhido.");}else if(!tanneryState.readyAt&&inventory.hide>=2){inventory.hide-=2;tanneryState.readyAt=totalGameMinutes()+240;showToast("Curtimento iniciado · volte em 4 horas do jogo.");}else return;}
+    if(craft){if(inventory.leatherBackpack>0||inventory.tannedLeather<3||inventory.fabric<2)return;inventory.tannedLeather-=3;inventory.fabric-=2;inventory.leatherBackpack=1;showToast("Mochila de couro fabricada! Equipe no curtume.");}
+    if(equip){if(inventory.leatherBackpack<1)return;tools.leatherBackpack=!tools.leatherBackpack;showToast(tools.leatherBackpack?"Mochila de couro equipada · capacidade aumentada para 100.":"Mochila de couro retirada · capacidade base de 60.");}
+    updateInventoryUI();renderTanneryPanel();saveProgress(true);
+  }
+  tanneryActions.addEventListener("click",handleTanneryAction);tanneryClose.addEventListener("click",closeTanneryPanel);
   function closeLoomPanel(){loomPanel.classList.add("hidden");}
   function craftClothing(type){if(type==="fabric"){if(inventory.wool<2)return;inventory.wool-=2;inventory.fabric=Math.min(9999,inventory.fabric+1);showToast("Um tecido de lã foi produzido.");}else{const recipe=clothingRecipes[type];if(!recipe||inventory[type]>0||!Object.entries(recipe.ingredients).every(([item,amount])=>inventory[item]>=amount))return;for(const [item,amount] of Object.entries(recipe.ingredients))inventory[item]-=amount;inventory[type]=1;showToast(recipe.label+" fabricada!");}updateInventoryUI();renderLoomPanel();saveProgress(true);}
   function toggleClothing(type){if(!clothingRecipes[type]||inventory[type]<1)return;clothing[type]=!clothing[type];updateInventoryUI();renderLoomPanel();saveProgress(true);showToast(clothing[type]?"Roupa equipada. Proteção contra o frio aumentada.":"Roupa retirada.");}
   loomActions.addEventListener("click",event=>{const fabric=event.target.closest("button[data-loom-fabric]"),craft=event.target.closest("button[data-loom-craft]"),equip=event.target.closest("button[data-loom-equip]");if(fabric)craftClothing("fabric");if(craft)craftClothing(craft.dataset.loomCraft);if(equip)toggleClothing(equip.dataset.loomEquip);});
   loomClose.addEventListener("click",closeLoomPanel);
+  function createTanneryStation(){
+    tanneryPosition=localCabinPosition(7.5,3.6);const group=new THREE.Group();
+    const wood=new THREE.MeshStandardMaterial({color:0x79502f,roughness:1}),dark=new THREE.MeshStandardMaterial({color:0x493323,roughness:1}),hideMat=new THREE.MeshStandardMaterial({color:0x9a754d,roughness:1,side:THREE.DoubleSide});
+    const vat=new THREE.Mesh(new THREE.CylinderGeometry(0.72,0.62,0.72,12),dark);vat.position.set(-0.85,0.38,0);group.add(vat);
+    const rim=new THREE.Mesh(new THREE.TorusGeometry(0.68,0.07,7,14),wood);rim.rotation.x=Math.PI/2;rim.position.set(-0.85,0.76,0);group.add(rim);
+    for(const x of [-0.2,1.45])for(const z of [-0.42,0.42]){const leg=new THREE.Mesh(new THREE.BoxGeometry(0.12,1.35,0.12),wood);leg.position.set(x,0.67,z);group.add(leg);}
+    const beam=new THREE.Mesh(new THREE.BoxGeometry(1.9,0.13,0.14),dark);beam.position.set(0.62,1.35,0);group.add(beam);
+    const hide=new THREE.Mesh(new THREE.PlaneGeometry(1.45,0.92),hideMat);hide.position.set(0.62,1.27,0.03);hide.rotation.x=-0.12;group.add(hide);
+    for(let i=0;i<4;i++){const strip=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.05,0.92),wood);strip.position.set(-0.08+i*0.46,1.18,0.04);group.add(strip);}
+    group.position.set(tanneryPosition.x,groundHeight(tanneryPosition.x,tanneryPosition.z),tanneryPosition.z);group.rotation.y=builtCabin.yaw;scene.add(group);
+  }
   function placeCabin() {
     cabinModel=createCabinModel();
     cabinModel.position.set(builtCabin.x,groundHeight(builtCabin.x,builtCabin.z),builtCabin.z);
@@ -745,7 +783,7 @@ function startGame(THREE) {
     cabinBed=createCabinBed();
     cabinBed.position.set(builtCabin.x-1.15*Math.cos(builtCabin.yaw)+0.48*Math.sin(builtCabin.yaw),groundHeight(builtCabin.x,builtCabin.z),builtCabin.z+1.15*Math.sin(builtCabin.yaw)+0.48*Math.cos(builtCabin.yaw));
     cabinBed.rotation.y=builtCabin.yaw;scene.add(cabinBed);
-    createKitchenStation();createLoomStation();
+    createKitchenStation();createLoomStation();createTanneryStation();
     createFarmPlots();
     createAnimalEnclosures();
   }
@@ -965,7 +1003,7 @@ function startGame(THREE) {
     fabric: saved?.inventory?.fabric ?? 0,
     tunic: saved?.inventory?.tunic ?? 0,
     trousers: saved?.inventory?.trousers ?? 0,
-    boots: saved?.inventory?.boots ?? 0, rawMeat:saved?.inventory?.rawMeat??0, hide:saved?.inventory?.hide??0, roastedMeat:saved?.inventory?.roastedMeat??0, arrows:saved?.inventory?.arrows??0
+    boots: saved?.inventory?.boots ?? 0, rawMeat:saved?.inventory?.rawMeat??0, hide:saved?.inventory?.hide??0, tannedLeather:saved?.inventory?.tannedLeather??0, leatherBackpack:saved?.inventory?.leatherBackpack??0, roastedMeat:saved?.inventory?.roastedMeat??0, arrows:saved?.inventory?.arrows??0
   };
   // Pacote único para quem já tinha uma fazenda salva: sementes para retomar o cultivo.
   let seedStarterPackClaimed = saved?.seedStarterPackClaimed === true;
@@ -976,7 +1014,7 @@ function startGame(THREE) {
     seedStarterPackClaimed = true;
   }
   const clothing = {tunic:saved?.clothing?.tunic===true,trousers:saved?.clothing?.trousers===true,boots:saved?.clothing?.boots===true};
-  const tools = { axe: saved?.tools?.axe === true, bow:saved?.tools?.bow===true };
+  const tools = { axe: saved?.tools?.axe === true, bow:saved?.tools?.bow===true, leatherBackpack:saved?.tools?.leatherBackpack===true };
   const storage = { branches:saved?.storage?.branches??0, stones:saved?.storage?.stones??0, berries:saved?.storage?.berries??0, wood:saved?.storage?.wood??0 };
   let canUseCabinDoor=false, canUseStorageChest=false, canUseBed=false;
   let currentResourceTarget = null;
@@ -1012,6 +1050,8 @@ function startGame(THREE) {
   updateSurvivalUI(true);
   function updateInventoryUI() {
     for (const key of Object.keys(inventoryUI)) inventoryUI[key].textContent=String(inventory[key]??0);
+    const loadLabel=document.getElementById("carry-load");if(loadLabel)loadLabel.textContent=inventoryLoad()+" / "+carryCapacity();
+    const backpackStatus=document.getElementById("leather-backpack-status");if(backpackStatus)backpackStatus.textContent=tools.leatherBackpack?"Equipada · +40 espaços":"Guardada";
     for(const button of inventoryPanel.querySelectorAll("[data-eat-crop]")){
       const type=button.dataset.eatCrop,definition=cropTypes[type];
       button.disabled=!definition||inventory[definition.produce]<1||survival.hunger>=99.5;
@@ -1203,14 +1243,15 @@ function startGame(THREE) {
           fabric: safeCount(saved.inventory?.fabric),
           tunic: safeCount(saved.inventory?.tunic),
           trousers: safeCount(saved.inventory?.trousers),
-          boots: safeCount(saved.inventory?.boots), rawMeat:safeCount(saved.inventory?.rawMeat), hide:safeCount(saved.inventory?.hide), roastedMeat:safeCount(saved.inventory?.roastedMeat), arrows:safeCount(saved.inventory?.arrows)
+          boots: safeCount(saved.inventory?.boots), rawMeat:safeCount(saved.inventory?.rawMeat), hide:safeCount(saved.inventory?.hide), tannedLeather:safeCount(saved.inventory?.tannedLeather), leatherBackpack:safeCount(saved.inventory?.leatherBackpack), roastedMeat:safeCount(saved.inventory?.roastedMeat), arrows:safeCount(saved.inventory?.arrows)
         },
         animalCare:{
           chickens:{fedUntil:Number.isSafeInteger(saved.animalCare?.chickens?.fedUntil)?Math.max(0,saved.animalCare.chickens.fedUntil):0,nextAt:Number.isSafeInteger(saved.animalCare?.chickens?.nextAt)?Math.max(0,saved.animalCare.chickens.nextAt):0,ready:safeCount(saved.animalCare?.chickens?.ready)},
           sheep:{fedUntil:Number.isSafeInteger(saved.animalCare?.sheep?.fedUntil)?Math.max(0,saved.animalCare.sheep.fedUntil):0,nextAt:Number.isSafeInteger(saved.animalCare?.sheep?.nextAt)?Math.max(0,saved.animalCare.sheep.nextAt):0,ready:safeCount(saved.animalCare?.sheep?.ready)}
         },
         farmPlots: Array.isArray(saved.farmPlots) ? saved.farmPlots.filter(item=>item&&["farm-plot-1","farm-plot-2","farm-plot-3"].includes(item.id)&&Object.hasOwn({wheat:1,carrots:1,cabbages:1},item.crop)&&Number.isSafeInteger(item.plantedAt)&&item.plantedAt>=0).map(item=>({id:item.id,crop:item.crop,plantedAt:item.plantedAt})) : [],
-        tools: { axe: saved.tools?.axe === true, bow:saved.tools?.bow===true },
+        tools: { axe: saved.tools?.axe === true, bow:saved.tools?.bow===true, leatherBackpack:saved.tools?.leatherBackpack===true },
+        tanneryState:{readyAt:Number.isSafeInteger(saved.tanneryState?.readyAt)?Math.max(0,saved.tanneryState.readyAt):0,ready:saved.tanneryState?.ready===true},
         huntedWildlife:Array.isArray(saved.huntedWildlife)?saved.huntedWildlife.filter(id=>/^wild-(deer|boar)-[0-9]+$/).slice(0,30):[],
         storage: { branches:safeCount(saved.storage?.branches), stones:safeCount(saved.storage?.stones), berries:safeCount(saved.storage?.berries), wood:safeCount(saved.storage?.wood) },
         cabinDoorOpen: saved.cabinDoorOpen === true,
@@ -1253,6 +1294,7 @@ function startGame(THREE) {
       localStorage.setItem("legado-do-vale-prototipo", JSON.stringify({
         x: player.x, z: player.z, yaw: player.yaw, pitch: player.pitch,
         seedStarterPackClaimed: true,
+        tanneryState:{...tanneryState},
         health: survival.health, hunger: survival.hunger, thirst: survival.thirst, energy: survival.energy, warmth: survival.warmth, clothing:{...clothing},
         inventory: { ...inventory },
         farmPlots: farmPlots.map(({id,crop,plantedAt})=>({id,crop,plantedAt})),
@@ -1367,6 +1409,7 @@ function startGame(THREE) {
     if (!event.repeat && key === "r" && buildMode) rotateBuilding();
     if (!event.repeat && key === "escape") {
       if(buildMode)stopBuilding();
+      else if(!tanneryPanel.classList.contains("hidden"))closeTanneryPanel();
       else if(!loomPanel.classList.contains("hidden"))closeLoomPanel();
       else if(!kitchenPanel.classList.contains("hidden"))closeKitchenPanel();
       else if(!animalPanel.classList.contains("hidden"))closeAnimalPanel();
@@ -1400,6 +1443,7 @@ function startGame(THREE) {
     if (benchDx * benchDx + benchDz * benchDz < 1.45) return true;
     if (kitchenPosition) { const dx=x-kitchenPosition.x,dz=z-kitchenPosition.z; if(dx*dx+dz*dz<1.15)return true; }
     if (loomPosition) { const dx=x-loomPosition.x,dz=z-loomPosition.z; if(dx*dx+dz*dz<1.35)return true; }
+    if (tanneryPosition) { const dx=x-tanneryPosition.x,dz=z-tanneryPosition.z; if(dx*dx+dz*dz<1.7)return true; }
     if (builtCabin) {
       const dx=x-builtCabin.x,dz=z-builtCabin.z;
       const lx=dx*Math.cos(builtCabin.yaw)-dz*Math.sin(builtCabin.yaw),lz=dx*Math.sin(builtCabin.yaw)+dz*Math.cos(builtCabin.yaw);
@@ -1437,8 +1481,10 @@ function startGame(THREE) {
       bestDistance = distance;
     }
 
+    const tanneryDistance=tanneryPosition?Math.hypot(tanneryPosition.x-player.x,tanneryPosition.z-player.z):Infinity;
+    canUseTannery=Boolean(builtCabin&&!match&&tanneryDistance<=4.4);
     const loomDistance=loomPosition?Math.hypot(loomPosition.x-player.x,loomPosition.z-player.z):Infinity;
-    canUseLoom=Boolean(builtCabin&&!match&&loomDistance<=4.2);
+    canUseLoom=Boolean(builtCabin&&!match&&!canUseTannery&&loomDistance<=4.2);
     const bankDistance = riverDistance(player.x, player.z);
     canDrinkWater = !match && !canUseLoom && bankDistance >= 8.2 && bankDistance <= 12.4 && survival.thirst < 99.5;
     const benchDistance = Math.hypot(workbenchPosition.x - player.x, workbenchPosition.z - player.z);
@@ -1486,7 +1532,7 @@ function startGame(THREE) {
     currentTreeTarget = !match && !canUseLoom && !canDrinkWater && !canUseWorkbench && !canUseFarmPlot && !canUseAnimalPen && !canUseKitchen && !canUseLoom ? treeMatch : null;
     canChopTree = Boolean(currentTreeTarget && tools.axe);
     currentResourceTarget = match;
-    const hasInteraction = Boolean(match) || canDrinkWater || canUseWorkbench || canUseFarmPlot || canUseAnimalPen || canUseKitchen || canUseLoom || canUseCabinDoor || canUseBed || canUseStorageChest || Boolean(currentTreeTarget) || Boolean(currentWildlifeTarget);
+    const hasInteraction = Boolean(match) || canUseTannery || canDrinkWater || canUseWorkbench || canUseFarmPlot || canUseAnimalPen || canUseKitchen || canUseLoom || canUseCabinDoor || canUseBed || canUseStorageChest || Boolean(currentTreeTarget) || Boolean(currentWildlifeTarget);
     interactionPrompt.classList.toggle("hidden", !hasInteraction);
     collectButton.classList.toggle("hidden", !hasInteraction || !isMobile);
 
@@ -1495,6 +1541,8 @@ function startGame(THREE) {
       interactionName.textContent = match.label + " · " + match.amount;
       interactionVerb.textContent = "recolher";
       collectButton.textContent = "RECOLHER";
+    } else if (canUseTannery) {
+      interactionType.textContent="CURTUME";interactionName.textContent="Bancada de curtimento";interactionVerb.textContent="curtir couro e fabricar mochila";collectButton.textContent="USAR CURTUME";
     } else if (canUseLoom) {
       interactionType.textContent = "OFÍCIO ARTESANAL";interactionName.textContent = "Tear de lã";interactionVerb.textContent = "tecer e fabricar roupas";collectButton.textContent = "USAR TEAR";
     } else if (canDrinkWater) {
@@ -1542,7 +1590,7 @@ function startGame(THREE) {
       collectButton.textContent = canChopTree ? "CORTAR ÁRVORE" : "PRECISA DE MACHADO";
     }
   }
-  function shootWildlife(){const target=currentWildlifeTarget;if(!target)return;if(!tools.bow){showToast("Você precisa fabricar um arco na bancada.");return;}if(inventory.arrows<1){showToast("Sem flechas. Fabrique mais na bancada.");return;}inventory.arrows--;const def=wildlifeDefinitions[target.type];inventory.rawMeat=Math.min(9999,inventory.rawMeat+def.meat);inventory.hide=Math.min(9999,inventory.hide+def.hide);huntedWildlife.add(target.id);scene.remove(target.group);const i=wildlifeActors.indexOf(target);if(i>=0)wildlifeActors.splice(i,1);currentWildlifeTarget=null;updateInventoryUI();saveProgress(true);showToast("Caça realizada · +"+def.meat+" carne crua · +"+def.hide+" couro");updateResourceTarget();}
+  function shootWildlife(){const target=currentWildlifeTarget;if(!target)return;const def=wildlifeDefinitions[target.type];if(!canCarry(def.meat+def.hide))return;if(!tools.bow){showToast("Você precisa fabricar um arco na bancada.");return;}if(inventory.arrows<1){showToast("Sem flechas. Fabrique mais na bancada.");return;}inventory.arrows--;const def=wildlifeDefinitions[target.type];inventory.rawMeat=Math.min(9999,inventory.rawMeat+def.meat);inventory.hide=Math.min(9999,inventory.hide+def.hide);huntedWildlife.add(target.id);scene.remove(target.group);const i=wildlifeActors.indexOf(target);if(i>=0)wildlifeActors.splice(i,1);currentWildlifeTarget=null;updateInventoryUI();saveProgress(true);showToast("Caça realizada · +"+def.meat+" carne crua · +"+def.hide+" couro");updateResourceTarget();}
   function drinkWater() {
     const bankDistance = riverDistance(player.x, player.z);
     if (!canDrinkWater || bankDistance < 8.2 || bankDistance > 12.4 || survival.thirst >= 100) return;
@@ -1555,7 +1603,7 @@ function startGame(THREE) {
   }
   function collectCurrentResource() {
     const node = currentResourceTarget;
-    if (!node || collectedResources.has(node.id)) return;
+    if (!node || collectedResources.has(node.id) || !canCarry(node.amount)) return;
     inventory[node.itemKey] = Math.min(9999, inventory[node.itemKey] + node.amount);
     collectedResources.add(node.id);
     resourceRespawnAt.set(node.id, totalGameMinutes() + 360);
@@ -1619,6 +1667,7 @@ function startGame(THREE) {
     const hits = (treeHitCounts.get(target.index) ?? 0) + 1;
     treeHitCounts.set(target.index, hits);
     if (hits >= 3) {
+      if(!canCarry(4))return;
       felledTrees.add(target.index);
       treeHitCounts.delete(target.index);
       inventory.wood = Math.min(9999, inventory.wood + 4);
@@ -1680,6 +1729,7 @@ function startGame(THREE) {
   function collectAnimalProduct(type){
     if(type!==currentAnimalType||!canUseAnimalPen)return;
     const settings=animalSettings[type],care=animalCare[type];if(care.ready<1)return;
+    if(!canCarry(care.ready))return;
     inventory[settings.product]=Math.min(9999,inventory[settings.product]+care.ready);
     const amount=care.ready;care.ready=0;updateInventoryUI();renderAnimalPanel();saveProgress(true);
     showToast("Produção recolhida · +"+amount+" "+settings.productLabel);
@@ -1720,6 +1770,7 @@ function startGame(THREE) {
     if(!canUseFarmPlot||!plot||!plot.crop)return;
     const definition=cropTypes[plot.crop];
     if(totalGameMinutes()-plot.plantedAt<definition.growth){showToast("A plantação ainda não está madura.");return;}
+    if(!canCarry(3))return;
     inventory[definition.produce]=Math.min(9999,inventory[definition.produce]+1);
     // Cada colheita devolve uma semente da mesma cultura; há 25% de chance de ganhar outra.
     inventory[definition.seed]=Math.min(9999,inventory[definition.seed]+1);
@@ -1756,9 +1807,10 @@ function startGame(THREE) {
   sleepPanel.addEventListener("click",event=>{const button=event.target.closest("button[data-sleep-hours]");if(button)sleepFor(Number(button.dataset.sleepHours));});
   sleepClose.addEventListener("click",closeSleepPanel);
   function performCurrentInteraction(){
-    if(!chestPanel.classList.contains("hidden")||!sleepPanel.classList.contains("hidden")||!farmPanel.classList.contains("hidden")||!animalPanel.classList.contains("hidden")||!kitchenPanel.classList.contains("hidden")||!loomPanel.classList.contains("hidden"))return;
+    if(!chestPanel.classList.contains("hidden")||!sleepPanel.classList.contains("hidden")||!farmPanel.classList.contains("hidden")||!animalPanel.classList.contains("hidden")||!kitchenPanel.classList.contains("hidden")||!loomPanel.classList.contains("hidden")||!tanneryPanel.classList.contains("hidden"))return;
     if(buildMode){confirmBuilding();return;}
     if(currentResourceTarget)collectCurrentResource();
+    else if(canUseTannery)openTanneryPanel();
     else if(canUseLoom)openLoomPanel();
     else if(canDrinkWater)drinkWater();
     else if(canUseWorkbench)openCrafting();
@@ -1799,7 +1851,7 @@ function startGame(THREE) {
     const cos = Math.cos(player.yaw);
     const moveX = (-sin * forward + cos * strafe) * speed * delta;
     const moveZ = (-cos * forward - sin * strafe) * speed * delta;
-    if (sleepPanel.classList.contains("hidden") && farmPanel.classList.contains("hidden") && animalPanel.classList.contains("hidden") && kitchenPanel.classList.contains("hidden") && loomPanel.classList.contains("hidden") && (moveX || moveZ)) {
+    if (sleepPanel.classList.contains("hidden") && farmPanel.classList.contains("hidden") && animalPanel.classList.contains("hidden") && kitchenPanel.classList.contains("hidden") && loomPanel.classList.contains("hidden") && tanneryPanel.classList.contains("hidden") && (moveX || moveZ)) {
       const nextX = player.x + moveX;
       const nextZ = player.z + moveZ;
       if (!isBlocked(nextX, player.z)) player.x = nextX;

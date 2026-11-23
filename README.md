@@ -211,3 +211,15 @@ Esta etapa inclui coleta, mochila, alimentação e hidratação; fabricação e 
 - Cervos fornecem 2 carnes cruas e 1 couro; javalis fornecem 3 carnes cruas e 1 couro.
 - A carne crua pode ser assada na cozinha existente e recupera 70 pontos de fome.
 - Arco, flechas, carne, couro e animais caçados são salvos localmente.
+
+
+## Fase 8 — Curtume e mochila de couro
+
+- Ao construir a cabana, uma estação de curtimento aparece próxima ao tear.
+- Aproxime-se do curtume e pressione E no PC ou use o botão de ação no celular.
+- Transforme 2 couros crus em 1 couro curtido. O processo leva 4 horas do jogo e continua durante o descanso.
+- Recolha o couro curtido quando estiver pronto; o estado da produção é salvo automaticamente.
+- Fabrique uma mochila de couro usando 3 couros curtidos e 2 tecidos.
+- A mochila pode ser equipada ou retirada no painel do curtume. Equipada, aumenta a capacidade de carga de 60 para 100 itens.
+- A capacidade é verificada ao recolher recursos, madeira, colheitas, produção dos animais e recompensas da caça. Se estiver cheia, guarde materiais no baú ou equipe a mochila ampliada.
+- Curtimento, couro curtido, mochila e equipamento permanecem salvos no dispositivo.

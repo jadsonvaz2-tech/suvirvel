@@ -100,7 +100,10 @@
             <div class="inventory-item"><span class="item-icon item-wool">✧</span><span class="item-name">Lã</span><strong id="wool-count">0</strong></div>
             <div class="inventory-item"><span class="item-icon item-wool">🧶</span><span class="item-name">Tecido de lã</span><strong id="fabric-count">0</strong></div>
             <div class="inventory-item"><span class="item-icon">🥩</span><span class="item-name">Carne crua</span><strong id="raw-meat-count">0</strong></div>
-            <div class="inventory-item"><span class="item-icon">🦬</span><span class="item-name">Couro</span><strong id="hide-count">0</strong></div>
+            <div class="inventory-item"><span class="item-icon">🦬</span><span class="item-name">Couro cru</span><strong id="hide-count">0</strong></div>
+            <div class="inventory-item"><span class="item-icon">🟤</span><span class="item-name">Couro curtido</span><strong id="tanned-leather-count">0</strong></div>
+            <div class="inventory-item"><span class="item-icon">🎒</span><span class="item-name">Mochila de couro</span><strong id="leather-backpack-count">0</strong></div>
+            <div class="inventory-item"><span class="item-icon">⚖️</span><span class="item-name">Carga / capacidade</span><strong id="carry-load">0 / 60</strong></div>
           </div>
         </section>
         <section class="inventory-category">
@@ -143,6 +146,12 @@
       <p id="kitchen-status" class="building-description">Use lenha e ingredientes para preparar refeições.</p>
       <div id="kitchen-recipes" class="kitchen-recipes"></div>
       <small class="building-help">Cada preparo consome 1 madeira como combustível. As refeições ficam na mochila e podem ser consumidas quando precisar recuperar fome.</small>
+    </section>
+    <section id="tannery-panel" class="tannery-panel hidden" aria-label="Curtume e fabricação de mochila de couro">
+      <header class="inventory-header"><div><span class="eyebrow">OFÍCIO ARTESANAL</span><strong id="tannery-title">CURTUME E COURO</strong></div><button type="button" id="tannery-close" class="inventory-close" aria-label="Fechar curtume">×</button></header>
+      <p id="tannery-status" class="building-description">Transforme couro cru em couro curtido e fabrique uma mochila com maior capacidade.</p>
+      <div id="tannery-actions" class="tannery-actions"></div>
+      <small class="building-help">O curtimento leva 4 horas do jogo. A produção continua durante o descanso e é salva automaticamente.</small>
     </section>
     <section id="loom-panel" class="loom-panel hidden" aria-label="Tear e fabricação de roupas">
       <header class="inventory-header"><div><span class="eyebrow">OFÍCIO ARTESANAL</span><strong id="loom-title">TEAR E ROUPAS</strong></div><button type="button" id="loom-close" class="inventory-close" aria-label="Fechar tear">×</button></header>
