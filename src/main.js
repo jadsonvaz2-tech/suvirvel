@@ -69,7 +69,7 @@ const inventoryUI = {
   omelet: document.getElementById("omelet-count"),
   vegetableSoup: document.getElementById("vegetable-soup-count"),
   berryPorridge: document.getElementById("berry-porridge-count"),
-  fabric: document.getElementById("fabric-count"), tunic: document.getElementById("tunic-count"), trousers: document.getElementById("trousers-count"), boots: document.getElementById("boots-count")
+  fabric: document.getElementById("fabric-count"), tunic: document.getElementById("tunic-count"), trousers: document.getElementById("trousers-count"), boots: document.getElementById("boots-count"), rawMeat:document.getElementById("raw-meat-count"), hide:document.getElementById("hide-count"), roastedMeat:document.getElementById("roasted-meat-count"), bow:document.getElementById("bow-count"), arrows:document.getElementById("arrows-count")
 };
 let toastTimer = 0;
 const survivalUI = {
@@ -223,8 +223,10 @@ function startGame(THREE) {
     sheep:{label:"Ovelhas",count:2,feed:"cabbages",feedLabel:"1 repolho",product:"wool",productLabel:"lã",interval:720}
   };
   const animalEnclosures={chickens:{localX:-6,localZ:-2.7,x:0,z:0,group:null},sheep:{localX:-6.2,localZ:3.1,x:0,z:0,group:null}};
-  const animalActors=[];
-  let animalAnimationTime=0,currentAnimalType=null,canUseAnimalPen=false;
+  const animalActors=[],wildlifeActors=[];
+  const huntedWildlife=new Set(Array.isArray(saved?.huntedWildlife)?saved.huntedWildlife:[]);
+  let wildlifeAnimationTime=0,currentWildlifeTarget=null,animalAnimationTime=0,currentAnimalType=null,canUseAnimalPen=false;
+  const wildlifeDefinitions={deer:{label:"Cervo",meat:2,hide:1,color:0x9a6842},boar:{label:"Javali",meat:3,hide:1,color:0x51443a}};
   const farmPlots=[0,1,2].map((index)=>{
     const id="farm-plot-"+(index+1), prior=saved?.farmPlots?.find(item=>item.id===id);
     return {id,crop:prior&&Object.hasOwn(cropTypes,prior.crop)?prior.crop:null,plantedAt:prior&&Number.isSafeInteger(prior.plantedAt)?Math.max(0,prior.plantedAt):0,localX:5.1,localZ:(index-1)*2.2,group:null,cropGroup:null,visualStage:-1,x:0,z:0};
@@ -595,6 +597,18 @@ function startGame(THREE) {
     [[-1.0,-0.45],[0.95,0.65]].forEach((offset,index)=>{const actor=createSheep();actor.type="sheep";actor.offset=offset;actor.phase=index*2.7;animalActors.push(actor);scene.add(actor.group);});
     updateAnimalAnimations(0);
   }
+  function createWildlifeModel(type){
+    const root=new THREE.Group(),legs=[],fur=new THREE.MeshStandardMaterial({color:wildlifeDefinitions[type].color,roughness:1}),dark=new THREE.MeshStandardMaterial({color:type==="deer"?0x67432e:0x292522,roughness:1}),cream=new THREE.MeshStandardMaterial({color:0xd8c7a5,roughness:1});
+    const body=new THREE.Mesh(new THREE.SphereGeometry(.56,9,7),fur);body.scale.set(.82,.78,1.35);body.position.y=.9;root.add(body);
+    const neck=new THREE.Mesh(new THREE.CylinderGeometry(.16,.25,.72,7),fur);neck.position.set(0,1.22,-.48);neck.rotation.x=-.32;root.add(neck);
+    const head=new THREE.Mesh(new THREE.SphereGeometry(.22,8,7),dark);head.position.set(0,1.45,-.78);root.add(head);
+    const snout=new THREE.Mesh(new THREE.SphereGeometry(.13,7,6),type==="deer"?cream:dark);snout.scale.set(1,.72,1.3);snout.position.set(0,1.37,-.98);root.add(snout);
+    if(type==="deer"){for(const side of [-1,1]){const ear=new THREE.Mesh(new THREE.ConeGeometry(.09,.34,5),dark);ear.position.set(side*.19,1.72,-.72);root.add(ear);const antler=new THREE.Group(),stem=new THREE.Mesh(new THREE.CylinderGeometry(.025,.04,.55,5),dark);stem.position.y=.26;antler.add(stem);for(const branch of [-1,1]){const tine=new THREE.Mesh(new THREE.CylinderGeometry(.018,.027,.27,5),dark);tine.position.set(branch*.09,.43,0);tine.rotation.z=-branch*.55;antler.add(tine);}antler.position.set(side*.12,1.62,-.72);root.add(antler);}}
+    else {for(const side of [-1,1]){const tusk=new THREE.Mesh(new THREE.ConeGeometry(.07,.22,5),cream);tusk.position.set(side*.2,1.26,-.92);tusk.rotation.x=.25;root.add(tusk);}}
+    for(const x of [-.31,.31])for(const z of [-.48,.48]){const leg=new THREE.Group();leg.position.set(x,.62,z);const shaft=new THREE.Mesh(new THREE.CylinderGeometry(.065,.075,.58,5),dark);shaft.position.y=-.29;leg.add(shaft);root.add(leg);legs.push(leg);}return {group:root,legs};
+  }
+  function createWildlife(){const candidates=[18,47,83,126,171,219,263,309,354,401,438,462];let made=0;for(let i=0;i<candidates.length&&made<8;i++){const tree=treeSpots[candidates[i]];if(!tree)continue;const type=made%3===0?"boar":"deer",id="wild-"+type+"-"+String(made+1).padStart(2,"0");if(huntedWildlife.has(id))continue;const x=tree.x+Math.cos(i*2.4)*3.2,z=tree.z+Math.sin(i*2.4)*3.2;if(Math.hypot(x-resourceBase.x,z-resourceBase.z)<18||riverDistance(x,z)<12||Math.abs(x)>96||Math.abs(z)>96)continue;const model=createWildlifeModel(type),actor={id,type,group:model.group,legs:model.legs,x,z,heading:random()*Math.PI*2,alert:0,roam:0};model.group.position.set(x,groundHeight(x,z),z);scene.add(model.group);wildlifeActors.push(actor);made++;}}
+  function updateWildlife(delta){wildlifeAnimationTime+=delta;for(const actor of wildlifeActors){const dx=actor.x-player.x,dz=actor.z-player.z,distance=Math.hypot(dx,dz);if(distance<13){actor.alert=Math.min(1,actor.alert+delta*2.8);actor.heading=Math.atan2(dx,dz);}else actor.alert=Math.max(0,actor.alert-delta*.45);actor.roam+=delta;if(actor.alert>.15){const speed=actor.type==="deer"?5.8:4.2;actor.x+=Math.sin(actor.heading)*delta*speed;actor.z+=Math.cos(actor.heading)*delta*speed;}else if(actor.roam>2.8){actor.roam=0;actor.heading+=(random()-.5)*1.8;}else{actor.x+=Math.sin(actor.heading)*delta*.35;actor.z+=Math.cos(actor.heading)*delta*.35;}actor.x=THREE.MathUtils.clamp(actor.x,-98,98);actor.z=THREE.MathUtils.clamp(actor.z,-98,98);actor.group.position.set(actor.x,groundHeight(actor.x,actor.z),actor.z);actor.group.rotation.y=actor.heading+Math.PI;actor.legs.forEach((leg,index)=>{leg.rotation.x=Math.sin(wildlifeAnimationTime*7+(index%2)*Math.PI)*.38*(actor.alert>.15?1:.35);});}}
   function updateAnimalAnimations(delta){
     animalAnimationTime+=delta;
     for(const actor of animalActors){
@@ -635,7 +649,8 @@ function startGame(THREE) {
     bread:{label:"Pão caseiro",icon:"🍞",ingredients:{wheat:2},hunger:45,description:"Pão simples assado na fogueira."},
     omelet:{label:"Omelete",icon:"🍳",ingredients:{eggs:2},hunger:52,description:"Ovos preparados na panela."},
     vegetableSoup:{label:"Sopa de legumes",icon:"🥣",ingredients:{carrots:1,cabbages:1},hunger:62,description:"Uma refeição quente e nutritiva."},
-    berryPorridge:{label:"Mingau de frutas",icon:"🫐",ingredients:{berries:2,wheat:1},hunger:55,description:"Mingau doce para recuperar as forças."}
+    berryPorridge:{label:"Mingau de frutas",icon:"🫐",ingredients:{berries:2,wheat:1},hunger:55,description:"Mingau doce para recuperar as forças."},
+    roastedMeat:{label:"Carne assada",icon:"🍖",ingredients:{rawMeat:1},hunger:70,description:"Carne de caça assada na fogueira."}
   };
   function renderKitchenPanel(){
     kitchenStatus.textContent="Lenha disponível: "+inventory.wood+" · Cada preparo consome 1 madeira como combustível.";
@@ -919,7 +934,7 @@ function startGame(THREE) {
     fabric: saved?.inventory?.fabric ?? 0,
     tunic: saved?.inventory?.tunic ?? 0,
     trousers: saved?.inventory?.trousers ?? 0,
-    boots: saved?.inventory?.boots ?? 0
+    boots: saved?.inventory?.boots ?? 0, rawMeat:saved?.inventory?.rawMeat??0, hide:saved?.inventory?.hide??0, roastedMeat:saved?.inventory?.roastedMeat??0, arrows:saved?.inventory?.arrows??0
   };
   // Pacote único para quem já tinha uma fazenda salva: sementes para retomar o cultivo.
   let seedStarterPackClaimed = saved?.seedStarterPackClaimed === true;
@@ -930,7 +945,7 @@ function startGame(THREE) {
     seedStarterPackClaimed = true;
   }
   const clothing = {tunic:saved?.clothing?.tunic===true,trousers:saved?.clothing?.trousers===true,boots:saved?.clothing?.boots===true};
-  const tools = { axe: saved?.tools?.axe === true };
+  const tools = { axe: saved?.tools?.axe === true, bow:saved?.tools?.bow===true };
   const storage = { branches:saved?.storage?.branches??0, stones:saved?.storage?.stones??0, berries:saved?.storage?.berries??0, wood:saved?.storage?.wood??0 };
   let canUseCabinDoor=false, canUseStorageChest=false, canUseBed=false;
   let currentResourceTarget = null;
@@ -985,6 +1000,10 @@ function startGame(THREE) {
     buildingConfirm.disabled = !buildMode || !buildPreviewValid || Boolean(builtCabin) || inventory.wood < 12 || inventory.branches < 8;
     craftAxeButton.disabled = tools.axe || inventory.branches < 3 || inventory.stones < 2;
     craftAxeButton.textContent = tools.axe ? "MACHADO FABRICADO" : "FABRICAR MACHADO";
+    const bowButton=document.getElementById("craft-bow-button"),arrowButton=document.getElementById("craft-arrows-button");
+    if(bowButton){bowButton.disabled=tools.bow||inventory.branches<4||inventory.fabric<2;bowButton.textContent=tools.bow?"ARCO FABRICADO":"FABRICAR ARCO";}
+    if(arrowButton)arrowButton.disabled=inventory.branches<2||inventory.stones<1;
+    document.getElementById("bow-count").textContent=tools.bow?"1":"0";
     eatBerryButton.setAttribute(
       "aria-label",
       canEatBerry ? "Comer uma fruta para recuperar fome" :
@@ -1038,6 +1057,10 @@ function startGame(THREE) {
     craftingPanel.classList.remove("hidden");
     updateInventoryUI();
   }
+  function craftBow(){if(tools.bow){showToast("Você já possui um arco.");return;}if(inventory.branches<4||inventory.fabric<2){showToast("Para fabricar o arco: 4 galhos e 2 tecidos.");return;}inventory.branches-=4;inventory.fabric-=2;tools.bow=true;updateInventoryUI();saveProgress(true);showToast("Arco fabricado! Mire em um animal e pressione E.");}
+  function craftArrows(){if(inventory.branches<2||inventory.stones<1){showToast("Para fabricar flechas: 2 galhos e 1 pedra.");return;}inventory.branches-=2;inventory.stones--;inventory.arrows=Math.min(9999,inventory.arrows+5);updateInventoryUI();saveProgress(true);showToast("Você fabricou 5 flechas.");}
+  document.getElementById("craft-bow-button").addEventListener("click",craftBow);
+  document.getElementById("craft-arrows-button").addEventListener("click",craftArrows);
   function closeCrafting() { craftingPanel.classList.add("hidden"); }
   function craftAxe() {
     if (tools.axe) {
@@ -1107,6 +1130,7 @@ function startGame(THREE) {
     camera.rotation.x = player.pitch;
   }
   applyCamera();
+  createWildlife();
 
   function readSave() {
     try {
@@ -1148,14 +1172,15 @@ function startGame(THREE) {
           fabric: safeCount(saved.inventory?.fabric),
           tunic: safeCount(saved.inventory?.tunic),
           trousers: safeCount(saved.inventory?.trousers),
-          boots: safeCount(saved.inventory?.boots)
+          boots: safeCount(saved.inventory?.boots), rawMeat:safeCount(saved.inventory?.rawMeat), hide:safeCount(saved.inventory?.hide), roastedMeat:safeCount(saved.inventory?.roastedMeat), arrows:safeCount(saved.inventory?.arrows)
         },
         animalCare:{
           chickens:{fedUntil:Number.isSafeInteger(saved.animalCare?.chickens?.fedUntil)?Math.max(0,saved.animalCare.chickens.fedUntil):0,nextAt:Number.isSafeInteger(saved.animalCare?.chickens?.nextAt)?Math.max(0,saved.animalCare.chickens.nextAt):0,ready:safeCount(saved.animalCare?.chickens?.ready)},
           sheep:{fedUntil:Number.isSafeInteger(saved.animalCare?.sheep?.fedUntil)?Math.max(0,saved.animalCare.sheep.fedUntil):0,nextAt:Number.isSafeInteger(saved.animalCare?.sheep?.nextAt)?Math.max(0,saved.animalCare.sheep.nextAt):0,ready:safeCount(saved.animalCare?.sheep?.ready)}
         },
         farmPlots: Array.isArray(saved.farmPlots) ? saved.farmPlots.filter(item=>item&&["farm-plot-1","farm-plot-2","farm-plot-3"].includes(item.id)&&Object.hasOwn({wheat:1,carrots:1,cabbages:1},item.crop)&&Number.isSafeInteger(item.plantedAt)&&item.plantedAt>=0).map(item=>({id:item.id,crop:item.crop,plantedAt:item.plantedAt})) : [],
-        tools: { axe: saved.tools?.axe === true },
+        tools: { axe: saved.tools?.axe === true, bow:saved.tools?.bow===true },
+        huntedWildlife:Array.isArray(saved.huntedWildlife)?saved.huntedWildlife.filter(id=>/^wild-(deer|boar)-[0-9]+$/).slice(0,30):[],
         storage: { branches:safeCount(saved.storage?.branches), stones:safeCount(saved.storage?.stones), berries:safeCount(saved.storage?.berries), wood:safeCount(saved.storage?.wood) },
         cabinDoorOpen: saved.cabinDoorOpen === true,
         gameTime: {
@@ -1195,6 +1220,7 @@ function startGame(THREE) {
         inventory: { ...inventory },
         farmPlots: farmPlots.map(({id,crop,plantedAt})=>({id,crop,plantedAt})),
         animalCare:{chickens:{...animalCare.chickens},sheep:{...animalCare.sheep}},
+        huntedWildlife:[...huntedWildlife],
         tools: { ...tools },
         storage: { ...storage },
         cabinDoorOpen,
@@ -1402,6 +1428,9 @@ function startGame(THREE) {
       canUseKitchen=Math.hypot(player.x-kitchenPosition.x,player.z-kitchenPosition.z)<=4.6;
     }
 
+    let wildlifeMatch=null,bestWildlifeDistance=Infinity;
+    for(const actor of wildlifeActors){const dx=actor.x-player.x,dz=actor.z-player.z,distance=Math.hypot(dx,dz);if(distance>34||distance<2)continue;const facing=(dx*facingX+dz*facingZ)/distance;if(facing<.91||distance>=bestWildlifeDistance)continue;wildlifeMatch=actor;bestWildlifeDistance=distance;}
+    currentWildlifeTarget=wildlifeMatch;
     let treeMatch = null;
     let bestTreeDistance = Infinity;
     for (let i = 0; i < treeSpots.length; i++) {
@@ -1419,7 +1448,7 @@ function startGame(THREE) {
     currentTreeTarget = !match && !canUseLoom && !canDrinkWater && !canUseWorkbench && !canUseFarmPlot && !canUseAnimalPen && !canUseKitchen && !canUseLoom ? treeMatch : null;
     canChopTree = Boolean(currentTreeTarget && tools.axe);
     currentResourceTarget = match;
-    const hasInteraction = Boolean(match) || canDrinkWater || canUseWorkbench || canUseFarmPlot || canUseAnimalPen || canUseKitchen || canUseLoom || canUseCabinDoor || canUseBed || canUseStorageChest || Boolean(currentTreeTarget);
+    const hasInteraction = Boolean(match) || canDrinkWater || canUseWorkbench || canUseFarmPlot || canUseAnimalPen || canUseKitchen || canUseLoom || canUseCabinDoor || canUseBed || canUseStorageChest || Boolean(currentTreeTarget) || Boolean(currentWildlifeTarget);
     interactionPrompt.classList.toggle("hidden", !hasInteraction);
     collectButton.classList.toggle("hidden", !hasInteraction || !isMobile);
 
@@ -1467,6 +1496,7 @@ function startGame(THREE) {
       interactionName.textContent = "Baú de recursos";
       interactionVerb.textContent = "abrir baú";
       collectButton.textContent = "ABRIR BAÚ";
+    } else if(currentWildlifeTarget){interactionType.textContent="CAÇA";interactionName.textContent=wildlifeDefinitions[currentWildlifeTarget.type].label+" selvagem";interactionVerb.textContent=tools.bow&&inventory.arrows>0?"atirar flecha":"fabricar arco e flechas na bancada";collectButton.textContent=tools.bow&&inventory.arrows>0?"ATIRAR":"PRECISA DE ARCO";
     } else if (currentTreeTarget) {
       interactionType.textContent = "ÁRVORE";
       interactionName.textContent = canChopTree ? "Madeira · " + (3 - (treeHitCounts.get(currentTreeTarget.index) ?? 0)) + " golpes" : "Machado necessário";
@@ -1474,6 +1504,7 @@ function startGame(THREE) {
       collectButton.textContent = canChopTree ? "CORTAR ÁRVORE" : "PRECISA DE MACHADO";
     }
   }
+  function shootWildlife(){const target=currentWildlifeTarget;if(!target)return;if(!tools.bow){showToast("Você precisa fabricar um arco na bancada.");return;}if(inventory.arrows<1){showToast("Sem flechas. Fabrique mais na bancada.");return;}inventory.arrows--;const def=wildlifeDefinitions[target.type];inventory.rawMeat=Math.min(9999,inventory.rawMeat+def.meat);inventory.hide=Math.min(9999,inventory.hide+def.hide);huntedWildlife.add(target.id);scene.remove(target.group);const i=wildlifeActors.indexOf(target);if(i>=0)wildlifeActors.splice(i,1);currentWildlifeTarget=null;updateInventoryUI();saveProgress(true);showToast("Caça realizada · +"+def.meat+" carne crua · +"+def.hide+" couro");updateResourceTarget();}
   function drinkWater() {
     const bankDistance = riverDistance(player.x, player.z);
     if (!canDrinkWater || bankDistance < 8.2 || bankDistance > 12.4 || survival.thirst >= 100) return;
@@ -1692,6 +1723,7 @@ function startGame(THREE) {
     else if(canUseLoom)openLoomPanel();
     else if(canDrinkWater)drinkWater();
     else if(canUseWorkbench)openCrafting();
+    else if(currentWildlifeTarget)shootWildlife();
     else if(canUseFarmPlot)openFarmPanel();
     else if(canUseAnimalPen)openAnimalPanel();
     else if(canUseKitchen)openKitchenPanel();
@@ -1756,6 +1788,7 @@ function startGame(THREE) {
     if(cabinDoorPivot){cabinDoorAngle+=(cabinDoorTarget-cabinDoorAngle)*Math.min(1,delta*8);cabinDoorPivot.rotation.y=cabinDoorAngle;}
     if(chestLid){chestCurrentAngle+=(chestTargetAngle-chestCurrentAngle)*Math.min(1,delta*9);chestLid.rotation.x=chestCurrentAngle;}
     if(builtCabin&&animalActors.length)updateAnimalAnimations(delta);
+    if(wildlifeActors.length)updateWildlife(delta);
     if (axeSwingTimer > 0) {
       axeSwingTimer = Math.max(0, axeSwingTimer - delta);
       const swingProgress = 1 - axeSwingTimer / 0.34;

@@ -201,3 +201,13 @@ Esta etapa inclui coleta, mochila, alimentação e hidratação; fabricação e 
 - O tear foi reposicionado para o lado oposto à cozinha e aos cercados, com espaço mais livre para aproximação.
 - A área de interação foi ampliada e tem prioridade sobre água, cozinha e animais quando o jogador está junto à estação.
 - A tecla E no PC e o botão de ação no celular abrem diretamente o painel do tear.
+
+
+## Fase 7 — Animais selvagens e caça
+
+- Cervos e javalis aparecem em clareiras da floresta, caminham pelo vale e fogem quando o personagem se aproxima.
+- Na bancada, fabrique um arco com 4 galhos e 2 tecidos; fabrique 5 flechas com 2 galhos e 1 pedra.
+- Mire em um animal a distância e pressione E no PC ou use o botão de ação no celular para caçar. Cada disparo consome uma flecha.
+- Cervos fornecem 2 carnes cruas e 1 couro; javalis fornecem 3 carnes cruas e 1 couro.
+- A carne crua pode ser assada na cozinha existente e recupera 70 pontos de fome.
+- Arco, flechas, carne, couro e animais caçados são salvos localmente.
