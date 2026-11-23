@@ -132,3 +132,14 @@ Esta etapa inclui coleta, mochila, alimentação e hidratação; fabricação e 
 - Cada canteiro recebe uma cultura por vez. O crescimento é calculado pelo relógio do jogo: trigo 6 horas, cenoura 8 horas e repolho 10 horas.
 - Colha as culturas maduras e consuma trigo (+20 de fome), cenoura (+28) ou repolho (+34).
 - Sementes, colheitas, horário e estado de cada canteiro são salvos automaticamente no dispositivo.
+
+
+## Fase 4 — Criação de animais
+
+- Ao construir a cabana, surge um galinheiro com três galinhas e um cercado com duas ovelhas.
+- Aproxime-se da cerca e pressione E (ou use o botão de ação no celular) para cuidar do grupo.
+- Alimente as galinhas com 1 trigo: elas produzem ovos a cada 6 horas de jogo enquanto estiverem alimentadas.
+- Alimente as ovelhas com 1 repolho: elas produzem lã a cada 12 horas de jogo enquanto estiverem alimentadas.
+- Cada alimentação mantém o grupo alimentado por 12 horas de jogo. A produção fica disponível para recolher no painel do respectivo cercado.
+- Os ovos podem ser consumidos para recuperar 22 pontos de fome; a lã fica guardada na mochila para futuras receitas.
+- Animais, alimentação, produção pendente, ovos e lã são salvos automaticamente.

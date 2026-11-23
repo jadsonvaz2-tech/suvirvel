@@ -365,3 +365,14 @@ kbd { min-width: 17px; padding: 4px 5px; border: 1px solid rgba(241,232,210,.28)
 .farm-actions button strong { font:inherit; font-size:10px; font-weight:900; letter-spacing:.06em; }
 .farm-actions button small { color:var(--muted); font-size:9px; }
 .farm-actions button:disabled { opacity:.42; cursor:not-allowed; }
+
+
+/* Criação de animais */
+.item-wool { color:#e5dfcf; }
+.animal-panel { position:absolute; z-index:18; top:50%; left:50%; width:min(390px,calc(100vw - 32px)); max-height:min(82vh,650px); overflow:auto; padding:18px; border:1px solid rgba(178,151,112,.72); border-radius:11px; color:var(--cream); background:rgba(29,34,24,.98); box-shadow:0 16px 42px rgba(0,0,0,.46); backdrop-filter:blur(12px); transform:translate(-50%,-50%); }
+.animal-panel.hidden { display:none !important; }
+.animal-actions { display:grid; gap:8px; }
+.animal-actions button { display:grid; gap:5px; min-height:54px; padding:10px 12px; border:1px solid rgba(166,145,111,.55); border-radius:7px; color:var(--cream); background:rgba(96,77,49,.48); text-align:left; cursor:pointer; }
+.animal-actions button strong { font:inherit; font-size:10px; font-weight:900; letter-spacing:.06em; }
+.animal-actions button small { color:var(--muted); font-size:9px; }
+.animal-actions button:disabled { opacity:.42; cursor:not-allowed; }
