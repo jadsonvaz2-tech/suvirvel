@@ -220,6 +220,6 @@ Esta etapa inclui coleta, mochila, alimentação e hidratação; fabricação e 
 - Transforme 2 couros crus em 1 couro curtido. O processo leva 4 horas do jogo e continua durante o descanso.
 - Recolha o couro curtido quando estiver pronto; o estado da produção é salvo automaticamente.
 - Fabrique uma mochila de couro usando 3 couros curtidos e 2 tecidos.
-- A mochila pode ser equipada ou retirada no painel do curtume. Equipada, aumenta a capacidade de carga de 60 para 100 itens.
+- A mochila pode ser equipada ou retirada no painel do curtume. Equipada, aumenta a capacidade de carga de 120 para 180 itens.
 - A capacidade é verificada ao recolher recursos, madeira, colheitas, produção dos animais e recompensas da caça. Se estiver cheia, guarde materiais no baú ou equipe a mochila ampliada.
 - Curtimento, couro curtido, mochila e equipamento permanecem salvos no dispositivo.

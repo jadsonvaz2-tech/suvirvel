@@ -238,7 +238,7 @@ function startGame(THREE) {
   let gameTimeAccumulator=0;
   function updateGameClockUI(){gameClockUI.textContent="DIA "+gameTime.day+" · "+String(gameTime.hour).padStart(2,"0")+":"+String(gameTime.minute).padStart(2,"0");}
   function inventoryLoad(){return Object.values(inventory).reduce((total,value)=>total+(Number.isFinite(value)?value:0),0);}
-  function carryCapacity(){return tools.leatherBackpack?100:60;}
+  function carryCapacity(){return tools.leatherBackpack?180:120;}
   function canCarry(amount=1){if(inventoryLoad()+amount<=carryCapacity())return true;showToast("Mochila cheia · capacidade "+carryCapacity()+". Guarde itens no baú ou equipe a mochila de couro.");return false;}
   function refreshTanneryProduction(){if(tanneryState.readyAt>0&&totalGameMinutes()>=tanneryState.readyAt){tanneryState.readyAt=0;tanneryState.ready=true;saveProgress(true);if(!tanneryPanel.classList.contains("hidden"))renderTanneryPanel();}}
   function updateColdExposure(minutes){
@@ -743,7 +743,7 @@ function startGame(THREE) {
     if(tanneryState.ready){label="COLETAR COURO CURTIDO";note="O couro está pronto para ser recolhido";disabled=false;}
     const process='<div class="tannery-action"><div><strong>🦬 Curtimento de couro</strong><small>'+note+'</small></div><button type="button" data-tannery-process="1" '+(disabled?"disabled":"")+'>'+label+'</button></div>';
     const owned=inventory.leatherBackpack>0;
-    const backpack='<div class="tannery-action"><div><strong>🎒 Mochila de couro</strong><small>Receita: 3 couros curtidos + 2 tecidos · capacidade +40 espaços</small><small>'+(tools.leatherBackpack?"Equipada · +40 espaços":owned?"Guardada":"Ainda não fabricada")+'</small></div><button type="button" data-backpack-craft="1" '+(owned||inventory.tannedLeather<3||inventory.fabric<2?"disabled":"")+' >FABRICAR</button><button type="button" data-backpack-equip="1" '+(!owned?"disabled":"")+'>'+(tools.leatherBackpack?"RETIRAR":"EQUIPAR")+'</button></div>';
+    const backpack='<div class="tannery-action"><div><strong>🎒 Mochila de couro</strong><small>Receita: 3 couros curtidos + 2 tecidos · capacidade +60 espaços</small><small>'+(tools.leatherBackpack?"Equipada · +60 espaços":owned?"Guardada":"Ainda não fabricada")+'</small></div><button type="button" data-backpack-craft="1" '+(owned||inventory.tannedLeather<3||inventory.fabric<2?"disabled":"")+' >FABRICAR</button><button type="button" data-backpack-equip="1" '+(!owned?"disabled":"")+'>'+(tools.leatherBackpack?"RETIRAR":"EQUIPAR")+'</button></div>';
     tanneryActions.innerHTML=process+backpack;
   }
   function openTanneryPanel(){if(!canUseTannery)return;tanneryTitle.textContent="CURTUME E COURO";renderTanneryPanel();tanneryPanel.classList.remove("hidden");}
@@ -752,7 +752,7 @@ function startGame(THREE) {
     const process=event.target.closest("button[data-tannery-process]"),craft=event.target.closest("button[data-backpack-craft]"),equip=event.target.closest("button[data-backpack-equip]");
     if(process){if(tanneryState.ready){if(!canCarry(1))return;inventory.tannedLeather=Math.min(9999,inventory.tannedLeather+1);tanneryState.ready=false;showToast("Couro curtido recolhido.");}else if(!tanneryState.readyAt&&inventory.hide>=2){inventory.hide-=2;tanneryState.readyAt=totalGameMinutes()+240;showToast("Curtimento iniciado · volte em 4 horas do jogo.");}else return;}
     if(craft){if(inventory.leatherBackpack>0||inventory.tannedLeather<3||inventory.fabric<2)return;inventory.tannedLeather-=3;inventory.fabric-=2;inventory.leatherBackpack=1;showToast("Mochila de couro fabricada! Equipe no curtume.");}
-    if(equip){if(inventory.leatherBackpack<1)return;tools.leatherBackpack=!tools.leatherBackpack;showToast(tools.leatherBackpack?"Mochila de couro equipada · capacidade aumentada para 100.":"Mochila de couro retirada · capacidade base de 60.");}
+    if(equip){if(inventory.leatherBackpack<1)return;tools.leatherBackpack=!tools.leatherBackpack;showToast(tools.leatherBackpack?"Mochila de couro equipada · capacidade aumentada para 180.":"Mochila de couro retirada · capacidade base de 120.");}
     updateInventoryUI();renderTanneryPanel();saveProgress(true);
   }
   tanneryActions.addEventListener("click",handleTanneryAction);tanneryClose.addEventListener("click",closeTanneryPanel);
