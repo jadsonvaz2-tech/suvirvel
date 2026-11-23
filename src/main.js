@@ -254,6 +254,23 @@ function startGame(THREE) {
     root.add(leaf);
   });
 
+  function addExtraBranchPile(id, side, forward) {
+    const spot=resourcePosition(side,forward);
+    addResourceNode(id,"branches","Galhos",3,spot.x,spot.z,"#d5a15f",(root)=>{
+      const material=new THREE.MeshStandardMaterial({color:0x8b6038,roughness:1});
+      const twig=new THREE.CylinderGeometry(0.105,0.13,1.75,6);
+      [[0,0.19,0,0.18],[0.1,0.28,0.18,-0.3],[-0.12,0.37,-0.16,0.34],[0.03,0.48,-0.28,-0.12]].forEach(([x,y,z,rz])=>{
+        const mesh=new THREE.Mesh(twig,material); mesh.position.set(x,y,z); mesh.rotation.set(0,0,Math.PI/2+rz); root.add(mesh);
+      });
+      const leafMaterial=new THREE.MeshStandardMaterial({color:0x587343,roughness:1});
+      const leaf=new THREE.Mesh(new THREE.IcosahedronGeometry(0.18,0),leafMaterial); leaf.position.set(0.65,0.25,0.08); root.add(leaf);
+    });
+  }
+  // Galhos adicionais garantem que a receita seja alcançável após fabricar o machado.
+  addExtraBranchPile("branch-pile-02",-7.5,7.5);
+  addExtraBranchPile("branch-pile-03",7.5,7.5);
+  addExtraBranchPile("branch-pile-04",0,16);
+
   const stoneSpot = resourcePosition(1.55, 3.65);
   addResourceNode("stone-cluster-01", "stones", "Pedras", 4, stoneSpot.x, stoneSpot.z, "#bfc6c2", (root) => {
     const material = new THREE.MeshStandardMaterial({ color: 0x969b91, roughness: 1, flatShading: true });
@@ -734,7 +751,7 @@ function startGame(THREE) {
             }
           : null,
         collectedResources: Array.isArray(saved.collectedResources)
-          ? saved.collectedResources.filter((id) => ["branch-pile-01", "stone-cluster-01", "berry-bush-01"].includes(id))
+          ? saved.collectedResources.filter((id) => ["branch-pile-01", "branch-pile-02", "branch-pile-03", "branch-pile-04", "stone-cluster-01", "berry-bush-01"].includes(id))
           : [],
         felledTrees: Array.isArray(saved.felledTrees) ? saved.felledTrees.filter((index) => Number.isInteger(index) && index >= 0 && index < 470) : [],
         treeHits: saved.treeHits && typeof saved.treeHits === "object" ? Object.fromEntries(Object.entries(saved.treeHits).filter(([key, value]) => /^\d+$/.test(key) && Number.isInteger(value) && value >= 0 && value < 3)) : {}
