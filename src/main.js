@@ -26,6 +26,10 @@ const buildingMaterials = document.getElementById("building-materials");
 const chestPanel = document.getElementById("chest-panel");
 const chestClose = document.getElementById("chest-close");
 const chestItems = document.getElementById("chest-items");
+const sleepPanel = document.getElementById("sleep-panel");
+const sleepClose = document.getElementById("sleep-close");
+const sleepClockLabel = document.getElementById("sleep-clock-label");
+const gameClockUI = document.getElementById("game-clock");
 const interactionType = document.getElementById("interaction-type");
 const interactionVerb = document.getElementById("interaction-verb");
 const collectButton = document.getElementById("collect-button");
@@ -173,6 +177,16 @@ function startGame(THREE) {
   // O ponto de recursos é ancorado na posição inicial salva do jogador.
   // Assim, a primeira área de coleta aparece perto do personagem mesmo em saves antigos.
   const saved = readSave();
+  const gameTime = { day:saved?.gameTime?.day??1, hour:saved?.gameTime?.hour??8, minute:saved?.gameTime?.minute??0 };
+  let gameTimeAccumulator=0;
+  function updateGameClockUI(){gameClockUI.textContent="DIA "+gameTime.day+" · "+String(gameTime.hour).padStart(2,"0")+":"+String(gameTime.minute).padStart(2,"0");}
+  function advanceGameMinutes(minutes){
+    const total=gameTime.hour*60+gameTime.minute+minutes;
+    gameTime.day+=Math.floor(total/1440);
+    const wrapped=total%1440;
+    gameTime.hour=Math.floor(wrapped/60);gameTime.minute=wrapped%60;updateGameClockUI();
+  }
+  updateGameClockUI();
   const resourceBase = saved?.resourceBase ?? {
     x: saved?.x ?? 0,
     z: saved?.z ?? 35,
@@ -344,6 +358,7 @@ function startGame(THREE) {
   let cabinDoorOpen = saved?.cabinDoorOpen === true;
   let cabinDoorAngle = cabinDoorOpen ? Math.PI / 2 : 0, cabinDoorTarget = cabinDoorAngle;
   let chestLid = null, chestTargetAngle = 0, chestCurrentAngle = 0;
+  let cabinBed = null;
   function createCabinModel() {
     const root = new THREE.Group();
     const addBox = (w,h,d,x,y,z,material,rz=0) => {
@@ -398,6 +413,19 @@ function startGame(THREE) {
     const lock=new THREE.Mesh(new THREE.BoxGeometry(0.16,0.2,0.07),metal);lock.position.set(0,0.53,-0.39);chest.add(lock);
     return chest;
   }
+  function createCabinBed(){
+    const bed=new THREE.Group();
+    const wood=new THREE.MeshStandardMaterial({color:0x795033,roughness:0.96});
+    const linen=new THREE.MeshStandardMaterial({color:0xc8b995,roughness:1});
+    const blanket=new THREE.MeshStandardMaterial({color:0x65765a,roughness:1});
+    const add=(w,h,d,x,y,z,material)=>{const part=new THREE.Mesh(new THREE.BoxGeometry(w,h,d),material);part.position.set(x,y,z);bed.add(part);};
+    add(1.3,0.22,2.05,0,0.62,0,wood);add(1.2,0.2,1.92,0,0.82,0,linen);
+    add(1.18,0.13,1.25,0,0.99,0.28,blanket);add(1.18,0.12,0.48,0,1.0,-0.56,linen);
+    for(const x of [-0.52,0.52])for(const z of [-0.82,0.82])add(0.13,0.62,0.13,x,0.31,z,wood);
+    add(1.42,1.08,0.16,0,0.98,-1.02,wood);
+    add(0.12,1.24,0.16,-0.65,1.02,-1.02,wood);add(0.12,1.24,0.16,0.65,1.02,-1.02,wood);
+    return bed;
+  }
   function placeCabin() {
     cabinModel=createCabinModel();
     cabinModel.position.set(builtCabin.x,groundHeight(builtCabin.x,builtCabin.z),builtCabin.z);
@@ -406,6 +434,9 @@ function startGame(THREE) {
     const chest=createCabinChest();
     chest.position.set(builtCabin.x+1.18*Math.cos(builtCabin.yaw)+1.15*Math.sin(builtCabin.yaw),groundHeight(builtCabin.x,builtCabin.z),builtCabin.z-1.18*Math.sin(builtCabin.yaw)+1.15*Math.cos(builtCabin.yaw));
     chest.rotation.y=builtCabin.yaw; scene.add(chest);
+    cabinBed=createCabinBed();
+    cabinBed.position.set(builtCabin.x-1.15*Math.cos(builtCabin.yaw)+0.48*Math.sin(builtCabin.yaw),groundHeight(builtCabin.x,builtCabin.z),builtCabin.z+1.15*Math.sin(builtCabin.yaw)+0.48*Math.cos(builtCabin.yaw));
+    cabinBed.rotation.y=builtCabin.yaw;scene.add(cabinBed);
   }
   function cabinGhost(model) {
     const ghost=model.clone(true);
@@ -611,7 +642,7 @@ function startGame(THREE) {
   };
   const tools = { axe: saved?.tools?.axe === true };
   const storage = { branches:saved?.storage?.branches??0, stones:saved?.storage?.stones??0, berries:saved?.storage?.berries??0, wood:saved?.storage?.wood??0 };
-  let canUseCabinDoor=false, canUseStorageChest=false;
+  let canUseCabinDoor=false, canUseStorageChest=false, canUseBed=false;
   let currentResourceTarget = null;
   let canDrinkWater = false;
   let canUseWorkbench = false;
@@ -779,6 +810,11 @@ function startGame(THREE) {
         tools: { axe: saved.tools?.axe === true },
         storage: { branches:safeCount(saved.storage?.branches), stones:safeCount(saved.storage?.stones), berries:safeCount(saved.storage?.berries), wood:safeCount(saved.storage?.wood) },
         cabinDoorOpen: saved.cabinDoorOpen === true,
+        gameTime: {
+          day: Number.isSafeInteger(saved.gameTime?.day) ? THREE.MathUtils.clamp(saved.gameTime.day,1,999999) : 1,
+          hour: Number.isInteger(saved.gameTime?.hour) ? THREE.MathUtils.clamp(saved.gameTime.hour,0,23) : 8,
+          minute: Number.isInteger(saved.gameTime?.minute) ? THREE.MathUtils.clamp(saved.gameTime.minute,0,59) : 0
+        },
         builtCabin: saved.builtCabin && Number.isFinite(saved.builtCabin.x) && Number.isFinite(saved.builtCabin.z) && Math.abs(saved.builtCabin.x)<=96 && Math.abs(saved.builtCabin.z)<=96 ? { x:saved.builtCabin.x, z:saved.builtCabin.z, yaw:Number.isFinite(saved.builtCabin.yaw)?saved.builtCabin.yaw:0 } : null,
         resourceBase: saved.resourceBase &&
           Number.isFinite(saved.resourceBase.x) && Number.isFinite(saved.resourceBase.z)
@@ -811,6 +847,7 @@ function startGame(THREE) {
         tools: { ...tools },
         storage: { ...storage },
         cabinDoorOpen,
+        gameTime: { ...gameTime },
         resourceBase: { ...resourceBase },
         collectedResources: [...collectedResources],
         felledTrees: [...felledTrees],
@@ -915,6 +952,7 @@ function startGame(THREE) {
     if (!event.repeat && key === "r" && buildMode) rotateBuilding();
     if (!event.repeat && key === "escape") {
       if(buildMode)stopBuilding();
+      else if(!sleepPanel.classList.contains("hidden"))closeSleepPanel();
       else if(!chestPanel.classList.contains("hidden"))closeChest();
       else closeCrafting();
     }
@@ -944,6 +982,7 @@ function startGame(THREE) {
     if (builtCabin) {
       const dx=x-builtCabin.x,dz=z-builtCabin.z;
       const lx=dx*Math.cos(builtCabin.yaw)-dz*Math.sin(builtCabin.yaw),lz=dx*Math.sin(builtCabin.yaw)+dz*Math.cos(builtCabin.yaw);
+      if(Math.abs(lx+1.15)<0.78 && Math.abs(lz-0.48)<1.12)return true;
       const footprint=Math.abs(lx)<2.48 && Math.abs(lz)<2.82;
       if(footprint){
         const side=Math.abs(lx)>2.02 && Math.abs(lz)<2.68;
@@ -978,13 +1017,14 @@ function startGame(THREE) {
     canDrinkWater = !match && bankDistance >= 8.2 && bankDistance <= 12.4 && survival.thirst < 99.5;
     const benchDistance = Math.hypot(workbenchPosition.x - player.x, workbenchPosition.z - player.z);
     canUseWorkbench = !match && !canDrinkWater && benchDistance <= 5.2;
-    canUseCabinDoor=false; canUseStorageChest=false;
+    canUseCabinDoor=false; canUseStorageChest=false; canUseBed=false;
     if(builtCabin && !match && !canDrinkWater && !canUseWorkbench){
       const dx=player.x-builtCabin.x,dz=player.z-builtCabin.z;
       const lx=dx*Math.cos(builtCabin.yaw)-dz*Math.sin(builtCabin.yaw);
       const lz=dx*Math.sin(builtCabin.yaw)+dz*Math.cos(builtCabin.yaw);
       const inside=Math.abs(lx)<1.95 && Math.abs(lz)<2.18;
       canUseCabinDoor=Math.hypot(lx,lz+2.8)<3.45 && Math.abs(lx)<1.55;
+      canUseBed=inside && Math.hypot(lx+1.15,lz-0.48)<1.95;
       canUseStorageChest=inside && Math.hypot(lx-1.18,lz-1.15)<2.15;
     }
     let treeMatch = null;
@@ -1004,7 +1044,7 @@ function startGame(THREE) {
     currentTreeTarget = !match && !canDrinkWater && !canUseWorkbench ? treeMatch : null;
     canChopTree = Boolean(currentTreeTarget && tools.axe);
     currentResourceTarget = match;
-    const hasInteraction = Boolean(match) || canDrinkWater || canUseWorkbench || canUseCabinDoor || canUseStorageChest || Boolean(currentTreeTarget);
+    const hasInteraction = Boolean(match) || canDrinkWater || canUseWorkbench || canUseCabinDoor || canUseBed || canUseStorageChest || Boolean(currentTreeTarget);
     interactionPrompt.classList.toggle("hidden", !hasInteraction);
     collectButton.classList.toggle("hidden", !hasInteraction || !isMobile);
 
@@ -1023,6 +1063,11 @@ function startGame(THREE) {
       interactionName.textContent = cabinDoorOpen ? "Porta aberta" : "Porta fechada";
       interactionVerb.textContent = cabinDoorOpen ? "fechar porta" : "abrir porta";
       collectButton.textContent = cabinDoorOpen ? "FECHAR PORTA" : "ABRIR PORTA";
+    } else if (canUseBed) {
+      interactionType.textContent = "DESCANSO";
+      interactionName.textContent = "Cama da cabana";
+      interactionVerb.textContent = "dormir";
+      collectButton.textContent = "DORMIR";
     } else if (canUseStorageChest) {
       interactionType.textContent = "ARMAZENAMENTO";
       interactionName.textContent = "Baú de recursos";
@@ -1147,13 +1192,34 @@ function startGame(THREE) {
     cabinDoorOpen=!cabinDoorOpen;cabinDoorTarget=cabinDoorOpen?Math.PI/2:0;
     saveProgress(true);showToast(cabinDoorOpen?"Você abriu a porta da cabana.":"Você fechou a porta da cabana.");updateResourceTarget();
   }
+  function openSleepPanel(){
+    if(!canUseBed||!builtCabin)return;
+    sleepClockLabel.textContent="Agora: Dia "+gameTime.day+" · "+String(gameTime.hour).padStart(2,"0")+":"+String(gameTime.minute).padStart(2,"0");
+    sleepPanel.classList.remove("hidden");
+  }
+  function closeSleepPanel(){sleepPanel.classList.add("hidden");}
+  function sleepFor(hours){
+    if(!canUseBed||![6,8].includes(hours))return;
+    advanceGameMinutes(hours*60);survival.energy=100;
+    survival.hunger=Math.max(0,survival.hunger-hours*1.8);
+    survival.thirst=Math.max(0,survival.thirst-hours*2.8);
+    if(survival.hunger<=0||survival.thirst<=0){
+      const unmet=Number(survival.hunger<=0)+Number(survival.thirst<=0);
+      survival.health=Math.max(0,survival.health-unmet*hours*0.35);
+    }
+    closeSleepPanel();updateSurvivalUI(true);saveProgress(true);
+    showToast("Você descansou por "+hours+" horas. Vigor recuperado!");updateResourceTarget();
+  }
+  sleepPanel.addEventListener("click",event=>{const button=event.target.closest("button[data-sleep-hours]");if(button)sleepFor(Number(button.dataset.sleepHours));});
+  sleepClose.addEventListener("click",closeSleepPanel);
   function performCurrentInteraction(){
-    if(!chestPanel.classList.contains("hidden"))return;
+    if(!chestPanel.classList.contains("hidden")||!sleepPanel.classList.contains("hidden"))return;
     if(buildMode){confirmBuilding();return;}
     if(currentResourceTarget)collectCurrentResource();
     else if(canDrinkWater)drinkWater();
     else if(canUseWorkbench)openCrafting();
     else if(canUseCabinDoor)toggleCabinDoor();
+    else if(canUseBed)openSleepPanel();
     else if(canUseStorageChest)openChest();
     else if(canChopTree)chopCurrentTree();
     else if(currentTreeTarget&&!tools.axe)showToast("Você precisa fabricar um machado na bancada.");
@@ -1164,6 +1230,8 @@ function startGame(THREE) {
   function animate() {
     requestAnimationFrame(animate);
     const delta = Math.min(clock.getDelta(), 0.05);
+    gameTimeAccumulator+=delta;
+    while(gameTimeAccumulator>=5){gameTimeAccumulator-=5;advanceGameMinutes(1);}
     let forward = 0;
     let strafe = 0;
     if (keys.has("w") || keys.has("arrowup")) forward += 1;
@@ -1181,7 +1249,7 @@ function startGame(THREE) {
     const cos = Math.cos(player.yaw);
     const moveX = (-sin * forward + cos * strafe) * speed * delta;
     const moveZ = (-cos * forward - sin * strafe) * speed * delta;
-    if (moveX || moveZ) {
+    if (sleepPanel.classList.contains("hidden") && (moveX || moveZ)) {
       const nextX = player.x + moveX;
       const nextZ = player.z + moveZ;
       if (!isBlocked(nextX, player.z)) player.x = nextX;

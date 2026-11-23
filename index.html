@@ -21,7 +21,7 @@
         <span class="brand-mark">LV</span>
         <div><strong>LEGADO DO VALE</strong><small>FASE 02 · SOBREVIVÊNCIA</small></div>
       </div>
-      <div class="top-status"><span class="status-dot"></span> EXPLORAÇÃO</div>
+      <div class="top-status"><span class="status-dot"></span> EXPLORAÇÃO <span id="game-clock" class="game-clock">DIA 1 · 08:00</span></div>
     </header>
     <div class="crosshair" aria-hidden="true"><i></i><b></b></div>
     <section class="survival-panel" aria-label="Condição do viajante">
@@ -78,6 +78,19 @@
       <p class="building-description">Guarde recursos para liberar espaço na mochila ou retire o que precisar. Cada toque transfere uma unidade.</p>
       <div id="chest-items" class="chest-items"></div>
       <small class="building-help">O conteúdo é salvo automaticamente neste dispositivo.</small>
+    </section>
+    <section id="sleep-panel" class="sleep-panel hidden" aria-label="Descansar na cama">
+      <header class="inventory-header">
+        <div><span class="eyebrow">DESCANSO</span><strong>HORA DE DORMIR</strong></div>
+        <button type="button" id="sleep-close" class="inventory-close" aria-label="Fechar descanso">×</button>
+      </header>
+      <p class="building-description">Descanse na sua cama para recuperar o vigor. O tempo avança e fome e sede diminuem durante o sono.</p>
+      <div id="sleep-clock-label" class="sleep-clock-label">Agora: Dia 1 · 08:00</div>
+      <div class="sleep-actions">
+        <button type="button" data-sleep-hours="6"><strong>DORMIR 6 HORAS</strong><small>Recuperar vigor · avançar 6 horas</small></button>
+        <button type="button" data-sleep-hours="8"><strong>DORMIR 8 HORAS</strong><small>Recuperar vigor · avançar 8 horas</small></button>
+      </div>
+      <small class="building-help">O descanso é salvo automaticamente.</small>
     </section>
     <section id="building-panel" class="building-panel hidden" aria-label="Construção da primeira cabana">
       <header class="inventory-header">

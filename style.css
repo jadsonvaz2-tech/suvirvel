@@ -342,3 +342,15 @@ kbd { min-width: 17px; padding: 4px 5px; border: 1px solid rgba(241,232,210,.28)
 .chest-item>strong { color:var(--gold); font-size:11px; font-variant-numeric:tabular-nums; }
 .chest-item>div { grid-column:1/-1; display:grid; grid-template-columns:1fr 1fr; gap:7px; }
 .chest-item button { min-height:34px; border:1px solid rgba(212,177,107,.42); border-radius:6px; color:var(--cream); background:rgba(111,82,42,.48); font:inherit; font-size:8px; font-weight:900; letter-spacing:.06em; cursor:pointer; }
+
+
+/* Relógio do vale e descanso */
+.game-clock { display:inline-block; margin-left:10px; padding:5px 8px; border:1px solid rgba(212,177,107,.35); border-radius:5px; color:#f0d39b; background:rgba(20,30,23,.55); font-size:9px; font-weight:800; letter-spacing:.08em; font-variant-numeric:tabular-nums; white-space:nowrap; }
+.sleep-panel { position:absolute; z-index:16; top:50%; left:50%; width:min(370px,calc(100vw - 32px)); padding:18px; border:1px solid rgba(212,177,107,.65); border-radius:11px; color:var(--cream); background:rgba(22,34,25,.97); box-shadow:0 16px 42px rgba(0,0,0,.44); backdrop-filter:blur(12px); transform:translate(-50%,-50%); }
+.sleep-panel.hidden { display:none !important; }
+.sleep-clock-label { margin:10px 0; padding:10px; border:1px solid rgba(241,232,210,.14); border-radius:7px; color:#e9c98d; background:rgba(255,255,255,.045); font-size:11px; font-weight:800; text-align:center; }
+.sleep-actions { display:grid; gap:9px; }
+.sleep-actions button { display:grid; gap:5px; min-height:58px; padding:10px 12px; border:1px solid rgba(212,177,107,.55); border-radius:7px; color:var(--cream); background:rgba(111,82,42,.52); text-align:left; cursor:pointer; }
+.sleep-actions button strong { font:inherit; font-size:10px; font-weight:900; letter-spacing:.08em; }
+.sleep-actions button small { color:var(--muted); font-size:9px; }
+@media (max-width:700px),(pointer:coarse) { .game-clock { margin-left:5px; padding:4px 6px; font-size:8px; } .top-status { font-size:8px; } }

@@ -112,3 +112,13 @@ Esta etapa inclui coleta, mochila, alimentação e hidratação; fabricação e 
 - Um baú de madeira fica dentro da cabana. Aproxime-se dele e pressione E ou toque em ABRIR BAÚ.
 - Guarde ou retire unidades de madeira, galhos, pedras e frutas usando os botões do baú.
 - A porta, o conteúdo do baú, a mochila e a posição do personagem são salvos localmente. O progresso permanece após atualizar a página.
+
+
+## Fase 2 — Descanso na cabana
+
+- Uma cama de madeira aparece no interior da cabana construída.
+- Aproxime-se da cama e pressione E (ou toque no botão DORMIR no celular).
+- Escolha dormir por 6 ou 8 horas. O relógio do vale avança pelo período escolhido e o vigor é recuperado completamente.
+- Fome e sede diminuem durante o descanso; se alguma necessidade chegar a zero, a saúde também pode ser afetada.
+- O relógio (dia e horário), vigor e necessidades são salvos automaticamente e continuam após atualizar a página.
+- O relógio do jogo começa no Dia 1 às 08:00 e avança um minuto a cada cinco segundos reais.
