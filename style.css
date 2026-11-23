@@ -537,3 +537,18 @@ kbd { min-width: 17px; padding: 4px 5px; border: 1px solid rgba(241,232,210,.28)
 .villager-task-note{padding:11px;border:1px solid rgba(212,177,107,.25);border-radius:7px;color:#e9c98d;background:rgba(212,177,107,.07);font-size:10px;line-height:1.5}
 .villager-task button{width:100%;min-height:40px}
 .villager-task button:disabled{opacity:.4;cursor:not-allowed}
+
+
+/* Localizador de moradores e sinalização no vilarejo */
+.villagers-toggle{position:absolute;z-index:5;top:360px;right:24px;padding:10px 13px;border:1px solid rgba(240,199,111,.8);border-radius:7px;color:#fff1d0;background:rgba(35,62,42,.94);box-shadow:0 4px 18px rgba(0,0,0,.3);font:inherit;font-size:10px;font-weight:950;letter-spacing:.12em;cursor:pointer}
+.villagers-directory{position:absolute;z-index:18;top:50%;left:50%;width:min(390px,calc(100vw - 30px));max-height:min(78vh,560px);overflow:auto;padding:0 0 15px;border:1px solid rgba(240,199,111,.8);border-radius:11px;color:var(--cream);background:rgba(22,34,25,.98);box-shadow:0 16px 42px rgba(0,0,0,.5);transform:translate(-50%,-50%)}
+.villagers-directory.hidden{display:none!important}
+.villagers-directory>.building-description{padding:0 16px;margin-top:13px}
+.villagers-list{display:grid;gap:8px;padding:0 14px}
+.villager-directory-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px;border:1px solid rgba(241,232,210,.15);border-radius:8px;background:rgba(255,255,255,.045)}
+.villager-directory-item div{display:grid;gap:3px}
+.villager-directory-item strong{font-family:Georgia,serif;font-size:15px;color:#f3d69a}
+.villager-directory-item span{font-size:10px;color:var(--cream)}
+.villager-directory-item small{font-size:9px;color:var(--muted)}
+.villager-directory-item button{flex:none;min-height:34px;padding:0 10px;border:1px solid rgba(212,177,107,.55);border-radius:6px;color:var(--cream);background:rgba(86,69,42,.8);font:inherit;font-size:8px;font-weight:900;letter-spacing:.08em;cursor:pointer}
+@media (max-width:700px),(pointer:coarse){.villagers-toggle{top:auto;right:14px;bottom:max(174px,calc(env(safe-area-inset-bottom) + 168px));padding:11px 14px;font-size:9px}.villagers-directory{max-height:70vh}}

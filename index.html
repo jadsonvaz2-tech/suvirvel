@@ -54,6 +54,12 @@
     </section>
     <button type="button" id="inventory-toggle" class="inventory-toggle" aria-expanded="false">MOCHILA <kbd>I</kbd></button>
     <button type="button" id="build-toggle" class="build-toggle">CONSTRUIR</button>
+    <button type="button" id="villagers-toggle" class="villagers-toggle">MORADORES</button>
+    <section id="villagers-directory" class="villagers-directory hidden" aria-label="Localizar moradores">
+      <header class="inventory-header"><div><span class="eyebrow">VIDA NO VILAREJO</span><strong>LOCALIZAR MORADORES</strong></div><button type="button" id="villagers-directory-close" class="inventory-close" aria-label="Fechar lista de moradores">×</button></header>
+      <p class="building-description">Veja a direção e a distância de cada morador. Toque em LOCALIZAR para virar a câmera na direção dele.</p>
+      <div id="villagers-list" class="villagers-list"></div>
+    </section>
     <section id="inventory-panel" class="inventory-panel hidden" aria-label="Mochila do personagem">
       <header class="inventory-header">
         <div><span class="eyebrow">PERTENCES</span><strong>MOCHILA</strong></div>
