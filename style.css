@@ -563,3 +563,7 @@ kbd { min-width: 17px; padding: 4px 5px; border: 1px solid rgba(241,232,210,.28)
 
 /* Necessidades e felicidade individual dos moradores */
 .villager-needs-detail{display:grid;gap:6px;margin-top:10px;padding:10px;border:1px solid rgba(212,177,107,.25);border-radius:7px;background:rgba(255,255,255,.035)}.villager-needs-detail strong{font-size:10px;color:#f0d39b}.villager-needs-detail small{font-size:9px;color:var(--muted)}.villager-needs-track{height:6px;overflow:hidden;border-radius:99px;background:rgba(255,255,255,.12)}.villager-needs-track i{display:block;height:100%;border-radius:99px;background:#75b77b}.villager-needs-track.hunger i{background:#d6a454}.villager-directory-item .villager-needs-track{width:min(180px,100%);margin:2px 0}
+
+
+/* Relacionamentos, namoro e casamento */
+.village-relationships{margin:12px 14px;padding:10px;border:1px solid rgba(212,177,107,.32);border-radius:8px;background:rgba(212,177,107,.07)}.village-relationships>p{margin:0 0 8px;font-size:9px;color:var(--cream)}.village-couple{display:grid;gap:4px;padding:8px 0;border-top:1px solid rgba(255,255,255,.1)}.village-couple strong{font-family:Georgia,serif;color:#f3d69a;font-size:12px}.village-couple span,.village-couple small,.villager-romance{font-size:9px;color:#e7c58d}.village-couple .villager-needs-track{width:100%}

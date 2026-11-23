@@ -252,6 +252,7 @@ function startGame(THREE) {
   const villagers=[];
   const villageHouses=(Array.isArray(saved?.villageHouses)?saved.villageHouses:[]).map((house,index)=>({id:house.id||"house-"+(index+1),x:house.x,z:house.z,yaw:house.yaw||0,group:null,occupants:[]}));
   const recruitedVillagers=Array.isArray(saved?.recruitedVillagers)?saved.recruitedVillagers.slice(0,40):[];
+  const villagerRelationships=Array.isArray(saved?.villagerRelationships)?saved.villagerRelationships.filter(item=>item&&typeof item.a==="string"&&typeof item.b==="string"&&item.a!==item.b&&Number.isFinite(item.affinity)&&["amizade","namoro","casados"].includes(item.status)).slice(0,40).map(item=>({a:item.a,b:item.b,affinity:THREE.MathUtils.clamp(item.affinity,0,100),status:item.status,weddingDay:Number.isSafeInteger(item.weddingDay)?Math.max(1,item.weddingDay):null})):[];
   const villageStock=Object.fromEntries(["wheat","carrots","cabbages","wood","branches","stones","wool","rawMeat","hide","trout","carp","minnow","roastedMeat","vegetableSoup","bread","omelet","berryPorridge","grilledTrout","grilledCarp","grilledMinnow","fabric","craftedGoods","tools"].map(key=>[key,Number.isSafeInteger(saved?.villageStock?.[key])?Math.max(0,Math.min(999999,saved.villageStock[key])):0]));
   let villageProductionLastMinute=Number.isSafeInteger(saved?.villageProductionLastMinute)?Math.max(0,saved.villageProductionLastMinute):totalGameMinutes();
   let villageFoodLastDay=Number.isSafeInteger(saved?.villageFoodLastDay)?Math.max(1,saved.villageFoodLastDay):gameTime.day;
@@ -488,14 +489,14 @@ function startGame(THREE) {
 
   // Candidatos aguardam convite. Só moradores convidados e alojados aparecem no mundo.
   const villagerDefinitions=[
-    {id:"mara",name:"Mara",role:"Agricultora",body:0x718b4e,accent:0xd8b36b},
-    {id:"tome",name:"Tomé",role:"Lenhador",body:0x79513a,accent:0xb7a078},
-    {id:"ines",name:"Inês",role:"Artesã",body:0x78618a,accent:0xd8b36b},
-    {id:"raul",name:"Raul",role:"Caçador",body:0x536b50,accent:0x9b6b4d},
-    {id:"cecilia",name:"Cecília",role:"Tecelã",body:0x8a5c63,accent:0xd9b8a0},
-    {id:"gaspar",name:"Gaspar",role:"Pescador",body:0x53616b,accent:0x9b9b6b},
-    {id:"bruna",name:"Bruna",role:"Cozinheira",body:0x9a7048,accent:0xd8b36b},
-    {id:"martim",name:"Martim",role:"Ferreiro",body:0x59616b,accent:0xb7a078}
+    {id:"mara",name:"Mara",role:"Agricultora",gender:"F",body:0x718b4e,accent:0xd8b36b},
+    {id:"tome",name:"Tomé",role:"Lenhador",gender:"M",body:0x79513a,accent:0xb7a078},
+    {id:"ines",name:"Inês",role:"Artesã",gender:"F",body:0x78618a,accent:0xd8b36b},
+    {id:"raul",name:"Raul",role:"Caçador",gender:"M",body:0x536b50,accent:0x9b6b4d},
+    {id:"cecilia",name:"Cecília",role:"Tecelã",gender:"F",body:0x8a5c63,accent:0xd9b8a0},
+    {id:"gaspar",name:"Gaspar",role:"Pescador",gender:"M",body:0x53616b,accent:0x9b9b6b},
+    {id:"bruna",name:"Bruna",role:"Cozinheira",gender:"F",body:0x9a7048,accent:0xd8b36b},
+    {id:"martim",name:"Martim",role:"Ferreiro",gender:"M",body:0x59616b,accent:0xb7a078}
   ];
   function createVillager(def,house,slot=0,assignedProfession=null,needsState=null){
     const root=new THREE.Group();
@@ -567,7 +568,33 @@ function startGame(THREE) {
       villager.happiness=THREE.MathUtils.clamp(villager.happiness,0,100);
     }
     villageFoodReport={day,served,missing};
+    updateVillagerRelationships(day);
     return villagers.length>0;
+  }
+  function updateVillagerRelationships(day){
+    for(const house of villageHouses){
+      const residents=house.occupants.map(id=>villagers.find(v=>v.id===id)).filter(Boolean);
+      if(residents.length<2)continue;
+      const first=residents[0],second=residents[1];
+      if(!first.gender||!second.gender||first.gender===second.gender)continue;
+      let relation=villagerRelationships.find(item=>(item.a===first.id&&item.b===second.id)||(item.a===second.id&&item.b===first.id));
+      if(!relation){relation={a:first.id,b:second.id,affinity:0,status:"amizade",weddingDay:null};villagerRelationships.push(relation);}
+      if(relation.status==="casados")continue;
+      const conditions=first.happiness>=45&&second.happiness>=45&&first.lastMealDay>=day-1&&second.lastMealDay>=day-1;
+      relation.affinity=THREE.MathUtils.clamp(relation.affinity+(conditions?12:-4),0,100);
+      if(relation.affinity>=40&&relation.status==="amizade")relation.status="namoro";
+      if(relation.affinity>=100){relation.status="casados";relation.weddingDay=day;first.happiness=Math.min(100,first.happiness+10);second.happiness=Math.min(100,second.happiness+10);showToast("Celebração na vila! "+first.name+" e "+second.name+" se casaram.");}
+    }
+  }
+  function villagerRelationshipLabel(villager){
+    const relation=villagerRelationships.find(item=>item.a===villager.id||item.b===villager.id);
+    if(!relation)return "Solteiro(a)";
+    const partnerId=relation.a===villager.id?relation.b:relation.a;
+    const partner=villagers.find(item=>item.id===partnerId);
+    if(!partner)return "Solteiro(a)";
+    if(relation.status==="casados")return "Casado(a) com "+partner.name;
+    if(relation.status==="namoro")return "Namorando "+partner.name+" · afinidade "+Math.round(relation.affinity)+"%";
+    return "Conhecendo "+partner.name+" · afinidade "+Math.round(relation.affinity)+"%";
   }
   function processVillageProduction(){
     const now=totalGameMinutes();
@@ -616,6 +643,7 @@ function startGame(THREE) {
     villagerTitle.textContent=villager.name+" · "+villager.role.toUpperCase();
     villagerDialogue.textContent="Olá! Obrigado por me convidar para viver no seu vilarejo. Esta é minha nova casa, e vou contribuir com meu ofício para o crescimento do assentamento.";
     villagerTask.innerHTML='<div class="villager-task-note">Morador do vilarejo · Casa: '+villager.houseId.replace("house-","")+' · Profissão: '+villager.role+' · '+(villager.atWork?"No local de trabalho":"Em casa ou a caminho")+'</div><div class="villager-needs-detail"><strong>Felicidade: '+Math.round(villager.happiness)+'/100</strong><div class="villager-needs-track"><i style="width:'+villager.happiness+'%"></i></div><strong>Fome: '+Math.round(villager.hunger)+'/100</strong><div class="villager-needs-track hunger"><i style="width:'+villager.hunger+'%"></i></div><small>'+villager.foodStatus+' · '+villager.housingStatus+'</small></div>';
+    villagerTask.insertAdjacentHTML("beforeend",'<div class="villager-needs-detail"><strong>Relacionamento: '+villagerRelationshipLabel(villager)+'</strong></div>');
     villagerPanel.classList.remove("hidden");
   }
   function closeVillagerPanel(){villagerPanel.classList.add("hidden");currentVillager=null;}
@@ -636,13 +664,15 @@ function startGame(THREE) {
     const free=villageHouses.reduce((n,house)=>n+Math.max(0,2-house.occupants.length),0);
     const averageMood=villagers.length?Math.round(villagers.reduce((sum,v)=>sum+v.happiness,0)/villagers.length):0;
     villagersSummary.textContent=villagers.length+" moradores · "+villageHouses.length+" casas · "+free+" vagas · felicidade média "+averageMood+"/100";
+    const datingCount=villagerRelationships.filter(item=>item.status==="namoro").length,marriedCount=villagerRelationships.filter(item=>item.status==="casados").length;
+    const relationshipMarkup='<section class="village-relationships"><h3 class="villager-invite-heading">RELACIONAMENTOS E FAMÍLIAS</h3><p>'+datingCount+' casais namorando · '+marriedCount+' casamentos celebrados</p>'+(villagerRelationships.length?villagerRelationships.map(item=>{const a=villagers.find(v=>v.id===item.a),b=villagers.find(v=>v.id===item.b);return a&&b?'<div class="village-couple"><strong>'+a.name+' &amp; '+b.name+'</strong><span>'+(item.status==="casados"?"Casados · cerimônia no dia "+item.weddingDay:item.status==="namoro"?"Namorando":"Conhecendo-se")+'</span><div class="villager-needs-track"><i style="width:'+item.affinity+'%"></i></div><small>Afinidade: '+Math.round(item.affinity)+'%</small></div>':"";}).join(""):'<small>A convivência dos moradores da mesma casa pode iniciar novas relações.</small>')+'</section>';
     const foodStatus=villagers.length?(villageFoodReport.missing>0?"Último dia: "+villageFoodReport.served+" alimentados · "+villageFoodReport.missing+" sem refeição":"Último dia: todos receberam alimento"):"Convide moradores para iniciar o consumo diário.";
     const stockMarkup='<section class="village-stock"><h3 class="villager-invite-heading">DEPÓSITO DA VILA</h3><p class="village-food-status">🍲 Provisões: <strong>'+villageFoodCount()+' refeições</strong> · '+villagers.length+' moradores<br><small>'+foodStatus+'</small></p><div class="village-stock-grid">'+Object.entries(villageStockLabels).map(([key,label])=>'<span>'+label+'</span><strong>'+String(villageStock[key]||0)+'</strong>').join("")+'</div><button type="button" data-deposit-village class="village-deposit-button">DEPOSITAR RECURSOS DA MOCHILA</button><small class="village-stock-note">Cada morador consome 1 refeição por dia, retirada automaticamente do depósito. A cozinheira prepara carne assada ou sopa quando há ingredientes.</small></section>';
-    villagersList.innerHTML=villagers.length?villagers.map(v=>{
+    villagersList.innerHTML=relationshipMarkup+(villagers.length?villagers.map(v=>{
       const distance=Math.hypot(v.x-player.x,v.z-player.z),direction=villagerDirection(v);
       const mood=v.happiness>=75?"Muito feliz":v.happiness>=50?"Satisfeito":v.happiness>=25?"Insatisfeito":"Muito insatisfeito";
-      return '<article class="villager-directory-item"><div><strong>'+v.name+'</strong><span>'+v.role+' · '+mood+'</span><small>Felicidade '+Math.round(v.happiness)+'/100 · Fome '+Math.round(v.hunger)+'/100</small><div class="villager-needs-track"><i style="width:'+v.happiness+'%"></i></div><small>'+v.foodStatus+' · '+v.housingStatus+' · '+(v.atWork?"Trabalhando":"Em casa / deslocando-se")+' · '+direction+' · '+distance.toFixed(0)+' m · Casa '+v.houseId.replace("house-","")+'</small><label class="villager-profession-label">PROFISSÃO <select data-villager-profession="'+v.id+'">'+villagerDefinitions.map(def=>'<option value="'+def.role+'" '+(def.role===v.role?"selected":"")+' >'+def.role+'</option>').join("")+'</select></label></div><button type="button" data-face-villager="'+v.id+'">LOCALIZAR</button></article>';
-    }).join(""):'<p class="inventory-note">O vilarejo ainda não tem moradores. Construa uma casa e convide os primeiros habitantes.</p>';
+      return '<article class="villager-directory-item"><div><strong>'+v.name+'</strong><span>'+v.role+' · '+mood+'</span><small class="villager-romance">'+villagerRelationshipLabel(v)+'</small><small>Felicidade '+Math.round(v.happiness)+'/100 · Fome '+Math.round(v.hunger)+'/100</small><div class="villager-needs-track"><i style="width:'+v.happiness+'%"></i></div><small>'+v.foodStatus+' · '+v.housingStatus+' · '+(v.atWork?"Trabalhando":"Em casa / deslocando-se")+' · '+direction+' · '+distance.toFixed(0)+' m · Casa '+v.houseId.replace("house-","")+'</small><label class="villager-profession-label">PROFISSÃO <select data-villager-profession="'+v.id+'">'+villagerDefinitions.map(def=>'<option value="'+def.role+'" '+(def.role===v.role?"selected":"")+' >'+def.role+'</option>').join("")+'</select></label></div><button type="button" data-face-villager="'+v.id+'">LOCALIZAR</button></article>';
+    }).join(""):'<p class="inventory-note">O vilarejo ainda não tem moradores. Construa uma casa e convide os primeiros habitantes.</p>');
     const invited=new Set(recruitedVillagers.map(item=>item.id));
     const vacancy=Boolean(availableHouse());
     villagersList.insertAdjacentHTML("beforebegin",stockMarkup);
@@ -1715,6 +1745,7 @@ function startGame(THREE) {
         villageProductionLastMinute,
         villageFoodLastDay,
         villageFoodReport:{...villageFoodReport},
+        villagerRelationships:villagerRelationships.map(item=>({...item})),
         structurePositions:structurePositionsForSave()
       }));
     } catch { /* O jogo continua mesmo sem armazenamento disponível. */ }
