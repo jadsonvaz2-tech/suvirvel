@@ -914,7 +914,11 @@ function startGame(THREE) {
     bread: saved?.inventory?.bread ?? 0,
     omelet: saved?.inventory?.omelet ?? 0,
     vegetableSoup: saved?.inventory?.vegetableSoup ?? 0,
-    berryPorridge: saved?.inventory?.berryPorridge ?? 0
+    berryPorridge: saved?.inventory?.berryPorridge ?? 0,
+    fabric: saved?.inventory?.fabric ?? 0,
+    tunic: saved?.inventory?.tunic ?? 0,
+    trousers: saved?.inventory?.trousers ?? 0,
+    boots: saved?.inventory?.boots ?? 0
   };
   const clothing = {tunic:saved?.clothing?.tunic===true,trousers:saved?.clothing?.trousers===true,boots:saved?.clothing?.boots===true};
   const tools = { axe: saved?.tools?.axe === true };
@@ -1130,7 +1134,11 @@ function startGame(THREE) {
           bread: safeCount(saved.inventory?.bread),
           omelet: safeCount(saved.inventory?.omelet),
           vegetableSoup: safeCount(saved.inventory?.vegetableSoup),
-          berryPorridge: safeCount(saved.inventory?.berryPorridge)
+          berryPorridge: safeCount(saved.inventory?.berryPorridge),
+          fabric: safeCount(saved.inventory?.fabric),
+          tunic: safeCount(saved.inventory?.tunic),
+          trousers: safeCount(saved.inventory?.trousers),
+          boots: safeCount(saved.inventory?.boots)
         },
         animalCare:{
           chickens:{fedUntil:Number.isSafeInteger(saved.animalCare?.chickens?.fedUntil)?Math.max(0,saved.animalCare.chickens.fedUntil):0,nextAt:Number.isSafeInteger(saved.animalCare?.chickens?.nextAt)?Math.max(0,saved.animalCare.chickens.nextAt):0,ready:safeCount(saved.animalCare?.chickens?.ready)},
