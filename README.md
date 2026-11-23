@@ -10,6 +10,9 @@ Protótipo de sobrevivência e exploração medieval em 3D, para PC e celular, i
 - Corrida no PC com Shift.
 - Colisões simples com árvores, rio e limites do mapa.
 - Salvamento local da posição e da direção da câmera neste dispositivo.
+- Inicialização com tratamento de falha ao carregar a biblioteca 3D.
+- Leito do rio ajustado para manter a água visível ao longo do vale.
+- Validação dos dados recuperados do salvamento local.
 
 Os modelos são provisórios (low-poly). Construção, coleta, agricultura, animais, moradores e comércio serão adicionados nas próximas fases, depois da validação desta base.
 
@@ -33,7 +36,7 @@ Os modelos são provisórios (low-poly). Construção, coleta, agricultura, anim
 
 ## Publicação
 
-O workflow em `.github/workflows/deploy.yml` publica automaticamente o conteúdo do repositório no GitHub Pages a cada atualização na branch `main`, além de permitir execução manual em Actions.
+O GitHub Pages publica automaticamente a branch `main` usando o publicador nativo do GitHub. O workflow em `.github/workflows/deploy.yml` valida a sintaxe JavaScript e a presença dos arquivos essenciais; ele não faz uma segunda publicação, evitando conflitos com o publicador nativo.
 
 ## Próximas etapas
 
