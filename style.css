@@ -279,3 +279,31 @@ kbd { min-width: 17px; padding: 4px 5px; border: 1px solid rgba(241,232,210,.28)
   .eat-berry-button { padding: 0 6px; font-size: 7px; }
   .collect-button { min-width: 108px; }
 }
+
+
+/* Bancada e fabricação de ferramentas */
+.crafting-panel {
+  position: absolute;
+  z-index: 10;
+  top: 50%;
+  left: 50%;
+  width: min(340px, calc(100vw - 32px));
+  padding: 17px;
+  border: 1px solid rgba(212,177,107,.55);
+  border-radius: 11px;
+  color: var(--cream);
+  background: rgba(22,34,25,.96);
+  box-shadow: 0 16px 42px rgba(0,0,0,.38);
+  backdrop-filter: blur(12px);
+  transform: translate(-50%,-50%);
+}
+.crafting-panel.hidden { display: none !important; }
+.craft-recipe { display: flex; align-items: center; gap: 12px; padding: 12px; border: 1px solid rgba(241,232,210,.14); border-radius: 8px; background: rgba(255,255,255,.045); }
+.craft-tool-icon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 8px; background: rgba(212,177,107,.14); font-size: 27px; }
+.craft-recipe-copy { display: grid; gap: 5px; }
+.craft-recipe-copy strong { font-family: Georgia,serif; font-size: 17px; font-weight: 500; }
+.craft-recipe-copy small { color: var(--muted); font-size: 9px; line-height: 1.4; }
+.craft-costs { display: grid; gap: 8px; margin: 13px 2px 0; color: rgba(241,232,210,.82); font-size: 10px; }
+.craft-costs b { color: var(--gold); }
+.craft-action-button { width: 100%; min-height: 42px; margin-top: 10px; border: 1px solid rgba(212,177,107,.65); border-radius: 7px; color: #fff1ce; background: rgba(111,82,42,.72); font: inherit; font-size: 9px; font-weight: 900; letter-spacing: .13em; cursor: pointer; }
+.craft-action-button:disabled { opacity: .42; cursor: not-allowed; }

@@ -71,3 +71,13 @@ Os indicadores começam em 100%. Frutas silvestres podem ser consumidas pela moc
 - Comer e beber atualizam os indicadores e salvam o progresso imediatamente.
 
 Esta etapa inclui coleta, mochila, alimentação e hidratação; fabricação e construção permanecem para etapas futuras.
+
+
+## Fase 2 — Bancada e fabricação de ferramentas
+
+- Uma bancada de fabricação low-poly fica posicionada na clareira inicial, próxima ao ponto de partida.
+- Aproxime-se da bancada e pressione E no PC ou toque em USAR BANCADA no celular.
+- Na oficina, fabrique um machado simples usando 3 galhos e 2 pedras da mochila.
+- Os materiais são descontados somente quando a fabricação é concluída; o machado fica registrado como ferramenta fabricada.
+- A mochila e o estado do machado são salvos localmente, inclusive após atualizar a página.
+- A receita já prepara o inventário para futuras ferramentas e atividades, sem alterar as funções de sobrevivência, coleta, alimentação e hidratação.

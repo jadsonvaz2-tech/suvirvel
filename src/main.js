@@ -11,6 +11,10 @@ const inventoryToggle = document.getElementById("inventory-toggle");
 const inventoryPanel = document.getElementById("inventory-panel");
 const inventoryClose = document.getElementById("inventory-close");
 const eatBerryButton = document.getElementById("eat-berry-button");
+const craftingPanel = document.getElementById("crafting-panel");
+const craftingClose = document.getElementById("crafting-close");
+const craftAxeButton = document.getElementById("craft-axe-button");
+const workbenchStatus = document.getElementById("workbench-status");
 const interactionType = document.getElementById("interaction-type");
 const interactionVerb = document.getElementById("interaction-verb");
 const collectButton = document.getElementById("collect-button");
@@ -271,6 +275,30 @@ function startGame(THREE) {
     });
   });
 
+  // Bancada de fabricação posicionada na clareira inicial.
+  const workbenchPosition = resourcePosition(4.25, 0.8);
+  const workbench = new THREE.Group();
+  workbench.position.set(workbenchPosition.x, groundHeight(workbenchPosition.x, workbenchPosition.z), workbenchPosition.z);
+  const benchWood = new THREE.MeshStandardMaterial({ color: 0x765033, roughness: 0.96 });
+  const benchTop = new THREE.Mesh(new THREE.BoxGeometry(2.35, 0.22, 1.05), new THREE.MeshStandardMaterial({ color: 0x9a7046, roughness: 0.9 }));
+  benchTop.position.y = 1.12;
+  workbench.add(benchTop);
+  for (const x of [-0.91, 0.91]) {
+    for (const z of [-0.34, 0.34]) {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.18, 1.08, 0.18), benchWood);
+      leg.position.set(x, 0.54, z);
+      workbench.add(leg);
+    }
+  }
+  const lowerBeam = new THREE.Mesh(new THREE.BoxGeometry(2.0, 0.14, 0.14), benchWood);
+  lowerBeam.position.set(0, 0.42, 0);
+  workbench.add(lowerBeam);
+  const benchLabel = makeResourceLabel("BANCADA · E", "#d4b16b");
+  benchLabel.position.set(0, 2.45, 0);
+  benchLabel.scale.set(4.1, 1.02, 1);
+  workbench.add(benchLabel);
+  scene.add(workbench);
+
   const treeSpots = [];
   for (let i = 0; i < 470; i++) {
     const x = (random() - 0.5) * 198;
@@ -361,8 +389,10 @@ function startGame(THREE) {
     stones: saved?.inventory?.stones ?? 0,
     berries: saved?.inventory?.berries ?? 0
   };
+  const tools = { axe: saved?.tools?.axe === true };
   let currentResourceTarget = null;
   let canDrinkWater = false;
+  let canUseWorkbench = false;
   let interactionScanTimer = 0;
   let toastTimeout = 0;
   let survivalUiTimer = 0;
@@ -390,6 +420,9 @@ function startGame(THREE) {
     }
     const canEatBerry = inventory.berries > 0 && survival.hunger < 99.5;
     eatBerryButton.disabled = !canEatBerry;
+    workbenchStatus.textContent = tools.axe ? "Machado fabricado" : "Machado ainda não fabricado";
+    craftAxeButton.disabled = tools.axe || inventory.branches < 3 || inventory.stones < 2;
+    craftAxeButton.textContent = tools.axe ? "MACHADO FABRICADO" : "FABRICAR MACHADO";
     eatBerryButton.setAttribute(
       "aria-label",
       canEatBerry ? "Comer uma fruta para recuperar fome" :
@@ -420,6 +453,30 @@ function startGame(THREE) {
     showToast("Você comeu 1 fruta · fome +25");
   }
   eatBerryButton.addEventListener("click", eatBerry);
+  function openCrafting() {
+    craftingPanel.classList.remove("hidden");
+    updateInventoryUI();
+  }
+  function closeCrafting() { craftingPanel.classList.add("hidden"); }
+  function craftAxe() {
+    if (tools.axe) {
+      showToast("Você já possui um machado.");
+      return;
+    }
+    if (inventory.branches < 3 || inventory.stones < 2) {
+      showToast("Faltam materiais: 3 galhos e 2 pedras.");
+      updateInventoryUI();
+      return;
+    }
+    inventory.branches -= 3;
+    inventory.stones -= 2;
+    tools.axe = true;
+    updateInventoryUI();
+    saveProgress(true);
+    showToast("Machado fabricado! Materiais guardados na mochila foram usados.");
+  }
+  craftAxeButton.addEventListener("click", craftAxe);
+  craftingClose.addEventListener("click", closeCrafting);
   function toggleInventory(force) {
     const open = typeof force === "boolean" ? force : inventoryPanel.classList.contains("hidden");
     inventoryPanel.classList.toggle("hidden", !open);
@@ -477,6 +534,7 @@ function startGame(THREE) {
           stones: safeCount(saved.inventory?.stones),
           berries: safeCount(saved.inventory?.berries)
         },
+        tools: { axe: saved.tools?.axe === true },
         resourceBase: saved.resourceBase &&
           Number.isFinite(saved.resourceBase.x) && Number.isFinite(saved.resourceBase.z)
           ? {
@@ -503,6 +561,7 @@ function startGame(THREE) {
         x: player.x, z: player.z, yaw: player.yaw, pitch: player.pitch,
         health: survival.health, hunger: survival.hunger, thirst: survival.thirst, energy: survival.energy,
         inventory: { ...inventory },
+        tools: { ...tools },
         resourceBase: { ...resourceBase },
         collectedResources: [...collectedResources]
       }));
@@ -601,6 +660,7 @@ function startGame(THREE) {
     if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", " ", "e", "i"].includes(key)) event.preventDefault();
     if (!event.repeat && key === "e") performCurrentInteraction();
     if (!event.repeat && key === "i") toggleInventory();
+    if (!event.repeat && key === "escape") closeCrafting();
     keys.add(key);
   });
   window.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()));
@@ -619,6 +679,9 @@ function startGame(THREE) {
       const dz = z - tree.z;
       if (dx * dx + dz * dz < 2.0) return true;
     }
+    const benchDx = x - workbenchPosition.x;
+    const benchDz = z - workbenchPosition.z;
+    if (benchDx * benchDx + benchDz * benchDz < 1.45) return true;
     return false;
   }
 
@@ -642,8 +705,10 @@ function startGame(THREE) {
 
     const bankDistance = riverDistance(player.x, player.z);
     canDrinkWater = !match && bankDistance >= 8.2 && bankDistance <= 12.4 && survival.thirst < 99.5;
+    const benchDistance = Math.hypot(workbenchPosition.x - player.x, workbenchPosition.z - player.z);
+    canUseWorkbench = !match && !canDrinkWater && benchDistance <= 5.2;
     currentResourceTarget = match;
-    const hasInteraction = Boolean(match) || canDrinkWater;
+    const hasInteraction = Boolean(match) || canDrinkWater || canUseWorkbench;
     interactionPrompt.classList.toggle("hidden", !hasInteraction);
     collectButton.classList.toggle("hidden", !hasInteraction || !isMobile);
 
@@ -657,6 +722,11 @@ function startGame(THREE) {
       interactionName.textContent = "Água do rio";
       interactionVerb.textContent = "beber água";
       collectButton.textContent = "BEBER ÁGUA";
+    } else if (canUseWorkbench) {
+      interactionType.textContent = "OFICINA DE CAMPO";
+      interactionName.textContent = "Bancada de fabricação";
+      interactionVerb.textContent = "usar bancada";
+      collectButton.textContent = "USAR BANCADA";
     }
   }
   function drinkWater() {
@@ -690,6 +760,7 @@ function startGame(THREE) {
   function performCurrentInteraction() {
     if (currentResourceTarget) collectCurrentResource();
     else if (canDrinkWater) drinkWater();
+    else if (canUseWorkbench) openCrafting();
   }
   collectButton.addEventListener("click", performCurrentInteraction);
 

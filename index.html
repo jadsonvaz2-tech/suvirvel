@@ -67,6 +67,22 @@
       <small>Pressione <kbd>E</kbd> para <span id="interaction-verb">recolher</span></small>
     </section>
     <button type="button" id="collect-button" class="collect-button hidden">RECOLHER</button>
+    <section id="crafting-panel" class="crafting-panel hidden" aria-label="Bancada de fabricação">
+      <header class="inventory-header">
+        <div><span class="eyebrow">OFICINA DE CAMPO</span><strong>FABRICAÇÃO</strong></div>
+        <button type="button" id="crafting-close" class="inventory-close" aria-label="Fechar fabricação">×</button>
+      </header>
+      <div class="craft-recipe">
+        <span class="craft-tool-icon">🪓</span>
+        <div class="craft-recipe-copy"><strong>Machado simples</strong><small>Ferramenta básica para futuras atividades no vale.</small></div>
+      </div>
+      <div class="craft-costs">
+        <span>⌁ Galhos necessários: <b>3</b></span>
+        <span>◆ Pedras necessárias: <b>2</b></span>
+      </div>
+      <p id="workbench-status" class="inventory-note">Machado ainda não fabricado</p>
+      <button type="button" id="craft-axe-button" class="craft-action-button" disabled>FABRICAR MACHADO</button>
+    </section>
     <div id="game-toast" class="game-toast hidden" role="status" aria-live="polite"></div>
     <section class="location-card">
       <span class="eyebrow">REGIÃO INICIAL</span>
