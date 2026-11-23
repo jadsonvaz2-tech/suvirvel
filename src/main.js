@@ -16,6 +16,13 @@ const craftingPanel = document.getElementById("crafting-panel");
 const craftingClose = document.getElementById("crafting-close");
 const craftAxeButton = document.getElementById("craft-axe-button");
 const workbenchStatus = document.getElementById("workbench-status");
+const buildToggle = document.getElementById("build-toggle");
+const buildingPanel = document.getElementById("building-panel");
+const buildingClose = document.getElementById("building-close");
+const buildingRotate = document.getElementById("building-rotate");
+const buildingConfirm = document.getElementById("building-confirm");
+const buildingStatus = document.getElementById("building-status");
+const buildingMaterials = document.getElementById("building-materials");
 const interactionType = document.getElementById("interaction-type");
 const interactionVerb = document.getElementById("interaction-verb");
 const collectButton = document.getElementById("collect-button");
@@ -301,6 +308,134 @@ function startGame(THREE) {
   workbench.add(benchLabel);
   scene.add(workbench);
 
+  // Primeira construção: cabana de madeira com prévia translúcida.
+  let buildMode = false;
+  let buildRotation = 0;
+  let buildPreview = null;
+  let buildPreviewValid = false;
+  let buildPreviewReason = "Mova-se para escolher o local.";
+  let buildPreviewTimer = 0;
+  const cabinWood = new THREE.MeshStandardMaterial({ color: 0x795033, roughness: 0.98 });
+  const cabinWoodLight = new THREE.MeshStandardMaterial({ color: 0x9b7048, roughness: 0.95 });
+  const cabinRoof = new THREE.MeshStandardMaterial({ color: 0x55483a, roughness: 1 });
+  const cabinDark = new THREE.MeshStandardMaterial({ color: 0x34291f, roughness: 1 });
+  function createCabinModel() {
+    const root = new THREE.Group();
+    const addBox = (w,h,d,x,y,z,material,rz=0) => {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(w,h,d), material);
+      mesh.position.set(x,y,z); mesh.rotation.z=rz; root.add(mesh); return mesh;
+    };
+    addBox(4.65,0.22,5.45,0,0.12,0,cabinWoodLight);
+    for (let row=0;row<7;row++) {
+      const y=0.42+row*0.34;
+      addBox(0.3,0.34,5.25,-2.16,y,0,cabinWood);
+      addBox(0.3,0.34,5.25,2.16,y,0,cabinWood);
+      addBox(1.55,0.34,0.28,-1.35,y,-2.48,cabinWood);
+      addBox(1.55,0.34,0.28,1.35,y,-2.48,cabinWood);
+      addBox(4.35,0.34,0.28,0,y,2.48,cabinWood);
+    }
+    addBox(1.35,0.32,0.3,0,2.8,-2.48,cabinWoodLight);
+    addBox(1.25,2.15,0.12,0,1.32,-2.56,cabinDark);
+    addBox(0.12,2.25,0.16,-0.68,1.28,-2.54,cabinWoodLight);
+    addBox(0.12,2.25,0.16,0.68,1.28,-2.54,cabinWoodLight);
+    addBox(1.45,0.14,0.18,0,2.43,-2.54,cabinWoodLight);
+    for (const z of [-2.72,2.72]) {
+      addBox(0.16,2.7,0.16,-2.14,1.55,z,cabinWoodLight);
+      addBox(0.16,2.7,0.16,2.14,1.55,z,cabinWoodLight);
+    }
+    for (const x of [-2.33,2.33]) {
+      addBox(0.08,0.8,1.05,x,1.85,0.55,cabinDark);
+      addBox(0.12,0.1,1.18,x,2.3,0.55,cabinWoodLight);
+      addBox(0.12,0.1,1.18,x,1.4,0.55,cabinWoodLight);
+    }
+    addBox(3.05,0.2,5.9,-1.48,3.25,0,cabinRoof,-0.58);
+    addBox(3.05,0.2,5.9,1.48,3.25,0,cabinRoof,0.58);
+    addBox(0.18,0.2,5.9,0,4.12,0,cabinWoodLight);
+    return root;
+  }
+  function cabinGhost(model) {
+    const ghost=model.clone(true);
+    ghost.traverse((node)=>{
+      if (!node.isMesh) return;
+      node.material=node.material.clone();
+      node.material.transparent=true; node.material.opacity=0.48; node.material.depthWrite=false;
+      node.material.color.set(0x8bd49a);
+    });
+    return ghost;
+  }
+  function cabinFootprintValid(x,z,yaw) {
+    if (Math.abs(x)>96 || Math.abs(z)>96) return "Fora da área de construção.";
+    const samples=[[-2.15,-2.55],[0,-2.55],[2.15,-2.55],[-2.15,0],[0,0],[2.15,0],[-2.15,2.55],[0,2.55],[2.15,2.55]];
+    const heights=[];
+    for (const [lx,lz] of samples) {
+      const wx=x+lx*Math.cos(yaw)+lz*Math.sin(yaw);
+      const wz=z-lx*Math.sin(yaw)+lz*Math.cos(yaw);
+      if (Math.abs(wx)>98 || Math.abs(wz)>98 || riverDistance(wx,wz)<9.2) return "Escolha um terreno longe do rio.";
+      heights.push(groundHeight(wx,wz));
+    }
+    if (Math.max(...heights)-Math.min(...heights)>0.72) return "O terreno está muito inclinado.";
+    for (let i=0;i<treeSpots.length;i++) {
+      if (felledTrees.has(i)) continue;
+      const tree=treeSpots[i],dx=tree.x-x,dz=tree.z-z;
+      const lx=dx*Math.cos(yaw)-dz*Math.sin(yaw),lz=dx*Math.sin(yaw)+dz*Math.cos(yaw);
+      if (Math.abs(lx)<3.25 && Math.abs(lz)<3.65) return "Há uma árvore dentro da área da cabana.";
+    }
+    const checkNear=(px,pz,rx,rz)=>{
+      const dx=px-x,dz=pz-z,lx=dx*Math.cos(yaw)-dz*Math.sin(yaw),lz=dx*Math.sin(yaw)+dz*Math.cos(yaw);
+      return Math.abs(lx)<rx && Math.abs(lz)<rz;
+    };
+    if (checkNear(workbenchPosition.x,workbenchPosition.z,3.3,3.7)) return "A área está muito perto da bancada.";
+    for (const node of collectibleNodes) if (!collectedResources.has(node.id) && checkNear(node.x,node.z,2.8,3.2)) return "Há recursos dentro da área da cabana.";
+    return "";
+  }
+  function setBuildPreviewAppearance(valid) {
+    if (!buildPreview) return;
+    buildPreview.traverse((node)=>{if(node.isMesh)node.material.color.set(valid?0x8bd49a:0xe17a69);});
+  }
+  function updateBuildPreview() {
+    if (!buildMode || !buildPreview) return;
+    const fx=-Math.sin(player.yaw),fz=-Math.cos(player.yaw);
+    const x=Math.round((player.x+fx*8.2)*2)/2,z=Math.round((player.z+fz*8.2)*2)/2;
+    const yaw=player.yaw+Math.PI+buildRotation;
+    buildPreview.position.set(x,groundHeight(x,z),z); buildPreview.rotation.y=yaw;
+    buildPreviewReason=cabinFootprintValid(x,z,yaw); buildPreviewValid=!buildPreviewReason;
+    setBuildPreviewAppearance(buildPreviewValid);
+    buildingStatus.textContent=buildPreviewValid?"Local adequado · confirme a construção":buildPreviewReason;
+    buildingStatus.classList.toggle("invalid",!buildPreviewValid);
+  }
+  function startBuilding() {
+    if (builtCabin) { showToast("Você já construiu sua primeira cabana."); return; }
+    buildMode=true; buildingPanel.classList.remove("hidden");
+    if (!buildPreview) { buildPreview=cabinGhost(createCabinModel()); scene.add(buildPreview); }
+    updateBuildPreview(); updateInventoryUI();
+  }
+  function stopBuilding() {
+    buildMode=false; buildingPanel.classList.add("hidden");
+    if (buildPreview) { scene.remove(buildPreview); buildPreview=null; }
+    buildPreviewValid=false;
+  }
+  function rotateBuilding() {
+    if (!buildMode) return;
+    buildRotation=(buildRotation+Math.PI/4)%(Math.PI*2); updateBuildPreview();
+  }
+  function confirmBuilding() {
+    if (!buildMode || builtCabin) return;
+    updateBuildPreview();
+    if (!buildPreviewValid) { showToast(buildPreviewReason); return; }
+    if (inventory.wood<12 || inventory.branches<8) { showToast("Faltam materiais: 12 madeiras e 8 galhos."); updateInventoryUI(); return; }
+    const position=buildPreview.position,yaw=buildPreview.rotation.y;
+    inventory.wood-=12; inventory.branches-=8; builtCabin={x:position.x,z:position.z,yaw};
+    const cabin=createCabinModel(); cabin.position.set(builtCabin.x,groundHeight(builtCabin.x,builtCabin.z),builtCabin.z); cabin.rotation.y=builtCabin.yaw; scene.add(cabin);
+    stopBuilding(); updateInventoryUI(); saveProgress(true); showToast("Cabana construída! Seu primeiro abrigo está pronto.");
+  }
+  if (builtCabin) {
+    const cabin=createCabinModel(); cabin.position.set(builtCabin.x,groundHeight(builtCabin.x,builtCabin.z),builtCabin.z); cabin.rotation.y=builtCabin.yaw; scene.add(cabin);
+  }
+  buildToggle.addEventListener("click",startBuilding);
+  buildingClose.addEventListener("click",stopBuilding);
+  buildingRotate.addEventListener("click",rotateBuilding);
+  buildingConfirm.addEventListener("click",confirmBuilding);
+
   const felledTrees = new Set(saved?.felledTrees ?? []);
   const savedTreeHits = saved?.treeHits ?? {};
   const treeHitCounts = new Map(Object.entries(savedTreeHits).map(([key, value]) => [Number(key), value]));
@@ -422,6 +557,7 @@ function startGame(THREE) {
     wood: saved?.inventory?.wood ?? 0
   };
   const tools = { axe: saved?.tools?.axe === true };
+  let builtCabin = saved?.builtCabin ?? null;
   let currentResourceTarget = null;
   let canDrinkWater = false;
   let canUseWorkbench = false;
@@ -458,6 +594,8 @@ function startGame(THREE) {
     const canEatBerry = inventory.berries > 0 && survival.hunger < 99.5;
     eatBerryButton.disabled = !canEatBerry;
     workbenchStatus.textContent = tools.axe ? "Machado fabricado" : "Machado ainda não fabricado";
+    buildingMaterials.textContent = "Madeira: " + inventory.wood + "/12 · Galhos: " + inventory.branches + "/8";
+    buildingConfirm.disabled = !buildMode || !buildPreviewValid || Boolean(builtCabin) || inventory.wood < 12 || inventory.branches < 8;
     craftAxeButton.disabled = tools.axe || inventory.branches < 3 || inventory.stones < 2;
     craftAxeButton.textContent = tools.axe ? "MACHADO FABRICADO" : "FABRICAR MACHADO";
     eatBerryButton.setAttribute(
@@ -585,6 +723,7 @@ function startGame(THREE) {
           wood: safeCount(saved.inventory?.wood)
         },
         tools: { axe: saved.tools?.axe === true },
+        builtCabin: saved.builtCabin && Number.isFinite(saved.builtCabin.x) && Number.isFinite(saved.builtCabin.z) && Math.abs(saved.builtCabin.x)<=96 && Math.abs(saved.builtCabin.z)<=96 ? { x:saved.builtCabin.x, z:saved.builtCabin.z, yaw:Number.isFinite(saved.builtCabin.yaw)?saved.builtCabin.yaw:0 } : null,
         resourceBase: saved.resourceBase &&
           Number.isFinite(saved.resourceBase.x) && Number.isFinite(saved.resourceBase.z)
           ? {
@@ -617,7 +756,8 @@ function startGame(THREE) {
         resourceBase: { ...resourceBase },
         collectedResources: [...collectedResources],
         felledTrees: [...felledTrees],
-        treeHits: Object.fromEntries(treeHitCounts)
+        treeHits: Object.fromEntries(treeHitCounts),
+        builtCabin: builtCabin ? { ...builtCabin } : null
       }));
     } catch { /* O jogo continua mesmo sem armazenamento disponível. */ }
   }
@@ -712,9 +852,10 @@ function startGame(THREE) {
   window.addEventListener("keydown", (event) => {
     const key = event.key.toLowerCase();
     if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", " ", "e", "i"].includes(key)) event.preventDefault();
-    if (!event.repeat && key === "e") performCurrentInteraction();
+    if (!event.repeat && key === "e") { if (buildMode) confirmBuilding(); else performCurrentInteraction(); }
     if (!event.repeat && key === "i") toggleInventory();
-    if (!event.repeat && key === "escape") closeCrafting();
+    if (!event.repeat && key === "r" && buildMode) rotateBuilding();
+    if (!event.repeat && key === "escape") { if (buildMode) stopBuilding(); else closeCrafting(); }
     keys.add(key);
   });
   window.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()));
@@ -738,10 +879,16 @@ function startGame(THREE) {
     const benchDx = x - workbenchPosition.x;
     const benchDz = z - workbenchPosition.z;
     if (benchDx * benchDx + benchDz * benchDz < 1.45) return true;
+    if (builtCabin) {
+      const dx=x-builtCabin.x,dz=z-builtCabin.z;
+      const lx=dx*Math.cos(builtCabin.yaw)-dz*Math.sin(builtCabin.yaw),lz=dx*Math.sin(builtCabin.yaw)+dz*Math.cos(builtCabin.yaw);
+      if (Math.abs(lx)<2.5 && Math.abs(lz)<2.9) return true;
+    }
     return false;
   }
 
   function updateResourceTarget() {
+    if (buildMode) { interactionPrompt.classList.add("hidden"); collectButton.classList.add("hidden"); return; }
     const facingX = -Math.sin(player.yaw);
     const facingZ = -Math.cos(player.yaw);
     let match = null;
@@ -952,6 +1099,7 @@ function startGame(THREE) {
 
     survivalUiTimer += delta;
     updateSurvivalUI();
+    if (buildMode) { buildPreviewTimer += delta; if (buildPreviewTimer >= 0.12) { buildPreviewTimer = 0; updateBuildPreview(); } }
     if (axeSwingTimer > 0) {
       axeSwingTimer = Math.max(0, axeSwingTimer - delta);
       const swingProgress = 1 - axeSwingTimer / 0.34;

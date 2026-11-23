@@ -92,3 +92,14 @@ Esta etapa inclui coleta, mochila, alimentação e hidratação; fabricação e 
 - Cada árvore derrubada concede 4 unidades de madeira, exibidas na mochila.
 - Árvores derrubadas, golpes em andamento e madeira ficam salvos localmente para continuar após recarregar a página.
 - Árvores derrubadas deixam de bloquear a passagem. Os sistemas anteriores de coleta, sobrevivência, alimentação, hidratação e fabricação permanecem disponíveis.
+
+
+## Fase 2 — Primeira cabana de madeira
+
+- Use o botão CONSTRUIR CABANA para entrar no modo de posicionamento.
+- A prévia translúcida acompanha o terreno à frente do personagem; mova-se para escolher outro local.
+- Use R ou GIRAR 45° para mudar a orientação. No celular, use o botão GIRAR 45° no painel.
+- A posição é validada para evitar sobreposição com árvores, bancada, recursos e rio, além de impedir terrenos muito inclinados.
+- A construção custa 12 madeiras e 8 galhos. Confirme com E ou CONSTRUIR.
+- A cabana pronta e sua posição/orientação ficam salvas localmente e reaparecem ao atualizar a página.
+- É possível construir uma primeira cabana nesta etapa; o modo pode ser cancelado com ESC ou no botão ×.
