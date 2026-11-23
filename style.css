@@ -567,3 +567,11 @@ kbd { min-width: 17px; padding: 4px 5px; border: 1px solid rgba(241,232,210,.28)
 
 /* Relacionamentos, namoro e casamento */
 .village-relationships{margin:12px 14px;padding:10px;border:1px solid rgba(212,177,107,.32);border-radius:8px;background:rgba(212,177,107,.07)}.village-relationships>p{margin:0 0 8px;font-size:9px;color:var(--cream)}.village-couple{display:grid;gap:4px;padding:8px 0;border-top:1px solid rgba(255,255,255,.1)}.village-couple strong{font-family:Georgia,serif;color:#f3d69a;font-size:12px}.village-couple span,.village-couple small,.villager-romance{font-size:9px;color:#e7c58d}.village-couple .villager-needs-track{width:100%}
+
+
+/* Dinastia: gravidez, nascimento e árvore familiar */
+.family-name-control{display:grid;gap:7px;margin-top:12px;padding-top:10px;border-top:1px solid rgba(255,255,255,.12)}
+.family-name-control label{font-size:9px;color:#f0d39b;font-weight:900;letter-spacing:.06em}
+.family-name-control input{width:100%;min-height:38px;padding:8px 10px;border:1px solid rgba(212,177,107,.42);border-radius:6px;color:var(--cream);background:rgba(0,0,0,.24);font:inherit;font-size:12px}
+.family-name-control button{min-height:36px;border:1px solid rgba(212,177,107,.55);border-radius:6px;color:var(--cream);background:rgba(86,69,42,.8);font:inherit;font-size:9px;font-weight:900;letter-spacing:.08em;cursor:pointer}
+.family-name-control small{font-size:8px;line-height:1.4;color:var(--muted)}

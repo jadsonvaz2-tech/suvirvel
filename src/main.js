@@ -253,6 +253,9 @@ function startGame(THREE) {
   const villageHouses=(Array.isArray(saved?.villageHouses)?saved.villageHouses:[]).map((house,index)=>({id:house.id||"house-"+(index+1),x:house.x,z:house.z,yaw:house.yaw||0,group:null,occupants:[]}));
   const recruitedVillagers=Array.isArray(saved?.recruitedVillagers)?saved.recruitedVillagers.slice(0,40):[];
   const villagerRelationships=Array.isArray(saved?.villagerRelationships)?saved.villagerRelationships.filter(item=>item&&typeof item.a==="string"&&typeof item.b==="string"&&item.a!==item.b&&Number.isFinite(item.affinity)&&["amizade","namoro","casados"].includes(item.status)).slice(0,40).map(item=>({a:item.a,b:item.b,affinity:THREE.MathUtils.clamp(item.affinity,0,100),status:item.status,weddingDay:Number.isSafeInteger(item.weddingDay)?Math.max(1,item.weddingDay):null})):[];
+  const familyPregnancies=Array.isArray(saved?.familyPregnancies)?saved.familyPregnancies.filter(item=>item&&typeof item.a==="string"&&typeof item.b==="string"&&typeof item.houseId==="string"&&Number.isSafeInteger(item.startDay)&&Number.isSafeInteger(item.dueDay)&&item.dueDay>item.startDay).slice(0,40).map(item=>({a:item.a,b:item.b,houseId:item.houseId,startDay:Math.max(1,item.startDay),dueDay:Math.max(1,item.dueDay),childName:typeof item.childName==="string"?item.childName.slice(0,24):""})):[];
+  const familyChildren=Array.isArray(saved?.familyChildren)?saved.familyChildren.filter(item=>item&&typeof item.id==="string"&&typeof item.name==="string"&&typeof item.a==="string"&&typeof item.b==="string"&&typeof item.houseId==="string"&&Number.isSafeInteger(item.birthDay)).slice(0,80).map(item=>({id:item.id.slice(0,100),name:item.name.slice(0,24),a:item.a,b:item.b,houseId:item.houseId,birthDay:Math.max(1,item.birthDay),gender:item.gender==="F"?"F":"M"})):[];
+  let nextChildName=typeof saved?.nextChildName==="string"?saved.nextChildName.slice(0,24):"";
   const villageStock=Object.fromEntries(["wheat","carrots","cabbages","wood","branches","stones","wool","rawMeat","hide","trout","carp","minnow","roastedMeat","vegetableSoup","bread","omelet","berryPorridge","grilledTrout","grilledCarp","grilledMinnow","fabric","craftedGoods","tools"].map(key=>[key,Number.isSafeInteger(saved?.villageStock?.[key])?Math.max(0,Math.min(999999,saved.villageStock[key])):0]));
   let villageProductionLastMinute=Number.isSafeInteger(saved?.villageProductionLastMinute)?Math.max(0,saved.villageProductionLastMinute):totalGameMinutes();
   let villageFoodLastDay=Number.isSafeInteger(saved?.villageFoodLastDay)?Math.max(1,saved.villageFoodLastDay):gameTime.day;
@@ -586,6 +589,43 @@ function startGame(THREE) {
       if(relation.affinity>=100){relation.status="casados";relation.weddingDay=day;first.happiness=Math.min(100,first.happiness+10);second.happiness=Math.min(100,second.happiness+10);showToast("Celebração na vila! "+first.name+" e "+second.name+" se casaram.");}
     }
   }
+  function dayProgress(item,day=gameTime.day){return THREE.MathUtils.clamp((day-item.startDay)/(item.dueDay-item.startDay),0,1);}
+  function childDevelopment(child,day=gameTime.day){
+    const ageDays=Math.max(0,day-child.birthDay),ageYears=Math.floor(ageDays/30);
+    return {ageDays,ageYears,stage:ageYears<=2?"Bebê":ageYears<=6?"Criança":ageYears<=17?"Jovem":"Adulto"};
+  }
+  function familyPairKey(a,b){return [a,b].sort().join("|");}
+  function processFamilyLifecycle(day){
+    let changed=false;
+    for(let i=familyPregnancies.length-1;i>=0;i--){
+      const pregnancy=familyPregnancies[i];
+      if(day<pregnancy.dueDay)continue;
+      const parentA=villagers.find(v=>v.id===pregnancy.a),parentB=villagers.find(v=>v.id===pregnancy.b);
+      if(!parentA||!parentB){familyPregnancies.splice(i,1);changed=true;continue;}
+      const names=["Aline","Davi","Clara","Miguel","Lia","Samuel","Rosa","Tomás","Isabel","Bento"];
+      const pairCount=familyChildren.filter(child=>familyPairKey(child.a,child.b)===familyPairKey(pregnancy.a,pregnancy.b)).length;
+      const chosen=(pregnancy.childName||"").trim()||names[(day+pairCount*3)%names.length];
+      familyChildren.push({id:"child-"+pregnancy.a+"-"+pregnancy.b+"-"+day,name:chosen.slice(0,24),a:pregnancy.a,b:pregnancy.b,houseId:pregnancy.houseId,birthDay:day,gender:Math.random()<0.5?"F":"M"});
+      familyPregnancies.splice(i,1);changed=true;
+      showToast("Uma nova vida chegou ao vale! "+chosen+" nasceu na família de "+parentA.name+" e "+parentB.name+".");
+    }
+    for(const relation of villagerRelationships){
+      if(relation.status!=="casados")continue;
+      const a=villagers.find(v=>v.id===relation.a),b=villagers.find(v=>v.id===relation.b);
+      if(!a||!b||a.houseId!==b.houseId)continue;
+      const pair=familyPairKey(a.id,b.id);
+      const children=familyChildren.filter(child=>familyPairKey(child.a,child.b)===pair);
+      const pregnant=familyPregnancies.some(item=>familyPairKey(item.a,item.b)===pair);
+      const lastBirth=children.reduce((latest,child)=>Math.max(latest,child.birthDay),0);
+      if(pregnant||children.length>=2||day<(relation.weddingDay||day)+3||day-lastBirth<30)continue;
+      if(a.happiness<65||b.happiness<65||a.lastMealDay<day||b.lastMealDay<day)continue;
+      familyPregnancies.push({a:a.id,b:b.id,houseId:a.houseId,startDay:day,dueDay:day+9,childName:nextChildName});
+      nextChildName="";changed=true;
+      showToast(a.name+" e "+b.name+" estão esperando um bebê! O nascimento está previsto para o dia "+(day+9)+".");
+    }
+    if(changed){saveProgress(true);if(!villagersDirectory.classList.contains("hidden"))renderVillagersDirectory();}
+    return changed;
+  }
   function villagerRelationshipLabel(villager){
     const relation=villagerRelationships.find(item=>item.a===villager.id||item.b===villager.id);
     if(!relation)return "Solteiro(a)";
@@ -603,7 +643,10 @@ function startGame(THREE) {
     let nextHour=Math.floor(villageProductionLastMinute/60)*60+60;
     while(nextHour<=now){
       const minuteOfDay=nextHour%1440,hour=Math.floor(minuteOfDay/60);
-      if(minuteOfDay===0&&processVillageDailyFood(gameTime.day))changed=true;
+      if(minuteOfDay===0){
+        if(processVillageDailyFood(gameTime.day))changed=true;
+        if(processFamilyLifecycle(gameTime.day))changed=true;
+      }
       if(hour>=7&&hour<19){
         for(const villager of villagers)processVillagerWorkHour(villager);
         changed=true;
@@ -666,9 +709,11 @@ function startGame(THREE) {
     villagersSummary.textContent=villagers.length+" moradores · "+villageHouses.length+" casas · "+free+" vagas · felicidade média "+averageMood+"/100";
     const datingCount=villagerRelationships.filter(item=>item.status==="namoro").length,marriedCount=villagerRelationships.filter(item=>item.status==="casados").length;
     const relationshipMarkup='<section class="village-relationships"><h3 class="villager-invite-heading">RELACIONAMENTOS E FAMÍLIAS</h3><p>'+datingCount+' casais namorando · '+marriedCount+' casamentos celebrados</p>'+(villagerRelationships.length?villagerRelationships.map(item=>{const a=villagers.find(v=>v.id===item.a),b=villagers.find(v=>v.id===item.b);return a&&b?'<div class="village-couple"><strong>'+a.name+' &amp; '+b.name+'</strong><span>'+(item.status==="casados"?"Casados · cerimônia no dia "+item.weddingDay:item.status==="namoro"?"Namorando":"Conhecendo-se")+'</span><div class="villager-needs-track"><i style="width:'+item.affinity+'%"></i></div><small>Afinidade: '+Math.round(item.affinity)+'%</small></div>':"";}).join(""):'<small>A convivência dos moradores da mesma casa pode iniciar novas relações.</small>')+'</section>';
+    const pregnancyMarkup='<section class="village-relationships"><h3 class="villager-invite-heading">GRAVIDEZ E NASCIMENTOS</h3>'+(familyPregnancies.length?familyPregnancies.map(item=>{const a=villagers.find(v=>v.id===item.a),b=villagers.find(v=>v.id===item.b);return '<div class="village-couple"><strong>'+(a?.name||"Morador")+" & "+(b?.name||"Morador")+'</strong><span>Gestação · nascimento previsto: dia '+item.dueDay+'</span><div class="villager-needs-track"><i style="width:'+Math.round(dayProgress(item)*100)+'%"></i></div><small>'+(item.childName?"Nome escolhido: "+item.childName:"Nome ainda não definido")+'</small></div>';}).join(""):'<small>Casais casados, felizes e bem alimentados poderão esperar filhos. A gestação dura 9 dias do jogo.</small>')+'<div class="family-name-control"><label for="family-child-name">Nome para o próximo bebê</label><input id="family-child-name" maxlength="24" placeholder="Digite um nome" value="'+nextChildName.replace(/&/g,"&amp;").replace(/"/g,"&quot;")+'"><button type="button" data-save-child-name>DEFINIR NOME</button><small>O nome será aplicado à próxima gravidez ou à gestação sem nome escolhido.</small></div></section>';
+    const familyTreeMarkup='<section class="village-relationships"><h3 class="villager-invite-heading">ÁRVORE FAMILIAR</h3>'+(familyChildren.length?familyChildren.map(child=>{const a=villagers.find(v=>v.id===child.a),b=villagers.find(v=>v.id===child.b),growth=childDevelopment(child);return '<div class="village-couple"><strong>👨‍👩‍👧 '+(a?.name||"Pai")+" + "+(b?.name||"Mãe")+" → "+child.name+'</strong><span>'+growth.stage+' · '+growth.ageYears+' ano(s) · nasceu no dia '+child.birthDay+'</span><small>Família da casa '+child.houseId.replace("house-","")+'</small></div>';}).join(""):'<small>Os filhos e suas gerações aparecerão aqui após os primeiros nascimentos.</small>')+'</section>';
     const foodStatus=villagers.length?(villageFoodReport.missing>0?"Último dia: "+villageFoodReport.served+" alimentados · "+villageFoodReport.missing+" sem refeição":"Último dia: todos receberam alimento"):"Convide moradores para iniciar o consumo diário.";
     const stockMarkup='<section class="village-stock"><h3 class="villager-invite-heading">DEPÓSITO DA VILA</h3><p class="village-food-status">🍲 Provisões: <strong>'+villageFoodCount()+' refeições</strong> · '+villagers.length+' moradores<br><small>'+foodStatus+'</small></p><div class="village-stock-grid">'+Object.entries(villageStockLabels).map(([key,label])=>'<span>'+label+'</span><strong>'+String(villageStock[key]||0)+'</strong>').join("")+'</div><button type="button" data-deposit-village class="village-deposit-button">DEPOSITAR RECURSOS DA MOCHILA</button><small class="village-stock-note">Cada morador consome 1 refeição por dia, retirada automaticamente do depósito. A cozinheira prepara carne assada ou sopa quando há ingredientes.</small></section>';
-    villagersList.innerHTML=relationshipMarkup+(villagers.length?villagers.map(v=>{
+    villagersList.innerHTML=relationshipMarkup+pregnancyMarkup+familyTreeMarkup+(villagers.length?villagers.map(v=>{
       const distance=Math.hypot(v.x-player.x,v.z-player.z),direction=villagerDirection(v);
       const mood=v.happiness>=75?"Muito feliz":v.happiness>=50?"Satisfeito":v.happiness>=25?"Insatisfeito":"Muito insatisfeito";
       return '<article class="villager-directory-item"><div><strong>'+v.name+'</strong><span>'+v.role+' · '+mood+'</span><small class="villager-romance">'+villagerRelationshipLabel(v)+'</small><small>Felicidade '+Math.round(v.happiness)+'/100 · Fome '+Math.round(v.hunger)+'/100</small><div class="villager-needs-track"><i style="width:'+v.happiness+'%"></i></div><small>'+v.foodStatus+' · '+v.housingStatus+' · '+(v.atWork?"Trabalhando":"Em casa / deslocando-se")+' · '+direction+' · '+distance.toFixed(0)+' m · Casa '+v.houseId.replace("house-","")+'</small><label class="villager-profession-label">PROFISSÃO <select data-villager-profession="'+v.id+'">'+villagerDefinitions.map(def=>'<option value="'+def.role+'" '+(def.role===v.role?"selected":"")+' >'+def.role+'</option>').join("")+'</select></label></div><button type="button" data-face-villager="'+v.id+'">LOCALIZAR</button></article>';
@@ -695,6 +740,13 @@ function startGame(THREE) {
   villagersToggle.addEventListener("click",openVillagersDirectory);
   villagersDirectoryClose.addEventListener("click",closeVillagersDirectory);
   villagersDirectory.addEventListener("click",event=>{
+    if(event.target.closest("[data-save-child-name]")){
+      const input=document.getElementById("family-child-name"),name=(input?.value||"").trim().slice(0,24);
+      if(!name){showToast("Digite um nome antes de confirmar.");return;}
+      const pending=familyPregnancies.find(item=>!item.childName);
+      if(pending)pending.childName=name;else nextChildName=name;
+      saveProgress(true);renderVillagersDirectory();showToast("Nome "+name+" salvo para o bebê.");return;
+    }
     if(!event.target.closest("[data-deposit-village]"))return;
     const depositKeys=["wood","branches","stones","wool","rawMeat","hide","wheat","carrots","cabbages","trout","carp","minnow","roastedMeat","vegetableSoup","bread","omelet","berryPorridge","grilledTrout","grilledCarp","grilledMinnow"];
     let deposited=0;
@@ -1681,6 +1733,10 @@ function startGame(THREE) {
         villageProductionLastMinute:Number.isSafeInteger(saved.villageProductionLastMinute)?Math.max(0,saved.villageProductionLastMinute):null,
         villageFoodLastDay:Number.isSafeInteger(saved.villageFoodLastDay)?Math.max(1,saved.villageFoodLastDay):null,
         villageFoodReport:saved.villageFoodReport&&typeof saved.villageFoodReport==="object"?{day:Number.isSafeInteger(saved.villageFoodReport.day)?Math.max(1,saved.villageFoodReport.day):1,served:Number.isSafeInteger(saved.villageFoodReport.served)?Math.max(0,Math.min(40,saved.villageFoodReport.served)):0,missing:Number.isSafeInteger(saved.villageFoodReport.missing)?Math.max(0,Math.min(40,saved.villageFoodReport.missing)):0}:null,
+        villagerRelationships:Array.isArray(saved.villagerRelationships)?saved.villagerRelationships.filter(item=>item&&typeof item.a==="string"&&typeof item.b==="string"&&item.a!==item.b&&Number.isFinite(item.affinity)&&["amizade","namoro","casados"].includes(item.status)).slice(0,40).map(item=>({a:item.a,b:item.b,affinity:THREE.MathUtils.clamp(item.affinity,0,100),status:item.status,weddingDay:Number.isSafeInteger(item.weddingDay)?Math.max(1,item.weddingDay):null})):[],
+        familyPregnancies:Array.isArray(saved.familyPregnancies)?saved.familyPregnancies.filter(item=>item&&typeof item.a==="string"&&typeof item.b==="string"&&typeof item.houseId==="string"&&Number.isSafeInteger(item.startDay)&&Number.isSafeInteger(item.dueDay)&&item.dueDay>item.startDay).slice(0,40).map(item=>({a:item.a,b:item.b,houseId:item.houseId,startDay:Math.max(1,item.startDay),dueDay:Math.max(1,item.dueDay),childName:typeof item.childName==="string"?item.childName.slice(0,24):""})):[],
+        familyChildren:Array.isArray(saved.familyChildren)?saved.familyChildren.filter(item=>item&&typeof item.id==="string"&&typeof item.name==="string"&&typeof item.a==="string"&&typeof item.b==="string"&&typeof item.houseId==="string"&&Number.isSafeInteger(item.birthDay)).slice(0,80).map(item=>({id:item.id.slice(0,100),name:item.name.slice(0,24),a:item.a,b:item.b,houseId:item.houseId,birthDay:Math.max(1,item.birthDay),gender:item.gender==="F"?"F":"M"})):[],
+        nextChildName:typeof saved.nextChildName==="string"?saved.nextChildName.slice(0,24):"",
         villageHouses:Array.isArray(saved.villageHouses)?saved.villageHouses.filter(house=>house&&typeof house.id==="string"&&Number.isFinite(house.x)&&Number.isFinite(house.z)&&Math.abs(house.x)<=96&&Math.abs(house.z)<=96).slice(0,40).map(house=>({id:house.id,x:house.x,z:house.z,yaw:Number.isFinite(house.yaw)?house.yaw:0})):[],
         recruitedVillagers:Array.isArray(saved.recruitedVillagers)?saved.recruitedVillagers.filter(item=>item&&typeof item.id==="string"&&typeof item.houseId==="string").slice(0,40).map(item=>({id:item.id,houseId:item.houseId,profession:typeof item.profession==="string"&&item.profession.length<40?item.profession:null,hunger:Number.isFinite(item.hunger)?THREE.MathUtils.clamp(item.hunger,0,100):75,happiness:Number.isFinite(item.happiness)?THREE.MathUtils.clamp(item.happiness,0,100):75,lastMealDay:Number.isSafeInteger(item.lastMealDay)?Math.max(1,item.lastMealDay):Math.max(1,(Number.isSafeInteger(saved.gameTime?.day)?saved.gameTime.day:1)-1),foodStatus:typeof item.foodStatus==="string"&&item.foodStatus.length<80?item.foodStatus:"Aguardando refeição"})):[],
         structurePositions:saved.structurePositions&&typeof saved.structurePositions==="object"?Object.fromEntries(Object.entries(saved.structurePositions).filter(([id,pos])=>/^(workbench|merchant|kitchen|loom|tannery|chickens-pen|sheep-pen|farm-plot-[1-3])$/.test(id)&&pos&&Number.isFinite(pos.x)&&Number.isFinite(pos.z)&&Math.abs(pos.x)<=96&&Math.abs(pos.z)<=96).map(([id,pos])=>[id,{x:pos.x,z:pos.z,yaw:Number.isFinite(pos.yaw)?pos.yaw:0}])):{},
@@ -1746,6 +1802,9 @@ function startGame(THREE) {
         villageFoodLastDay,
         villageFoodReport:{...villageFoodReport},
         villagerRelationships:villagerRelationships.map(item=>({...item})),
+        familyPregnancies:familyPregnancies.map(item=>({...item})),
+        familyChildren:familyChildren.map(item=>({...item})),
+        nextChildName,
         structurePositions:structurePositionsForSave()
       }));
     } catch { /* O jogo continua mesmo sem armazenamento disponível. */ }
