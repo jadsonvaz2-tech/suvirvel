@@ -50,7 +50,7 @@ const tanneryPanel=document.getElementById("tannery-panel"),tanneryClose=documen
 const fishingPanel=document.getElementById("fishing-panel"),fishingClose=document.getElementById("fishing-close"),fishingStatus=document.getElementById("fishing-status"),fishingAction=document.getElementById("fishing-action");
 const merchantPanel=document.getElementById("merchant-panel"),merchantClose=document.getElementById("merchant-close"),merchantTitle=document.getElementById("merchant-title"),merchantStatus=document.getElementById("merchant-status"),merchantCoins=document.getElementById("merchant-coins"),merchantItems=document.getElementById("merchant-items"),merchantContracts=document.getElementById("merchant-contracts"),merchantRank=document.getElementById("merchant-rank"),walletUI=document.getElementById("wallet-coins");
 const villagerPanel=document.getElementById("villager-panel"),villagerClose=document.getElementById("villager-close"),villagerTitle=document.getElementById("villager-title"),villagerDialogue=document.getElementById("villager-dialogue"),villagerTask=document.getElementById("villager-task");
-const villagersToggle=document.getElementById("villagers-toggle"),villagersDirectory=document.getElementById("villagers-directory"),villagersList=document.getElementById("villagers-list"),villagersDirectoryClose=document.getElementById("villagers-directory-close");
+const villagersToggle=document.getElementById("villagers-toggle"),villagersDirectory=document.getElementById("villagers-directory"),villagersList=document.getElementById("villagers-list"),villagersInvites=document.getElementById("villagers-invites"),villagersSummary=document.getElementById("villagers-summary"),villagersDirectoryClose=document.getElementById("villagers-directory-close");
 const gameClockUI = document.getElementById("game-clock");
 const interactionType = document.getElementById("interaction-type");
 const interactionVerb = document.getElementById("interaction-verb");
@@ -248,8 +248,10 @@ function startGame(THREE) {
   });
   let currentFarmPlot=null,canUseFarmPlot=false;
   let currentVillager=null;
-  const completedVillagerTasks=new Set(Array.isArray(saved?.completedVillagerTasks)?saved.completedVillagerTasks.filter(id=>["farmer-task","woodcutter-task","blacksmith-task"].includes(id)):[]);
+  const completedVillagerTasks=new Set();
   const villagers=[];
+  const villageHouses=(Array.isArray(saved?.villageHouses)?saved.villageHouses:[]).map((house,index)=>({id:house.id||"house-"+(index+1),x:house.x,z:house.z,yaw:house.yaw||0,group:null,occupants:[]}));
+  const recruitedVillagers=Array.isArray(saved?.recruitedVillagers)?saved.recruitedVillagers.slice(0,40):[];
   let kitchenPosition=null,kitchenFire=null,kitchenGroup=null,canUseKitchen=false,loomPosition=null,loomGroup=null,canUseLoom=false,tanneryPosition=null,tanneryGroup=null,canUseTannery=false,merchantPosition=null,canUseMerchant=false;
   const savedStructurePositions=saved?.structurePositions&&typeof saved.structurePositions==="object"?saved.structurePositions:{};
   let gameTimeAccumulator=0;
@@ -479,13 +481,18 @@ function startGame(THREE) {
   merchantStall.position.set(merchantPosition.x,groundHeight(merchantPosition.x,merchantPosition.z),merchantPosition.z);scene.add(merchantStall);
   const merchantLabel=makeResourceLabel("MERCADOR · E","#d4b16b");merchantLabel.position.set(0,3.35,0);merchantLabel.scale.set(4.0,1,1);merchantStall.add(merchantLabel);
 
-  // Moradores do vale: três ofícios com rotinas diurnas e descanso noturno.
+  // Candidatos aguardam convite. Só moradores convidados e alojados aparecem no mundo.
   const villagerDefinitions=[
-    {id:"farmer",name:"Helena",role:"Agricultora",taskId:"farmer-task",request:"3 trigo",key:"wheat",quantity:3,reward:18,body:0x718b4e,accent:0xd8b36b,side:2.5,forward:0.5},
-    {id:"woodcutter",name:"Bento",role:"Lenhador",taskId:"woodcutter-task",request:"3 madeiras",key:"wood",quantity:3,reward:20,body:0x79513a,accent:0xb7a078,side:4.4,forward:-2.5},
-    {id:"blacksmith",name:"Afonso",role:"Ferreiro",taskId:"blacksmith-task",request:"2 pedras",key:"stones",quantity:2,reward:22,body:0x53616b,accent:0x9b6b4d,side:0.8,forward:-5.0}
+    {id:"mara",name:"Mara",role:"Agricultora",body:0x718b4e,accent:0xd8b36b},
+    {id:"tome",name:"Tomé",role:"Lenhador",body:0x79513a,accent:0xb7a078},
+    {id:"ines",name:"Inês",role:"Artesã",body:0x78618a,accent:0xd8b36b},
+    {id:"raul",name:"Raul",role:"Caçador",body:0x536b50,accent:0x9b6b4d},
+    {id:"cecilia",name:"Cecília",role:"Tecelã",body:0x8a5c63,accent:0xd9b8a0},
+    {id:"gaspar",name:"Gaspar",role:"Pescador",body:0x53616b,accent:0x9b9b6b},
+    {id:"bruna",name:"Bruna",role:"Cozinheira",body:0x9a7048,accent:0xd8b36b},
+    {id:"martim",name:"Martim",role:"Ferreiro",body:0x59616b,accent:0xb7a078}
   ];
-  function createVillager(def){
+  function createVillager(def,house,slot=0){
     const root=new THREE.Group();
     const robe=new THREE.Mesh(new THREE.CylinderGeometry(.28,.38,1.12,7),new THREE.MeshStandardMaterial({color:def.body,roughness:1}));
     robe.position.y=.78;root.add(robe);
@@ -499,16 +506,15 @@ function startGame(THREE) {
     for(const side of [-1,1]){const arm=new THREE.Mesh(new THREE.CylinderGeometry(.09,.12,.62,6),armMat);arm.position.set(side*.34,.92,0);arm.rotation.z=side*-.16;root.add(arm);}
     const footMat=new THREE.MeshStandardMaterial({color:0x3c3025,roughness:1});
     for(const side of [-1,1]){const foot=new THREE.Mesh(new THREE.BoxGeometry(.17,.16,.32),footMat);foot.position.set(side*.14,.12,.04);root.add(foot);}
-    const start=resourcePosition(def.side,def.forward);
+    const side=slot===0?-.9:.9,forward=3.5,yaw=house.yaw||0;
+    const start={x:house.x+side*Math.cos(yaw)+forward*Math.sin(yaw),z:house.z-side*Math.sin(yaw)+forward*Math.cos(yaw)};
     root.position.set(start.x,groundHeight(start.x,start.z),start.z);
     scene.add(root);
     const label=makeResourceLabel(def.name+" · "+def.role.toUpperCase(),"#f0c76f");label.position.set(0,2.9,0);label.scale.set(3.7,.9,1);root.add(label);
     const marker=new THREE.Mesh(new THREE.TorusGeometry(.62,.055,7,20),new THREE.MeshBasicMaterial({color:def.accent,transparent:true,opacity:.9}));
     marker.rotation.x=Math.PI/2;marker.position.y=.08;root.add(marker);
-    const startX=start.x,startZ=start.z;
-    return { ...def,group:root,x:startX,z:startZ,homeX:startX,homeZ:startZ,targetX:startX,targetZ:startZ,wait:1+Math.random()*3,walk:0,arms:root.children.filter((child,index)=>index>=4&&index<=5) };
+    return {...def,group:root,x:start.x,z:start.z,homeX:start.x,homeZ:start.z,targetX:start.x,targetZ:start.z,wait:1+Math.random()*3,walk:0,arms:root.children.filter((child,index)=>index>=4&&index<=5),houseId:house.id};
   }
-  for(const definition of villagerDefinitions)villagers.push(createVillager(definition));
   function updateVillagers(delta){
     const hour=gameTime.hour+gameTime.minute/60;
     const working=hour>=6&&hour<20;
@@ -538,14 +544,8 @@ function startGame(THREE) {
     if(!villager)return;
     currentVillager=villager;
     villagerTitle.textContent=villager.name+" · "+villager.role.toUpperCase();
-    const done=completedVillagerTasks.has(villager.taskId);
-    const have=inventory[villager.key]||0;
-    villagerDialogue.textContent=done
-      ?"Obrigado pela ajuda anterior. O vale está melhor graças a você!"
-      :"Olá, viajante! Estou precisando de "+villager.request+". Você pode me ajudar?";
-    villagerTask.innerHTML=done
-      ?'<div class="villager-task-note">Tarefa concluída · recompensa já recebida.</div>'
-      :'<div class="villager-task-note">Entregue '+villager.request+' · Você tem: '+have+' · Recompensa: '+villager.reward+' moedas.</div><button type="button" class="building-primary" data-villager-deliver="'+villager.taskId+'" '+(have<villager.quantity?"disabled":"")+'>ENTREGAR E RECEBER</button>';
+    villagerDialogue.textContent="Olá! Obrigado por me convidar para viver no seu vilarejo. Esta é minha nova casa, e vou contribuir com meu ofício para o crescimento do assentamento.";
+    villagerTask.innerHTML='<div class="villager-task-note">Morador do vilarejo · Casa: '+villager.houseId.replace("house-","")+' · Profissão: '+villager.role+'</div>';
     villagerPanel.classList.remove("hidden");
   }
   function closeVillagerPanel(){villagerPanel.classList.add("hidden");currentVillager=null;}
@@ -557,13 +557,32 @@ function startGame(THREE) {
     const horizontal=Math.abs(right)>Math.abs(forward);
     return horizontal?(right>0?"à direita":"à esquerda"):(forward>0?"à frente":"atrás");
   }
+  function availableHouse(){
+    return villageHouses.find(house=>house.occupants.length<2)||null;
+  }
   function renderVillagersDirectory(){
-    villagersList.innerHTML=villagers.map(v=>{
-      const distance=Math.hypot(v.x-player.x,v.z-player.z);
-      const direction=villagerDirection(v);
-      const done=completedVillagerTasks.has(v.taskId);
-      return '<article class="villager-directory-item"><div><strong>'+v.name+'</strong><span>'+v.role+'</span><small>'+direction+' · '+distance.toFixed(0)+' m'+(done?' · tarefa concluída':'')+'</small></div><button type="button" data-face-villager="'+v.id+'">LOCALIZAR</button></article>';
-    }).join("");
+    const capacity=villageHouses.length*2;
+    const free=villageHouses.reduce((n,house)=>n+Math.max(0,2-house.occupants.length),0);
+    villagersSummary.textContent=villagers.length+" moradores · "+villageHouses.length+" casas · "+free+" vagas disponíveis";
+    villagersList.innerHTML=villagers.length?villagers.map(v=>{
+      const distance=Math.hypot(v.x-player.x,v.z-player.z),direction=villagerDirection(v);
+      return '<article class="villager-directory-item"><div><strong>'+v.name+'</strong><span>'+v.role+'</span><small>'+direction+' · '+distance.toFixed(0)+' m · Casa '+v.houseId.replace("house-","")+'</small></div><button type="button" data-face-villager="'+v.id+'">LOCALIZAR</button></article>';
+    }).join(""):'<p class="inventory-note">O vilarejo ainda não tem moradores. Construa uma casa e convide os primeiros habitantes.</p>';
+    const invited=new Set(recruitedVillagers.map(item=>item.id));
+    const vacancy=Boolean(availableHouse());
+    villagersInvites.innerHTML='<h3 class="villager-invite-heading">PESSOAS QUE VOCÊ PODE CONVIDAR</h3>'+villagerDefinitions.filter(def=>!invited.has(def.id)).map(def=>'<article class="villager-directory-item"><div><strong>'+def.name+'</strong><span>'+def.role+'</span><small>Disponível para morar no vale</small></div><button type="button" data-invite-villager="'+def.id+'" '+(!vacancy?'disabled':'')+'>CONVIDAR</button></article>').join("");
+    if(!vacancy&&villagerDefinitions.some(def=>!invited.has(def.id)))villagersInvites.insertAdjacentHTML("beforeend",'<p class="inventory-note">Construa uma casa para abrir 2 vagas de moradores.</p>');
+  }
+  function inviteVillager(id){
+    const def=villagerDefinitions.find(item=>item.id===id);
+    const house=availableHouse();
+    if(!def||recruitedVillagers.some(item=>item.id===id))return;
+    if(!house){showToast("Não há vagas. Construa outra casa para convidar mais moradores.");return;}
+    const slot=house.occupants.length;
+    const resident=createVillager(def,house,slot);
+    house.occupants.push(id);villagers.push(resident);recruitedVillagers.push({id,houseId:house.id});
+    saveProgress(true);renderVillagersDirectory();updateResourceTarget();
+    showToast(def.name+" aceitou o convite e chegou ao vilarejo!");
   }
   function openVillagersDirectory(){renderVillagersDirectory();villagersDirectory.classList.remove("hidden");}
   function closeVillagersDirectory(){villagersDirectory.classList.add("hidden");}
@@ -575,22 +594,13 @@ function startGame(THREE) {
     const villager=villagers.find(v=>v.id===button.dataset.faceVillager);
     if(!villager)return;
     const dx=villager.x-player.x,dz=villager.z-player.z;
-    player.yaw=Math.atan2(-dx,-dz);
-    player.pitch=-0.04;
-    closeVillagersDirectory();
-    updateResourceTarget();
+    player.yaw=Math.atan2(-dx,-dz);player.pitch=-0.04;
+    closeVillagersDirectory();updateResourceTarget();
     showToast("Você está olhando para "+villager.name+". Siga em frente para encontrá-lo.");
   });
-
-  villagerTask.addEventListener("click",event=>{
-    const button=event.target.closest("[data-villager-deliver]");
-    if(!button||!currentVillager||completedVillagerTasks.has(currentVillager.taskId))return;
-    const v=currentVillager;
-    if((inventory[v.key]||0)<v.quantity){showToast("Você ainda não tem os itens solicitados.");return;}
-    inventory[v.key]-=v.quantity;coins+=v.reward;completedVillagerTasks.add(v.taskId);
-    updateInventoryUI();updateWalletUI();saveProgress(true);
-    showToast("Tarefa concluída! +"+v.reward+" moedas.");
-    openVillagerPanel(v);
+  villagersInvites.addEventListener("click",event=>{
+    const button=event.target.closest("[data-invite-villager]");
+    if(button)inviteVillager(button.dataset.inviteVillager);
   });
   villagerClose.addEventListener("click",closeVillagerPanel);
 
@@ -987,22 +997,25 @@ function startGame(THREE) {
     buildingOptions.innerHTML="";
     if(!builtCabin){
       const button=document.createElement("button");button.type="button";button.className="building-option";button.dataset.buildId="cabin";
-      button.innerHTML="<strong>Cabana de madeira</strong><small>12 madeiras · 8 galhos</small>";buildingOptions.appendChild(button);
-      buildingStatus.textContent="Escolha a cabana para começar seu assentamento.";
+      button.innerHTML="<strong>Cabana inicial</strong><small>12 madeiras · 8 galhos · sua moradia</small>";buildingOptions.appendChild(button);
+      buildingStatus.textContent="Construa primeiro sua cabana.";
     }else{
-      const heading=document.createElement("small");heading.className="building-options-heading";heading.textContent="ESCOLHA UMA ESTRUTURA PARA REPOSICIONAR";buildingOptions.appendChild(heading);
+      const houseButton=document.createElement("button");houseButton.type="button";houseButton.className="building-option";houseButton.dataset.buildId="village-house";
+      houseButton.innerHTML="<strong>Casa para moradores</strong><small>20 madeiras · 12 galhos · capacidade para 2 pessoas</small>";buildingOptions.appendChild(houseButton);
+      const heading=document.createElement("small");heading.className="building-options-heading";heading.textContent="OU REPOSICIONE UMA ESTRUTURA";buildingOptions.appendChild(heading);
       for(const item of getBuildableStructures()){const button=document.createElement("button");button.type="button";button.className="building-option";button.dataset.buildId=item.id;button.textContent=item.label;buildingOptions.appendChild(button);}
-      buildingStatus.textContent="Selecione uma estrutura. Mova-se para escolher o novo local.";
+      buildingStatus.textContent="Cada casa construída libera duas vagas para convites.";
     }
     buildingOptions.querySelectorAll("[data-build-id]").forEach(button=>button.addEventListener("click",()=>selectBuildOption(button.dataset.buildId)));
   }
   function selectBuildOption(id){
     if(id==="cabin"){if(builtCabin)return;buildSelectedId="cabin";buildSelectedItem=null;}
+    else if(id==="village-house"){if(!builtCabin)return;buildSelectedId=id;buildSelectedItem={id,label:"Casa para moradores",radius:3.3};}
     else{const item=getBuildableStructures().find(entry=>entry.id===id);if(!item)return;buildSelectedId=id;buildSelectedItem=item;}
     if(buildPreview)scene.remove(buildPreview);
-    buildPreview=cabinGhost(id==="cabin"?createCabinModel():buildSelectedItem.group.clone(true));scene.add(buildPreview);
+    buildPreview=cabinGhost(id==="cabin"||id==="village-house"?createCabinModel():buildSelectedItem.group.clone(true));scene.add(buildPreview);
     buildingOptions.querySelectorAll("[data-build-id]").forEach(button=>button.classList.toggle("selected",button.dataset.buildId===id));
-    buildingMaterials.textContent=id==="cabin"?"Madeira: "+inventory.wood+"/12 · Galhos: "+inventory.branches+"/8":"Reposicionamento gratuito · nenhum material será consumido";
+    buildingMaterials.textContent=id==="cabin"?"Madeira: "+inventory.wood+"/12 · Galhos: "+inventory.branches+"/8":id==="village-house"?"Madeira: "+inventory.wood+"/20 · Galhos: "+inventory.branches+"/12":"Reposicionamento gratuito · nenhum material será consumido";
     buildRotation=0;updateBuildPreview();
   }
   function structurePlacementValid(x,z,item){
@@ -1057,14 +1070,22 @@ function startGame(THREE) {
     if (!buildPreview) return;
     buildPreview.traverse((node)=>{if(node.isMesh)node.material.color.set(valid?0x8bd49a:0xe17a69);});
   }
+  function villageHousePlacementValid(x,z,yaw){
+    const base=cabinFootprintValid(x,z,yaw);if(base)return base;
+    if(builtCabin&&Math.hypot(x-builtCabin.x,z-builtCabin.z)<8.2)return "Muito perto da sua cabana.";
+    for(const house of villageHouses)if(Math.hypot(x-house.x,z-house.z)<8.2)return "Muito perto de outra casa.";
+    for(const item of getBuildableStructures())if(Math.hypot(x-item.group.position.x,z-item.group.position.z)<item.radius+3.2)return "Muito perto de outra estrutura.";
+    return "";
+  }
   function updateBuildPreview(){
     if(!buildMode||!buildPreview||!buildSelectedId){buildingConfirm.disabled=true;return;}
     const fx=-Math.sin(player.yaw),fz=-Math.cos(player.yaw),x=Math.round((player.x+fx*8.2)*2)/2,z=Math.round((player.z+fz*8.2)*2)/2,yaw=player.yaw+Math.PI+buildRotation;
     buildPreview.position.set(x,groundHeight(x,z),z);buildPreview.rotation.y=yaw;
-    buildPreviewReason=buildSelectedId==="cabin"?cabinFootprintValid(x,z,yaw):structurePlacementValid(x,z,buildSelectedItem);
+    buildPreviewReason=buildSelectedId==="cabin"?cabinFootprintValid(x,z,yaw):buildSelectedId==="village-house"?villageHousePlacementValid(x,z,yaw):structurePlacementValid(x,z,buildSelectedItem);
     buildPreviewValid=!buildPreviewReason;setBuildPreviewAppearance(buildPreviewValid);
     buildingStatus.textContent=buildPreviewValid?"Local adequado · confirme a posição":buildPreviewReason;buildingStatus.classList.toggle("invalid",!buildPreviewValid);
-    buildingConfirm.disabled=!buildPreviewValid||(buildSelectedId==="cabin"&&(inventory.wood<12||inventory.branches<8||Boolean(builtCabin)));
+    const cost=buildSelectedId==="cabin"?[12,8]:buildSelectedId==="village-house"?[20,12]:[0,0];
+    buildingConfirm.disabled=!buildPreviewValid||(cost[0]>0&&(inventory.wood<cost[0]||inventory.branches<cost[1]))||(buildSelectedId==="cabin"&&Boolean(builtCabin));
   }
   function startBuilding(){
     buildMode=true;buildingPanel.classList.remove("hidden");renderBuildingOptions();
@@ -1089,6 +1110,13 @@ function startGame(THREE) {
       inventory.wood-=12;inventory.branches-=8;builtCabin={x:position.x,z:position.z,yaw};placeCabin();
       stopBuilding();updateInventoryUI();saveProgress(true);showToast("Cabana construída! Seu primeiro abrigo está pronto.");return;
     }
+    if(buildSelectedId==="village-house"){
+      if(inventory.wood<20||inventory.branches<12){showToast("Faltam materiais: 20 madeiras e 12 galhos.");return;}
+      inventory.wood-=20;inventory.branches-=12;
+      const house={id:"house-"+(villageHouses.length+1),x:position.x,z:position.z,yaw,group:createCabinModel(),occupants:[]};
+      house.group.position.set(house.x,groundHeight(house.x,house.z),house.z);house.group.rotation.y=yaw;scene.add(house.group);villageHouses.push(house);
+      stopBuilding();updateInventoryUI();saveProgress(true);showToast("Casa construída! Você já pode convidar até 2 moradores.");return;
+    }
     const item=getBuildableStructures().find(entry=>entry.id===buildSelectedId);if(!item)return;
     item.apply(position.x,position.z,yaw);item.group.position.set(position.x,groundHeight(position.x,position.z),position.z);item.group.rotation.y=yaw;
     updateAnimalAnimations(0);stopBuilding();saveProgress(true);showToast(item.label+" reposicionado!");
@@ -1111,6 +1139,20 @@ function startGame(THREE) {
     if (Math.abs(x) > 96 || Math.abs(z) > 96) continue;
     treeSpots.push({ x, z, scale: 0.72 + random() * 0.76, turn: random() * Math.PI * 2 });
   }
+  function restoreVillagePopulation(){
+    for(const house of villageHouses){
+      house.group=createCabinModel();house.group.position.set(house.x,groundHeight(house.x,house.z),house.z);house.group.rotation.y=house.yaw;scene.add(house.group);
+    }
+    for(const residentData of recruitedVillagers){
+      const def=villagerDefinitions.find(item=>item.id===residentData.id),house=villageHouses.find(item=>item.id===residentData.houseId);
+      if(!def||!house||house.occupants.length>=2)continue;
+      house.occupants.push(def.id);villagers.push(createVillager(def,house,house.occupants.length-1));
+    }
+    const validIds=new Set(villagers.map(v=>v.id));
+    for(let i=recruitedVillagers.length-1;i>=0;i--)if(!validIds.has(recruitedVillagers[i].id))recruitedVillagers.splice(i,1);
+  }
+  restoreVillagePopulation();
+
   const trunkGeometry = new THREE.CylinderGeometry(0.28, 0.48, 4.2, 6);
   const crownGeometry = new THREE.ConeGeometry(3.05, 7.0, 7);
   const crownTopGeometry = new THREE.ConeGeometry(2.35, 6.0, 7);
@@ -1506,7 +1548,9 @@ function startGame(THREE) {
           hour: Number.isInteger(saved.gameTime?.hour) ? THREE.MathUtils.clamp(saved.gameTime.hour,0,23) : 8,
           minute: Number.isInteger(saved.gameTime?.minute) ? THREE.MathUtils.clamp(saved.gameTime.minute,0,59) : 0
         },
-        completedVillagerTasks:Array.isArray(saved.completedVillagerTasks)?saved.completedVillagerTasks.filter(id=>["farmer-task","woodcutter-task","blacksmith-task"].includes(id)):[],
+        completedVillagerTasks:[],
+        villageHouses:Array.isArray(saved.villageHouses)?saved.villageHouses.filter(house=>house&&typeof house.id==="string"&&Number.isFinite(house.x)&&Number.isFinite(house.z)&&Math.abs(house.x)<=96&&Math.abs(house.z)<=96).slice(0,40).map(house=>({id:house.id,x:house.x,z:house.z,yaw:Number.isFinite(house.yaw)?house.yaw:0})):[],
+        recruitedVillagers:Array.isArray(saved.recruitedVillagers)?saved.recruitedVillagers.filter(item=>item&&typeof item.id==="string"&&typeof item.houseId==="string").slice(0,40).map(item=>({id:item.id,houseId:item.houseId})):[],
         structurePositions:saved.structurePositions&&typeof saved.structurePositions==="object"?Object.fromEntries(Object.entries(saved.structurePositions).filter(([id,pos])=>/^(workbench|merchant|kitchen|loom|tannery|chickens-pen|sheep-pen|farm-plot-[1-3])$/.test(id)&&pos&&Number.isFinite(pos.x)&&Number.isFinite(pos.z)&&Math.abs(pos.x)<=96&&Math.abs(pos.z)<=96).map(([id,pos])=>[id,{x:pos.x,z:pos.z,yaw:Number.isFinite(pos.yaw)?pos.yaw:0}])):{},
         builtCabin: saved.builtCabin && Number.isFinite(saved.builtCabin.x) && Number.isFinite(saved.builtCabin.z) && Math.abs(saved.builtCabin.x)<=96 && Math.abs(saved.builtCabin.z)<=96 ? { x:saved.builtCabin.x, z:saved.builtCabin.z, yaw:Number.isFinite(saved.builtCabin.yaw)?saved.builtCabin.yaw:0 } : null,
         resourceBase: saved.resourceBase &&
@@ -1563,6 +1607,8 @@ function startGame(THREE) {
         felledTrees: [...felledTrees],
         treeHits: Object.fromEntries(treeHitCounts),
         builtCabin: builtCabin ? { ...builtCabin } : null,
+        villageHouses:villageHouses.map(({id,x,z,yaw})=>({id,x,z,yaw})),
+        recruitedVillagers:recruitedVillagers.map(({id,houseId})=>({id,houseId})),
         structurePositions:structurePositionsForSave()
       }));
     } catch { /* O jogo continua mesmo sem armazenamento disponível. */ }

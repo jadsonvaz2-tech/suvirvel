@@ -552,3 +552,6 @@ kbd { min-width: 17px; padding: 4px 5px; border: 1px solid rgba(241,232,210,.28)
 .villager-directory-item small{font-size:9px;color:var(--muted)}
 .villager-directory-item button{flex:none;min-height:34px;padding:0 10px;border:1px solid rgba(212,177,107,.55);border-radius:6px;color:var(--cream);background:rgba(86,69,42,.8);font:inherit;font-size:8px;font-weight:900;letter-spacing:.08em;cursor:pointer}
 @media (max-width:700px),(pointer:coarse){.villagers-toggle{top:auto;right:14px;bottom:max(174px,calc(env(safe-area-inset-bottom) + 168px));padding:11px 14px;font-size:9px}.villagers-directory{max-height:70vh}}
+
+/* Convites e capacidade das moradias */
+.villager-invite-heading{margin:16px 2px 8px;color:#e9c98d;font-size:9px;font-weight:900;letter-spacing:.12em}.villagers-invites{display:grid;gap:7px;margin-top:12px}.villagers-directory{max-height:min(78vh,700px);overflow:auto}.villagers-invites button:disabled{opacity:.38;cursor:not-allowed}
