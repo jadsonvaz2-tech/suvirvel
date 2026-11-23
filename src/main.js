@@ -252,6 +252,8 @@ function startGame(THREE) {
   const villagers=[];
   const villageHouses=(Array.isArray(saved?.villageHouses)?saved.villageHouses:[]).map((house,index)=>({id:house.id||"house-"+(index+1),x:house.x,z:house.z,yaw:house.yaw||0,group:null,occupants:[]}));
   const recruitedVillagers=Array.isArray(saved?.recruitedVillagers)?saved.recruitedVillagers.slice(0,40):[];
+  const villageStock=Object.fromEntries(["wheat","carrots","cabbages","wood","branches","rawMeat","hide","trout","carp","minnow","roastedMeat","vegetableSoup","fabric","craftedGoods","tools"].map(key=>[key,Number.isSafeInteger(saved?.villageStock?.[key])?Math.max(0,Math.min(999999,saved.villageStock[key])):0]));
+  let villageProductionLastMinute=Number.isSafeInteger(saved?.villageProductionLastMinute)?Math.max(0,saved.villageProductionLastMinute):totalGameMinutes();
   let kitchenPosition=null,kitchenFire=null,kitchenGroup=null,canUseKitchen=false,loomPosition=null,loomGroup=null,canUseLoom=false,tanneryPosition=null,tanneryGroup=null,canUseTannery=false,merchantPosition=null,canUseMerchant=false;
   const savedStructurePositions=saved?.structurePositions&&typeof saved.structurePositions==="object"?saved.structurePositions:{};
   let gameTimeAccumulator=0;
@@ -279,6 +281,7 @@ function startGame(THREE) {
     refreshAnimalProduction();
     refreshTanneryProduction();
     refreshResourceRespawns();
+    processVillageProduction();
   }
   updateGameClockUI();
   const resourceBase = saved?.resourceBase ?? {
@@ -519,6 +522,45 @@ function startGame(THREE) {
     const offset=workOffsets[professionIndex%workOffsets.length];
     return {...def,role:profession,profession,labelMesh:label,group:root,x:start.x,z:start.z,homeX:start.x,homeZ:start.z,workX:THREE.MathUtils.clamp(start.x+offset[0],-90,90),workZ:THREE.MathUtils.clamp(start.z+offset[1],-90,90),targetX:start.x,targetZ:start.z,wait:1+Math.random()*3,walk:0,arms:root.children.filter((child,index)=>index>=4&&index<=5),houseId:house.id,atWork:false};
   }
+  const villageStockLabels={wheat:"Trigo",carrots:"Cenouras",cabbages:"Repolhos",wood:"Madeira",branches:"Galhos",rawMeat:"Carne crua",hide:"Couro bruto",trout:"Trutas",carp:"Carpas",minnow:"Lambaris",roastedMeat:"Carne assada",vegetableSoup:"Sopa de legumes",fabric:"Tecido",craftedGoods:"Artesanato",tools:"Ferramentas"};
+  function addVillageStock(key,amount=1){villageStock[key]=Math.min(999999,(villageStock[key]||0)+amount);}
+  function processVillagerWorkHour(villager){
+    switch(villager.role){
+      case "Agricultora": addVillageStock("wheat",1);addVillageStock("carrots",1);addVillageStock("cabbages",1);break;
+      case "Lenhador": addVillageStock("wood",2);addVillageStock("branches",1);break;
+      case "Caçador": addVillageStock("rawMeat",1);addVillageStock("hide",1);break;
+      case "Pescador": addVillageStock(["trout","carp","minnow"][(gameTime.day+villagers.indexOf(villager))%3],1);break;
+      case "Cozinheira":
+        if(villageStock.rawMeat>0){villageStock.rawMeat--;addVillageStock("roastedMeat",1);}
+        else if(villageStock.carrots>0&&villageStock.cabbages>0){villageStock.carrots--;villageStock.cabbages--;addVillageStock("vegetableSoup",1);}
+        break;
+      case "Tecelã":
+        if(villageStock.wool>0){villageStock.wool--;addVillageStock("fabric",1);}
+        break;
+      case "Artesã":
+        if(villageStock.wood>=1&&villageStock.branches>=1){villageStock.wood--;villageStock.branches--;addVillageStock("craftedGoods",1);}
+        break;
+      case "Ferreiro":
+        if(villageStock.stones>=2&&villageStock.wood>=1){villageStock.stones-=2;villageStock.wood--;addVillageStock("tools",1);}
+        break;
+    }
+  }
+  function processVillageProduction(){
+    const now=totalGameMinutes();
+    if(!Number.isSafeInteger(villageProductionLastMinute)||villageProductionLastMinute>now){villageProductionLastMinute=now;return;}
+    let changed=false;
+    let nextHour=Math.floor(villageProductionLastMinute/60)*60+60;
+    while(nextHour<=now){
+      const minuteOfDay=nextHour%1440,hour=Math.floor(minuteOfDay/60);
+      if(hour>=7&&hour<19){
+        for(const villager of villagers)processVillagerWorkHour(villager);
+        changed=true;
+      }
+      nextHour+=60;
+    }
+    villageProductionLastMinute=now;
+    if(changed){saveProgress(true);if(!villagersDirectory.classList.contains("hidden"))renderVillagersDirectory();}
+  }
   function updateVillagers(delta){
     const hour=gameTime.hour+gameTime.minute/60;
     const working=hour>=7&&hour<19;
@@ -564,15 +606,18 @@ function startGame(THREE) {
     return villageHouses.find(house=>house.occupants.length<2)||null;
   }
   function renderVillagersDirectory(){
+    villagersList.previousElementSibling?.classList.contains("village-stock")&&villagersList.previousElementSibling.remove();
     const capacity=villageHouses.length*2;
     const free=villageHouses.reduce((n,house)=>n+Math.max(0,2-house.occupants.length),0);
     villagersSummary.textContent=villagers.length+" moradores · "+villageHouses.length+" casas · "+free+" vagas disponíveis";
+    const stockMarkup='<section class="village-stock"><h3 class="villager-invite-heading">DEPÓSITO DA VILA</h3><div class="village-stock-grid">'+Object.entries(villageStockLabels).map(([key,label])=>'<span>'+label+'</span><strong>'+String(villageStock[key]||0)+'</strong>').join("")+'</div><small class="village-stock-note">A produção acontece entre 07:00 e 19:00, conforme os moradores e suas profissões.</small></section>';
     villagersList.innerHTML=villagers.length?villagers.map(v=>{
       const distance=Math.hypot(v.x-player.x,v.z-player.z),direction=villagerDirection(v);
       return '<article class="villager-directory-item"><div><strong>'+v.name+'</strong><span>'+v.role+'</span><small>'+(v.atWork?"Trabalhando":"Em casa / deslocando-se")+' · '+direction+' · '+distance.toFixed(0)+' m · Casa '+v.houseId.replace("house-","")+'</small><label class="villager-profession-label">PROFISSÃO <select data-villager-profession="'+v.id+'">'+villagerDefinitions.map(def=>'<option value="'+def.role+'" '+(def.role===v.role?"selected":"")+' >'+def.role+'</option>').join("")+'</select></label></div><button type="button" data-face-villager="'+v.id+'">LOCALIZAR</button></article>';
     }).join(""):'<p class="inventory-note">O vilarejo ainda não tem moradores. Construa uma casa e convide os primeiros habitantes.</p>';
     const invited=new Set(recruitedVillagers.map(item=>item.id));
     const vacancy=Boolean(availableHouse());
+    villagersList.insertAdjacentHTML("beforebegin",stockMarkup);
     villagersInvites.innerHTML='<h3 class="villager-invite-heading">PESSOAS QUE VOCÊ PODE CONVIDAR</h3>'+villagerDefinitions.filter(def=>!invited.has(def.id)).map(def=>'<article class="villager-directory-item"><div><strong>'+def.name+'</strong><span>'+def.role+'</span><small>Disponível para morar no vale</small></div><button type="button" data-invite-villager="'+def.id+'" '+(!vacancy?'disabled':'')+'>CONVIDAR</button></article>').join("");
     if(!vacancy&&villagerDefinitions.some(def=>!invited.has(def.id)))villagersInvites.insertAdjacentHTML("beforeend",'<p class="inventory-note">Construa uma casa para abrir 2 vagas de moradores.</p>');
   }
@@ -1566,6 +1611,8 @@ function startGame(THREE) {
           minute: Number.isInteger(saved.gameTime?.minute) ? THREE.MathUtils.clamp(saved.gameTime.minute,0,59) : 0
         },
         completedVillagerTasks:[],
+        villageStock:saved.villageStock&&typeof saved.villageStock==="object"?Object.fromEntries(["wheat","carrots","cabbages","wood","branches","rawMeat","hide","trout","carp","minnow","roastedMeat","vegetableSoup","fabric","craftedGoods","tools"].map(key=>[key,safeCount(saved.villageStock[key])])):{},
+        villageProductionLastMinute:Number.isSafeInteger(saved.villageProductionLastMinute)?Math.max(0,saved.villageProductionLastMinute):null,
         villageHouses:Array.isArray(saved.villageHouses)?saved.villageHouses.filter(house=>house&&typeof house.id==="string"&&Number.isFinite(house.x)&&Number.isFinite(house.z)&&Math.abs(house.x)<=96&&Math.abs(house.z)<=96).slice(0,40).map(house=>({id:house.id,x:house.x,z:house.z,yaw:Number.isFinite(house.yaw)?house.yaw:0})):[],
         recruitedVillagers:Array.isArray(saved.recruitedVillagers)?saved.recruitedVillagers.filter(item=>item&&typeof item.id==="string"&&typeof item.houseId==="string").slice(0,40).map(item=>({id:item.id,houseId:item.houseId,profession:typeof item.profession==="string"&&item.profession.length<40?item.profession:null})):[],
         structurePositions:saved.structurePositions&&typeof saved.structurePositions==="object"?Object.fromEntries(Object.entries(saved.structurePositions).filter(([id,pos])=>/^(workbench|merchant|kitchen|loom|tannery|chickens-pen|sheep-pen|farm-plot-[1-3])$/.test(id)&&pos&&Number.isFinite(pos.x)&&Number.isFinite(pos.z)&&Math.abs(pos.x)<=96&&Math.abs(pos.z)<=96).map(([id,pos])=>[id,{x:pos.x,z:pos.z,yaw:Number.isFinite(pos.yaw)?pos.yaw:0}])):{},
@@ -1626,6 +1673,8 @@ function startGame(THREE) {
         builtCabin: builtCabin ? { ...builtCabin } : null,
         villageHouses:villageHouses.map(({id,x,z,yaw})=>({id,x,z,yaw})),
         recruitedVillagers:recruitedVillagers.map(({id,houseId,profession})=>({id,houseId,profession:profession||villagers.find(v=>v.id===id)?.role||null})),
+        villageStock:{...villageStock},
+        villageProductionLastMinute,
         structurePositions:structurePositionsForSave()
       }));
     } catch { /* O jogo continua mesmo sem armazenamento disponível. */ }

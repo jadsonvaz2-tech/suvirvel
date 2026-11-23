@@ -555,3 +555,7 @@ kbd { min-width: 17px; padding: 4px 5px; border: 1px solid rgba(241,232,210,.28)
 
 /* Convites e capacidade das moradias */
 .villager-invite-heading{margin:16px 2px 8px;color:#e9c98d;font-size:9px;font-weight:900;letter-spacing:.12em}.villagers-invites{display:grid;gap:7px;margin-top:12px}.villagers-directory{max-height:min(78vh,700px);overflow:auto}.villagers-invites button:disabled{opacity:.38;cursor:not-allowed}
+
+
+/* Depósito e produção dos moradores */
+.village-stock{margin:12px 14px;padding:10px;border:1px solid rgba(212,177,107,.3);border-radius:8px;background:rgba(212,177,107,.06)}.village-stock-grid{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 12px;max-height:155px;overflow:auto}.village-stock-grid span{color:var(--cream);font-size:9px}.village-stock-grid strong{color:#f0d39b;font-size:9px;font-variant-numeric:tabular-nums}.village-stock-note{display:block;margin-top:8px;color:var(--muted);font-size:8px;line-height:1.4}
