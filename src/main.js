@@ -510,10 +510,14 @@ function startGame(THREE) {
     const start={x:house.x+side*Math.cos(yaw)+forward*Math.sin(yaw),z:house.z-side*Math.sin(yaw)+forward*Math.cos(yaw)};
     root.position.set(start.x,groundHeight(start.x,start.z),start.z);
     scene.add(root);
-    const profession=assignedProfession||def.role;\n    const label=makeResourceLabel(def.name+" · "+profession.toUpperCase(),"#f0c76f");label.position.set(0,2.9,0);label.scale.set(3.7,.9,1);root.add(label);
+    const profession=assignedProfession||def.role;
+    const label=makeResourceLabel(def.name+" · "+profession.toUpperCase(),"#f0c76f");label.position.set(0,2.9,0);label.scale.set(3.7,.9,1);root.add(label);
     const marker=new THREE.Mesh(new THREE.TorusGeometry(.62,.055,7,20),new THREE.MeshBasicMaterial({color:def.accent,transparent:true,opacity:.9}));
     marker.rotation.x=Math.PI/2;marker.position.y=.08;root.add(marker);
-    const professionIndex=Math.max(0,villagerDefinitions.findIndex(item=>item.role===profession));\n    const workOffsets=[[-5,-4],[5,-4],[-5,4],[5,4],[-7,0],[7,0],[0,-7],[0,7]];\n    const offset=workOffsets[professionIndex%workOffsets.length];\n    return {...def,role:profession,profession,labelMesh:label,group:root,x:start.x,z:start.z,homeX:start.x,homeZ:start.z,workX:THREE.MathUtils.clamp(start.x+offset[0],-90,90),workZ:THREE.MathUtils.clamp(start.z+offset[1],-90,90),targetX:start.x,targetZ:start.z,wait:1+Math.random()*3,walk:0,arms:root.children.filter((child,index)=>index>=4&&index<=5),houseId:house.id,atWork:false};
+    const professionIndex=Math.max(0,villagerDefinitions.findIndex(item=>item.role===profession));
+    const workOffsets=[[-5,-4],[5,-4],[-5,4],[5,4],[-7,0],[7,0],[0,-7],[0,7]];
+    const offset=workOffsets[professionIndex%workOffsets.length];
+    return {...def,role:profession,profession,labelMesh:label,group:root,x:start.x,z:start.z,homeX:start.x,homeZ:start.z,workX:THREE.MathUtils.clamp(start.x+offset[0],-90,90),workZ:THREE.MathUtils.clamp(start.z+offset[1],-90,90),targetX:start.x,targetZ:start.z,wait:1+Math.random()*3,walk:0,arms:root.children.filter((child,index)=>index>=4&&index<=5),houseId:house.id,atWork:false};
   }
   function updateVillagers(delta){
     const hour=gameTime.hour+gameTime.minute/60;
@@ -587,7 +591,21 @@ function startGame(THREE) {
   function closeVillagersDirectory(){villagersDirectory.classList.add("hidden");}
   villagersToggle.addEventListener("click",openVillagersDirectory);
   villagersDirectoryClose.addEventListener("click",closeVillagersDirectory);
-  villagersList.addEventListener("change",event=>{\n    const select=event.target.closest("select[data-villager-profession]");\n    if(!select)return;\n    const villager=villagers.find(v=>v.id===select.dataset.villagerProfession);\n    const definition=villagerDefinitions.find(def=>def.role===select.value);\n    if(!villager||!definition)return;\n    villager.role=definition.role;villager.profession=definition.role;\n    const offsets=[[-5,-4],[5,-4],[-5,4],[5,4],[-7,0],[7,0],[0,-7],[0,7]];\n    const index=villagerDefinitions.findIndex(def=>def.role===definition.role),offset=offsets[index%offsets.length];\n    villager.workX=THREE.MathUtils.clamp(villager.homeX+offset[0],-90,90);villager.workZ=THREE.MathUtils.clamp(villager.homeZ+offset[1],-90,90);\n    villager.group.remove(villager.labelMesh);\n    const updatedLabel=makeResourceLabel(villager.name+" · "+villager.role.toUpperCase(),"#f0c76f");updatedLabel.position.set(0,2.9,0);updatedLabel.scale.set(3.7,.9,1);villager.group.add(updatedLabel);villager.labelMesh=updatedLabel;\n    saveProgress(true);renderVillagersDirectory();showToast(villager.name+" agora trabalha como "+villager.role+".");\n  });\n  villagersList.addEventListener("click",event=>{
+  villagersList.addEventListener("change",event=>{
+    const select=event.target.closest("select[data-villager-profession]");
+    if(!select)return;
+    const villager=villagers.find(v=>v.id===select.dataset.villagerProfession);
+    const definition=villagerDefinitions.find(def=>def.role===select.value);
+    if(!villager||!definition)return;
+    villager.role=definition.role;villager.profession=definition.role;
+    const offsets=[[-5,-4],[5,-4],[-5,4],[5,4],[-7,0],[7,0],[0,-7],[0,7]];
+    const index=villagerDefinitions.findIndex(def=>def.role===definition.role),offset=offsets[index%offsets.length];
+    villager.workX=THREE.MathUtils.clamp(villager.homeX+offset[0],-90,90);villager.workZ=THREE.MathUtils.clamp(villager.homeZ+offset[1],-90,90);
+    villager.group.remove(villager.labelMesh);
+    const updatedLabel=makeResourceLabel(villager.name+" · "+villager.role.toUpperCase(),"#f0c76f");updatedLabel.position.set(0,2.9,0);updatedLabel.scale.set(3.7,.9,1);villager.group.add(updatedLabel);villager.labelMesh=updatedLabel;
+    saveProgress(true);renderVillagersDirectory();showToast(villager.name+" agora trabalha como "+villager.role+".");
+  });
+  villagersList.addEventListener("click",event=>{
     const button=event.target.closest("[data-face-villager]");
     if(!button)return;
     const villager=villagers.find(v=>v.id===button.dataset.faceVillager);
