@@ -253,7 +253,7 @@ function startGame(THREE) {
   const familyActors=[];
   const villageHouses=(Array.isArray(saved?.villageHouses)?saved.villageHouses:[]).map((house,index)=>({id:house.id||"house-"+(index+1),x:house.x,z:house.z,yaw:house.yaw||0,group:null,occupants:[]}));
   const recruitedVillagers=Array.isArray(saved?.recruitedVillagers)?saved.recruitedVillagers.slice(0,120):[];
-  const villagerRelationships=Array.isArray(saved?.villagerRelationships)?saved.villagerRelationships.filter(item=>item&&typeof item.a==="string"&&typeof item.b==="string"&&item.a!==item.b&&Number.isFinite(item.affinity)&&["amizade","namoro","casados"].includes(item.status)).slice(0,40).map(item=>({a:item.a,b:item.b,affinity:THREE.MathUtils.clamp(item.affinity,0,100),status:item.status,weddingDay:Number.isSafeInteger(item.weddingDay)?Math.max(1,item.weddingDay):null})):[];
+  const villagerRelationships=Array.isArray(saved?.villagerRelationships)?saved.villagerRelationships.filter(item=>item&&typeof item.a==="string"&&typeof item.b==="string"&&item.a!==item.b&&Number.isFinite(item.affinity)&&["amizade","namoro","casados"].includes(item.status)).slice(0,300).map(item=>({a:item.a,b:item.b,affinity:THREE.MathUtils.clamp(item.affinity,0,100),status:item.status,weddingDay:Number.isSafeInteger(item.weddingDay)?Math.max(1,item.weddingDay):null})):[];
   const familyPregnancies=Array.isArray(saved?.familyPregnancies)?saved.familyPregnancies.filter(item=>item&&typeof item.a==="string"&&typeof item.b==="string"&&typeof item.houseId==="string"&&Number.isSafeInteger(item.startDay)&&Number.isSafeInteger(item.dueDay)&&item.dueDay>item.startDay).slice(0,40).map(item=>({a:item.a,b:item.b,houseId:item.houseId,startDay:Math.max(1,item.startDay),dueDay:Math.max(1,item.dueDay),childName:typeof item.childName==="string"?item.childName.slice(0,24):""})):[];
   const familyChildren=Array.isArray(saved?.familyChildren)?saved.familyChildren.filter(item=>item&&typeof item.id==="string"&&typeof item.name==="string"&&typeof item.a==="string"&&typeof item.b==="string"&&typeof item.houseId==="string"&&Number.isSafeInteger(item.birthDay)).slice(0,80).map(item=>({id:item.id.slice(0,100),name:item.name.slice(0,24),a:item.a,b:item.b,houseId:item.houseId,birthDay:Math.max(1,item.birthDay),gender:item.gender==="F"?"F":"M",adultProfession:typeof item.adultProfession==="string"?item.adultProfession:""})):[];
   let nextChildName=typeof saved?.nextChildName==="string"?saved.nextChildName.slice(0,24):"";
@@ -575,19 +575,57 @@ function startGame(THREE) {
     updateVillagerRelationships(day);
     return villagers.length>0;
   }
+  function familyAncestors(personId,seen=new Set()){
+    if(seen.has(personId))return seen;
+    seen.add(personId);
+    const record=familyChildren.find(child=>child.id===personId);
+    if(record){familyAncestors(record.a,seen);familyAncestors(record.b,seen);}
+    return seen;
+  }
+  function areCloseFamilyMembers(firstId,secondId){
+    const firstAncestors=familyAncestors(firstId);
+    const secondAncestors=familyAncestors(secondId);
+    if(firstAncestors.has(secondId)||secondAncestors.has(firstId))return true;
+    for(const ancestor of firstAncestors)if(secondAncestors.has(ancestor))return true;
+    return false;
+  }
   function updateVillagerRelationships(day){
+    const descendants=new Set(familyChildren.map(child=>child.id));
+    const adults=villagers.filter(v=>v.gender==="F"||v.gender==="M");
+    const candidates=[];
     for(const house of villageHouses){
       const residents=house.occupants.map(id=>villagers.find(v=>v.id===id)).filter(Boolean);
-      if(residents.length<2)continue;
-      const first=residents[0],second=residents[1];
+      if(residents.length>=2)candidates.push([residents[0],residents[1]]);
+    }
+    for(let i=0;i<adults.length;i++){
+      for(let j=i+1;j<adults.length;j++){
+        const first=adults[i],second=adults[j];
+        if(!descendants.has(first.id)&&!descendants.has(second.id))continue;
+        if(first.gender===second.gender||areCloseFamilyMembers(first.id,second.id))continue;
+        candidates.push([first,second]);
+      }
+    }
+    const processed=new Set();
+    for(const [first,second] of candidates){
       if(!first.gender||!second.gender||first.gender===second.gender)continue;
-      let relation=villagerRelationships.find(item=>(item.a===first.id&&item.b===second.id)||(item.a===second.id&&item.b===first.id));
-      if(!relation){relation={a:first.id,b:second.id,affinity:0,status:"amizade",weddingDay:null};villagerRelationships.push(relation);}
+      const key=familyPairKey(first.id,second.id);
+      if(processed.has(key)||areCloseFamilyMembers(first.id,second.id))continue;
+      processed.add(key);
+      let relation=villagerRelationships.find(item=>familyPairKey(item.a,item.b)===key);
+      if(!relation){
+        if(villagerRelationships.length>=300)continue;
+        relation={a:first.id,b:second.id,affinity:0,status:"amizade",weddingDay:null};
+        villagerRelationships.push(relation);
+      }
       if(relation.status==="casados")continue;
       const conditions=first.happiness>=45&&second.happiness>=45&&first.lastMealDay>=day-1&&second.lastMealDay>=day-1;
       relation.affinity=THREE.MathUtils.clamp(relation.affinity+(conditions?12:-4),0,100);
       if(relation.affinity>=40&&relation.status==="amizade")relation.status="namoro";
-      if(relation.affinity>=100){relation.status="casados";relation.weddingDay=day;first.happiness=Math.min(100,first.happiness+10);second.happiness=Math.min(100,second.happiness+10);showToast("Celebração na vila! "+first.name+" e "+second.name+" se casaram.");}
+      if(relation.affinity>=100){
+        relation.status="casados";relation.weddingDay=day;
+        first.happiness=Math.min(100,first.happiness+10);second.happiness=Math.min(100,second.happiness+10);
+        showToast("Celebração na vila! "+first.name+" e "+second.name+" se casaram.");
+      }
     }
   }
   function dayProgress(item,day=gameTime.day){return THREE.MathUtils.clamp((day-item.startDay)/(item.dueDay-item.startDay),0,1);}
