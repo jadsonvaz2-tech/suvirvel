@@ -149,6 +149,11 @@ function startGame(THREE) {
     seed = (seed * 16807) % 2147483647;
     return (seed - 1) / 2147483646;
   }
+  // Carrega o progresso antes de criar os recursos do cenário, para que
+  // os pontos já recolhidos não sejam recriados após atualizar a página.
+  const saved = readSave();
+  const collectedResources = new Set(saved?.collectedResources ?? []);
+
   const collectibleNodes = [];
   const collectibleMeshes = [];
   function addResourceNode(id, itemKey, label, amount, x, z, build) {
@@ -278,7 +283,6 @@ function startGame(THREE) {
   });
 
   // Câmera em primeira pessoa e braços provisórios do personagem.
-  const saved = readSave();
   const player = {
     x: saved?.x ?? 0,
     z: saved?.z ?? 35,
@@ -296,7 +300,6 @@ function startGame(THREE) {
     stones: saved?.inventory?.stones ?? 0,
     berries: saved?.inventory?.berries ?? 0
   };
-  const collectedResources = new Set(saved?.collectedResources ?? []);
   let currentResourceTarget = null;
   let interactionScanTimer = 0;
   let toastTimeout = 0;
