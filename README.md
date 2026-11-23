@@ -194,3 +194,10 @@ Esta etapa inclui coleta, mochila, alimentação e hidratação; fabricação e 
 - Cada colheita tem ainda 25% de chance de conceder uma segunda semente.
 - O pacote inicial é marcado no salvamento para não ser concedido novamente ao recarregar o jogo.
 - Sementes e colheitas continuam integradas à mochila e ao sistema de plantio já existente.
+
+
+## Ajuste de acesso ao tear
+
+- O tear foi reposicionado para o lado oposto à cozinha e aos cercados, com espaço mais livre para aproximação.
+- A área de interação foi ampliada e tem prioridade sobre água, cozinha e animais quando o jogador está junto à estação.
+- A tecla E no PC e o botão de ação no celular abrem diretamente o painel do tear.

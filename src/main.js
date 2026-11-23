@@ -665,7 +665,8 @@ function startGame(THREE) {
   kitchenRecipes.addEventListener("click",event=>{const button=event.target.closest("button[data-cook]");if(button)cookMeal(button.dataset.cook);});
   kitchenClose.addEventListener("click",closeKitchenPanel);
   function createLoomStation(){
-    loomPosition=localCabinPosition(-5.4,-6.6);const group=new THREE.Group(),wood=new THREE.MeshStandardMaterial({color:0x765033,roughness:1}),dark=new THREE.MeshStandardMaterial({color:0x4d3524,roughness:1}),thread=new THREE.MeshStandardMaterial({color:0xc8b58f,roughness:1});
+    // Tear no lado oposto à cozinha e aos cercados, com espaço livre para aproximação.
+    loomPosition=localCabinPosition(7.2,-6.6);const group=new THREE.Group(),wood=new THREE.MeshStandardMaterial({color:0x765033,roughness:1}),dark=new THREE.MeshStandardMaterial({color:0x4d3524,roughness:1}),thread=new THREE.MeshStandardMaterial({color:0xc8b58f,roughness:1});
     const legGeo=new THREE.BoxGeometry(0.13,1.45,0.13);for(const x of [-0.78,0.78])for(const z of [-0.42,0.42]){const leg=new THREE.Mesh(legGeo,wood);leg.position.set(x,0.72,z);group.add(leg);}
     const beam=new THREE.Mesh(new THREE.BoxGeometry(1.8,0.16,0.16),dark);beam.position.set(0,1.48,-0.42);group.add(beam);const frontBeam=beam.clone();frontBeam.position.z=0.42;group.add(frontBeam);
     const top=new THREE.Mesh(new THREE.BoxGeometry(1.9,0.13,1.05),wood);top.position.y=0.82;group.add(top);const rollerGeo=new THREE.CylinderGeometry(0.09,0.09,1.75,8);
@@ -1372,12 +1373,14 @@ function startGame(THREE) {
       bestDistance = distance;
     }
 
+    const loomDistance=loomPosition?Math.hypot(loomPosition.x-player.x,loomPosition.z-player.z):Infinity;
+    canUseLoom=Boolean(builtCabin&&!match&&loomDistance<=4.2);
     const bankDistance = riverDistance(player.x, player.z);
-    canDrinkWater = !match && bankDistance >= 8.2 && bankDistance <= 12.4 && survival.thirst < 99.5;
+    canDrinkWater = !match && !canUseLoom && bankDistance >= 8.2 && bankDistance <= 12.4 && survival.thirst < 99.5;
     const benchDistance = Math.hypot(workbenchPosition.x - player.x, workbenchPosition.z - player.z);
-    canUseWorkbench = !match && !canDrinkWater && benchDistance <= 5.2;
-    canUseCabinDoor=false; canUseStorageChest=false; canUseBed=false;canUseFarmPlot=false;currentFarmPlot=null;canUseAnimalPen=false;currentAnimalType=null;canUseKitchen=false;canUseLoom=false;
-    if(builtCabin && !match && !canDrinkWater && !canUseWorkbench){
+    canUseWorkbench = !match && !canUseLoom && !canDrinkWater && benchDistance <= 5.2;
+    canUseCabinDoor=false; canUseStorageChest=false; canUseBed=false;canUseFarmPlot=false;currentFarmPlot=null;canUseAnimalPen=false;currentAnimalType=null;canUseKitchen=false;
+    if(builtCabin && !match && !canUseLoom && !canDrinkWater && !canUseWorkbench){
       const dx=player.x-builtCabin.x,dz=player.z-builtCabin.z;
       const lx=dx*Math.cos(builtCabin.yaw)-dz*Math.sin(builtCabin.yaw);
       const lz=dx*Math.sin(builtCabin.yaw)+dz*Math.cos(builtCabin.yaw);
@@ -1386,19 +1389,19 @@ function startGame(THREE) {
       canUseBed=inside && Math.hypot(lx+1.15,lz-0.48)<1.95;
       canUseStorageChest=inside && Math.hypot(lx-1.18,lz-1.15)<2.15;
     }
-    if(builtCabin&&!match&&!canDrinkWater&&!canUseWorkbench){
+    if(builtCabin&&!match&&!canUseLoom&&!canDrinkWater&&!canUseWorkbench){
       for(const plot of farmPlots){const distance=Math.hypot(player.x-plot.x,player.z-plot.z);if(distance<3.25&&(!currentFarmPlot||distance<Math.hypot(player.x-currentFarmPlot.x,player.z-currentFarmPlot.z)))currentFarmPlot=plot;}
       canUseFarmPlot=Boolean(currentFarmPlot);
     }
-    if(builtCabin&&!match&&!canDrinkWater&&!canUseWorkbench&&!canUseFarmPlot&&!canUseCabinDoor&&!canUseBed&&!canUseStorageChest){
+    if(builtCabin&&!match&&!canUseLoom&&!canDrinkWater&&!canUseWorkbench&&!canUseFarmPlot&&!canUseCabinDoor&&!canUseBed&&!canUseStorageChest){
       let nearest=Infinity;
       for(const type of ["chickens","sheep"]){const enclosure=animalEnclosures[type],distance=Math.hypot(player.x-enclosure.x,player.z-enclosure.z);if(distance<(type==="chickens"?4.8:5.3)&&distance<nearest){nearest=distance;currentAnimalType=type;}}
       canUseAnimalPen=Boolean(currentAnimalType);
     }
-    if(builtCabin&&!match&&!canDrinkWater&&!canUseWorkbench&&!canUseFarmPlot&&!canUseAnimalPen&&!canUseCabinDoor&&!canUseBed&&!canUseStorageChest&&kitchenPosition){
+    if(builtCabin&&!match&&!canUseLoom&&!canDrinkWater&&!canUseWorkbench&&!canUseFarmPlot&&!canUseAnimalPen&&!canUseCabinDoor&&!canUseBed&&!canUseStorageChest&&kitchenPosition){
       canUseKitchen=Math.hypot(player.x-kitchenPosition.x,player.z-kitchenPosition.z)<=4.6;
     }
-    if(builtCabin&&!match&&!canDrinkWater&&!canUseWorkbench&&!canUseFarmPlot&&!canUseAnimalPen&&!canUseKitchen&&!canUseCabinDoor&&!canUseBed&&!canUseStorageChest&&loomPosition)canUseLoom=Math.hypot(player.x-loomPosition.x,player.z-loomPosition.z)<=3.4;
+
     let treeMatch = null;
     let bestTreeDistance = Infinity;
     for (let i = 0; i < treeSpots.length; i++) {
@@ -1413,7 +1416,7 @@ function startGame(THREE) {
       treeMatch = { tree, index: i };
       bestTreeDistance = distance;
     }
-    currentTreeTarget = !match && !canDrinkWater && !canUseWorkbench && !canUseFarmPlot && !canUseAnimalPen && !canUseKitchen && !canUseLoom ? treeMatch : null;
+    currentTreeTarget = !match && !canUseLoom && !canDrinkWater && !canUseWorkbench && !canUseFarmPlot && !canUseAnimalPen && !canUseKitchen && !canUseLoom ? treeMatch : null;
     canChopTree = Boolean(currentTreeTarget && tools.axe);
     currentResourceTarget = match;
     const hasInteraction = Boolean(match) || canDrinkWater || canUseWorkbench || canUseFarmPlot || canUseAnimalPen || canUseKitchen || canUseLoom || canUseCabinDoor || canUseBed || canUseStorageChest || Boolean(currentTreeTarget);
@@ -1425,6 +1428,8 @@ function startGame(THREE) {
       interactionName.textContent = match.label + " · " + match.amount;
       interactionVerb.textContent = "recolher";
       collectButton.textContent = "RECOLHER";
+    } else if (canUseLoom) {
+      interactionType.textContent = "OFÍCIO ARTESANAL";interactionName.textContent = "Tear de lã";interactionVerb.textContent = "tecer e fabricar roupas";collectButton.textContent = "USAR TEAR";
     } else if (canDrinkWater) {
       interactionType.textContent = "MARGEM DO RIO";
       interactionName.textContent = "Água do rio";
@@ -1684,6 +1689,7 @@ function startGame(THREE) {
     if(!chestPanel.classList.contains("hidden")||!sleepPanel.classList.contains("hidden")||!farmPanel.classList.contains("hidden")||!animalPanel.classList.contains("hidden")||!kitchenPanel.classList.contains("hidden")||!loomPanel.classList.contains("hidden"))return;
     if(buildMode){confirmBuilding();return;}
     if(currentResourceTarget)collectCurrentResource();
+    else if(canUseLoom)openLoomPanel();
     else if(canDrinkWater)drinkWater();
     else if(canUseWorkbench)openCrafting();
     else if(canUseFarmPlot)openFarmPanel();
