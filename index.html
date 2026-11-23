@@ -46,6 +46,10 @@
           <div class="stat-top"><span>⚡ VIGOR</span><b id="energy-value">100%</b></div>
           <div class="stat-track"><i id="energy-fill"></i></div>
         </div>
+        <div class="survival-stat stat-cold">
+          <div class="stat-top"><span>❄ CALOR</span><b id="warmth-value">100%</b></div>
+          <div class="stat-track"><i id="warmth-fill"></i></div>
+        </div>
       </div>
     </section>
     <button type="button" id="inventory-toggle" class="inventory-toggle" aria-expanded="false">MOCHILA <kbd>I</kbd></button>
@@ -91,6 +95,15 @@
           <h3 class="inventory-category-title">Materiais especiais</h3>
           <div class="inventory-items">
             <div class="inventory-item"><span class="item-icon item-wool">✧</span><span class="item-name">Lã</span><strong id="wool-count">0</strong></div>
+            <div class="inventory-item"><span class="item-icon item-wool">🧶</span><span class="item-name">Tecido de lã</span><strong id="fabric-count">0</strong></div>
+          </div>
+        </section>
+        <section class="inventory-category">
+          <h3 class="inventory-category-title">Vestuário</h3>
+          <div class="inventory-items">
+            <div class="inventory-item"><span class="item-icon">🧥</span><span class="item-name">Túnica de lã</span><strong id="tunic-count">0</strong><small data-clothing-status="tunic">Guardado</small></div>
+            <div class="inventory-item"><span class="item-icon">👖</span><span class="item-name">Calças forradas</span><strong id="trousers-count">0</strong><small data-clothing-status="trousers">Guardado</small></div>
+            <div class="inventory-item"><span class="item-icon">🥾</span><span class="item-name">Botas de lã</span><strong id="boots-count">0</strong><small data-clothing-status="boots">Guardado</small></div>
           </div>
         </section>
       </div>
@@ -125,6 +138,12 @@
       <p id="kitchen-status" class="building-description">Use lenha e ingredientes para preparar refeições.</p>
       <div id="kitchen-recipes" class="kitchen-recipes"></div>
       <small class="building-help">Cada preparo consome 1 madeira como combustível. As refeições ficam na mochila e podem ser consumidas quando precisar recuperar fome.</small>
+    </section>
+    <section id="loom-panel" class="loom-panel hidden" aria-label="Tear e fabricação de roupas">
+      <header class="inventory-header"><div><span class="eyebrow">OFÍCIO ARTESANAL</span><strong id="loom-title">TEAR E ROUPAS</strong></div><button type="button" id="loom-close" class="inventory-close" aria-label="Fechar tear">×</button></header>
+      <p id="loom-status" class="building-description">Transforme lã em tecido e fabrique roupas para enfrentar o frio.</p>
+      <div id="loom-actions" class="loom-actions"></div>
+      <small class="building-help">A proteção térmica soma os efeitos das peças equipadas. Durante a noite, ficar sem abrigo ou roupas adequadas reduz o calor corporal.</small>
     </section>
     <section id="animal-panel" class="animal-panel hidden" aria-label="Cuidar dos animais">
       <header class="inventory-header">

@@ -44,6 +44,7 @@ const kitchenClose = document.getElementById("kitchen-close");
 const kitchenTitle = document.getElementById("kitchen-title");
 const kitchenStatus = document.getElementById("kitchen-status");
 const kitchenRecipes = document.getElementById("kitchen-recipes");
+const loomPanel = document.getElementById("loom-panel"), loomClose = document.getElementById("loom-close"), loomTitle = document.getElementById("loom-title"), loomStatus = document.getElementById("loom-status"), loomActions = document.getElementById("loom-actions");
 const gameClockUI = document.getElementById("game-clock");
 const interactionType = document.getElementById("interaction-type");
 const interactionVerb = document.getElementById("interaction-verb");
@@ -67,7 +68,8 @@ const inventoryUI = {
   bread: document.getElementById("bread-count"),
   omelet: document.getElementById("omelet-count"),
   vegetableSoup: document.getElementById("vegetable-soup-count"),
-  berryPorridge: document.getElementById("berry-porridge-count")
+  berryPorridge: document.getElementById("berry-porridge-count"),
+  fabric: document.getElementById("fabric-count"), tunic: document.getElementById("tunic-count"), trousers: document.getElementById("trousers-count"), boots: document.getElementById("boots-count")
 };
 let toastTimer = 0;
 const survivalUI = {
@@ -75,7 +77,8 @@ const survivalUI = {
   health: { value: document.getElementById("health-value"), fill: document.getElementById("health-fill") },
   hunger: { value: document.getElementById("hunger-value"), fill: document.getElementById("hunger-fill") },
   thirst: { value: document.getElementById("thirst-value"), fill: document.getElementById("thirst-fill") },
-  energy: { value: document.getElementById("energy-value"), fill: document.getElementById("energy-fill") }
+  energy: { value: document.getElementById("energy-value"), fill: document.getElementById("energy-fill") },
+  warmth: { value: document.getElementById("warmth-value"), fill: document.getElementById("warmth-fill") }
 };
 
 async function bootGame() {
@@ -227,10 +230,20 @@ function startGame(THREE) {
     return {id,crop:prior&&Object.hasOwn(cropTypes,prior.crop)?prior.crop:null,plantedAt:prior&&Number.isSafeInteger(prior.plantedAt)?Math.max(0,prior.plantedAt):0,localX:5.1,localZ:(index-1)*2.2,group:null,cropGroup:null,visualStage:-1,x:0,z:0};
   });
   let currentFarmPlot=null,canUseFarmPlot=false;
-  let kitchenPosition=null,kitchenFire=null,canUseKitchen=false;
+  let kitchenPosition=null,kitchenFire=null,canUseKitchen=false,loomPosition=null,canUseLoom=false;
   let gameTimeAccumulator=0;
   function updateGameClockUI(){gameClockUI.textContent="DIA "+gameTime.day+" · "+String(gameTime.hour).padStart(2,"0")+":"+String(gameTime.minute).padStart(2,"0");}
+  function updateColdExposure(minutes){
+    const protection=(clothing.tunic?0.28:0)+(clothing.trousers?0.18:0)+(clothing.boots?0.14:0);
+    let sheltered=false;
+    if(builtCabin){const dx=player.x-builtCabin.x,dz=player.z-builtCabin.z,lx=dx*Math.cos(builtCabin.yaw)-dz*Math.sin(builtCabin.yaw),lz=dx*Math.sin(builtCabin.yaw)+dz*Math.cos(builtCabin.yaw);sheltered=Math.abs(lx)<1.9&&Math.abs(lz)<2.1;}
+    for(let i=0;i<minutes;i++){const minuteOfDay=(gameTime.hour*60+gameTime.minute+i)%1440,hour=Math.floor(minuteOfDay/60),cold=hour>=18||hour<7;
+      if(sheltered)survival.warmth=Math.min(100,survival.warmth+0.3);else if(cold)survival.warmth=Math.max(0,survival.warmth-0.18*(1-protection));else survival.warmth=Math.min(100,survival.warmth+0.2);
+      if(survival.warmth<=0)survival.health=Math.max(0,survival.health-0.035);}
+    updateSurvivalUI(true);
+  }
   function advanceGameMinutes(minutes){
+    updateColdExposure(minutes);
     const total=gameTime.hour*60+gameTime.minute+minutes;
     gameTime.day+=Math.floor(total/1440);
     const wrapped=total%1440;
@@ -651,6 +664,29 @@ function startGame(THREE) {
   }
   kitchenRecipes.addEventListener("click",event=>{const button=event.target.closest("button[data-cook]");if(button)cookMeal(button.dataset.cook);});
   kitchenClose.addEventListener("click",closeKitchenPanel);
+  function createLoomStation(){
+    loomPosition=localCabinPosition(-5.4,-6.6);const group=new THREE.Group(),wood=new THREE.MeshStandardMaterial({color:0x765033,roughness:1}),dark=new THREE.MeshStandardMaterial({color:0x4d3524,roughness:1}),thread=new THREE.MeshStandardMaterial({color:0xc8b58f,roughness:1});
+    const legGeo=new THREE.BoxGeometry(0.13,1.45,0.13);for(const x of [-0.78,0.78])for(const z of [-0.42,0.42]){const leg=new THREE.Mesh(legGeo,wood);leg.position.set(x,0.72,z);group.add(leg);}
+    const beam=new THREE.Mesh(new THREE.BoxGeometry(1.8,0.16,0.16),dark);beam.position.set(0,1.48,-0.42);group.add(beam);const frontBeam=beam.clone();frontBeam.position.z=0.42;group.add(frontBeam);
+    const top=new THREE.Mesh(new THREE.BoxGeometry(1.9,0.13,1.05),wood);top.position.y=0.82;group.add(top);const rollerGeo=new THREE.CylinderGeometry(0.09,0.09,1.75,8);
+    for(const z of [-0.36,0.36]){const roller=new THREE.Mesh(rollerGeo,dark);roller.rotation.z=Math.PI/2;roller.position.set(0,1.18,z);group.add(roller);}
+    for(let i=0;i<13;i++){const strand=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,0.83,5),thread);strand.position.set(-0.55+i*0.092,1.22,0);group.add(strand);}
+    const cloth=new THREE.Mesh(new THREE.PlaneGeometry(1.02,0.62),new THREE.MeshStandardMaterial({color:0xb9a27d,side:THREE.DoubleSide,roughness:1}));cloth.position.set(0,1.18,0.03);group.add(cloth);
+    group.position.set(loomPosition.x,groundHeight(loomPosition.x,loomPosition.z),loomPosition.z);group.rotation.y=builtCabin.yaw;scene.add(group);
+  }
+  const clothingRecipes={tunic:{label:"Túnica de lã",icon:"🧥",ingredients:{fabric:2,wool:1},warmth:28},trousers:{label:"Calças forradas",icon:"👖",ingredients:{fabric:1,wool:1},warmth:18},boots:{label:"Botas de lã",icon:"🥾",ingredients:{fabric:1,wool:1},warmth:14}};
+  function renderLoomPanel(){
+    const warmth=(clothing.tunic?28:0)+(clothing.trousers?18:0)+(clothing.boots?14:0);loomStatus.textContent="Lã: "+inventory.wool+" · Tecido: "+inventory.fabric+" · Proteção equipada: "+warmth+"%";
+    const fabricButton='<div class="loom-action"><div><strong>🧶 Tecido de lã</strong><small>Transforma 2 lãs em 1 tecido · Você tem '+inventory.wool+' lã(s)</small></div><button type="button" data-loom-fabric="1" '+(inventory.wool>=2?"":"disabled")+'>TECER</button></div>';
+    const clothes=Object.entries(clothingRecipes).map(([type,recipe])=>{const enough=inventory[type]<1&&Object.entries(recipe.ingredients).every(([item,amount])=>inventory[item]>=amount),costs=Object.entries(recipe.ingredients).map(([item,amount])=>amount+" "+(item==="fabric"?"tecido":"lã")).join(" + "),equipped=clothing[type];return '<div class="loom-action"><div><strong>'+recipe.icon+' '+recipe.label+'</strong><small>Materiais: '+costs+' · Proteção: +'+recipe.warmth+'%</small><small>Estado: '+(equipped?"Equipado":inventory[type]>0?"Guardado":"Não fabricado")+'</small></div><button type="button" data-loom-craft="'+type+'" '+(enough?"":"disabled")+'>'+(inventory[type]>0?"FABRICADO":"FABRICAR")+'</button><button type="button" data-loom-equip="'+type+'" '+(inventory[type]<1?"disabled":"")+'>'+(equipped?"RETIRAR":"EQUIPAR")+'</button></div>';}).join("");
+    loomActions.innerHTML=fabricButton+clothes;
+  }
+  function openLoomPanel(){if(!canUseLoom)return;loomTitle.textContent="TEAR E ROUPAS";renderLoomPanel();loomPanel.classList.remove("hidden");}
+  function closeLoomPanel(){loomPanel.classList.add("hidden");}
+  function craftClothing(type){if(type==="fabric"){if(inventory.wool<2)return;inventory.wool-=2;inventory.fabric=Math.min(9999,inventory.fabric+1);showToast("Um tecido de lã foi produzido.");}else{const recipe=clothingRecipes[type];if(!recipe||inventory[type]>0||!Object.entries(recipe.ingredients).every(([item,amount])=>inventory[item]>=amount))return;for(const [item,amount] of Object.entries(recipe.ingredients))inventory[item]-=amount;inventory[type]=1;showToast(recipe.label+" fabricada!");}updateInventoryUI();renderLoomPanel();saveProgress(true);}
+  function toggleClothing(type){if(!clothingRecipes[type]||inventory[type]<1)return;clothing[type]=!clothing[type];updateInventoryUI();renderLoomPanel();saveProgress(true);showToast(clothing[type]?"Roupa equipada. Proteção contra o frio aumentada.":"Roupa retirada.");}
+  loomActions.addEventListener("click",event=>{const fabric=event.target.closest("button[data-loom-fabric]"),craft=event.target.closest("button[data-loom-craft]"),equip=event.target.closest("button[data-loom-equip]");if(fabric)craftClothing("fabric");if(craft)craftClothing(craft.dataset.loomCraft);if(equip)toggleClothing(equip.dataset.loomEquip);});
+  loomClose.addEventListener("click",closeLoomPanel);
   function placeCabin() {
     cabinModel=createCabinModel();
     cabinModel.position.set(builtCabin.x,groundHeight(builtCabin.x,builtCabin.z),builtCabin.z);
@@ -662,7 +698,7 @@ function startGame(THREE) {
     cabinBed=createCabinBed();
     cabinBed.position.set(builtCabin.x-1.15*Math.cos(builtCabin.yaw)+0.48*Math.sin(builtCabin.yaw),groundHeight(builtCabin.x,builtCabin.z),builtCabin.z+1.15*Math.sin(builtCabin.yaw)+0.48*Math.cos(builtCabin.yaw));
     cabinBed.rotation.y=builtCabin.yaw;scene.add(cabinBed);
-    createKitchenStation();
+    createKitchenStation();createLoomStation();
     createFarmPlots();
     createAnimalEnclosures();
   }
@@ -860,7 +896,7 @@ function startGame(THREE) {
     health: saved?.health ?? 100,
     hunger: saved?.hunger ?? 100,
     thirst: saved?.thirst ?? 100,
-    energy: saved?.energy ?? 100
+    energy: saved?.energy ?? 100, warmth: saved?.warmth ?? 100
   };
   const inventory = {
     branches: saved?.inventory?.branches ?? 0,
@@ -880,6 +916,7 @@ function startGame(THREE) {
     vegetableSoup: saved?.inventory?.vegetableSoup ?? 0,
     berryPorridge: saved?.inventory?.berryPorridge ?? 0
   };
+  const clothing = {tunic:saved?.clothing?.tunic===true,trousers:saved?.clothing?.trousers===true,boots:saved?.clothing?.boots===true};
   const tools = { axe: saved?.tools?.axe === true };
   const storage = { branches:saved?.storage?.branches??0, stones:saved?.storage?.stones??0, berries:saved?.storage?.berries??0, wood:saved?.storage?.wood??0 };
   let canUseCabinDoor=false, canUseStorageChest=false, canUseBed=false;
@@ -902,11 +939,14 @@ function startGame(THREE) {
       survivalUI[name].fill.style.width = value + "%";
       survivalUI[name].fill.parentElement.parentElement.classList.toggle("low", value < 25);
     }
+    const warmth=THREE.MathUtils.clamp(survival.warmth,0,100);
+    survivalUI.warmth.value.textContent=Math.round(warmth)+"%";survivalUI.warmth.fill.style.width=warmth+"%";survivalUI.warmth.fill.parentElement.parentElement.classList.toggle("low",warmth<25);
     let label = "ESTÁVEL";
     let mood = "";
     if (survival.health <= 0) { label = "DESMAIADO"; mood = "danger"; }
     else if (survival.health < 25 || survival.hunger < 12 || survival.thirst < 12) { label = "CRÍTICO"; mood = "danger"; }
-    else if (survival.hunger < 25 || survival.thirst < 25 || survival.energy < 20) { label = "ATENÇÃO"; mood = "warning"; }
+    else if (survival.warmth < 12) { label = "FRIO INTENSO"; mood = "danger"; }
+    else if (survival.hunger < 25 || survival.thirst < 25 || survival.energy < 20 || survival.warmth < 28) { label = "ATENÇÃO"; mood = "warning"; }
     survivalUI.status.textContent = label;
     survivalUI.status.className = mood;
   }
@@ -923,6 +963,7 @@ function startGame(THREE) {
     for(const button of inventoryPanel.querySelectorAll("[data-eat-meal]")){
       button.disabled=inventory[button.dataset.eatMeal]<1||survival.hunger>=99.5;
     }
+    for(const status of inventoryPanel.querySelectorAll("[data-clothing-status]"))status.textContent=clothing[status.dataset.clothingStatus]?"Equipado":"Guardado";
     axeCountUI.textContent = tools.axe ? "1" : "0";
     const canEatBerry = inventory.berries > 0 && survival.hunger < 99.5;
     eatBerryButton.disabled = !canEatBerry;
@@ -1071,7 +1112,8 @@ function startGame(THREE) {
         health: safeStat(saved.health),
         hunger: safeStat(saved.hunger),
         thirst: safeStat(saved.thirst),
-        energy: safeStat(saved.energy),
+        energy: safeStat(saved.energy), warmth: safeStat(saved.warmth),
+        clothing:{tunic:saved.clothing?.tunic===true,trousers:saved.clothing?.trousers===true,boots:saved.clothing?.boots===true},
         inventory: {
           branches: safeCount(saved.inventory?.branches),
           stones: safeCount(saved.inventory?.stones),
@@ -1130,7 +1172,7 @@ function startGame(THREE) {
     try {
       localStorage.setItem("legado-do-vale-prototipo", JSON.stringify({
         x: player.x, z: player.z, yaw: player.yaw, pitch: player.pitch,
-        health: survival.health, hunger: survival.hunger, thirst: survival.thirst, energy: survival.energy,
+        health: survival.health, hunger: survival.hunger, thirst: survival.thirst, energy: survival.energy, warmth: survival.warmth, clothing:{...clothing},
         inventory: { ...inventory },
         farmPlots: farmPlots.map(({id,crop,plantedAt})=>({id,crop,plantedAt})),
         animalCare:{chickens:{...animalCare.chickens},sheep:{...animalCare.sheep}},
@@ -1242,6 +1284,7 @@ function startGame(THREE) {
     if (!event.repeat && key === "r" && buildMode) rotateBuilding();
     if (!event.repeat && key === "escape") {
       if(buildMode)stopBuilding();
+      else if(!loomPanel.classList.contains("hidden"))closeLoomPanel();
       else if(!kitchenPanel.classList.contains("hidden"))closeKitchenPanel();
       else if(!animalPanel.classList.contains("hidden"))closeAnimalPanel();
       else if(!farmPanel.classList.contains("hidden"))closeFarmPanel();
@@ -1273,6 +1316,7 @@ function startGame(THREE) {
     const benchDz = z - workbenchPosition.z;
     if (benchDx * benchDx + benchDz * benchDz < 1.45) return true;
     if (kitchenPosition) { const dx=x-kitchenPosition.x,dz=z-kitchenPosition.z; if(dx*dx+dz*dz<1.15)return true; }
+    if (loomPosition) { const dx=x-loomPosition.x,dz=z-loomPosition.z; if(dx*dx+dz*dz<1.35)return true; }
     if (builtCabin) {
       const dx=x-builtCabin.x,dz=z-builtCabin.z;
       const lx=dx*Math.cos(builtCabin.yaw)-dz*Math.sin(builtCabin.yaw),lz=dx*Math.sin(builtCabin.yaw)+dz*Math.cos(builtCabin.yaw);
@@ -1314,7 +1358,7 @@ function startGame(THREE) {
     canDrinkWater = !match && bankDistance >= 8.2 && bankDistance <= 12.4 && survival.thirst < 99.5;
     const benchDistance = Math.hypot(workbenchPosition.x - player.x, workbenchPosition.z - player.z);
     canUseWorkbench = !match && !canDrinkWater && benchDistance <= 5.2;
-    canUseCabinDoor=false; canUseStorageChest=false; canUseBed=false;canUseFarmPlot=false;currentFarmPlot=null;canUseAnimalPen=false;currentAnimalType=null;canUseKitchen=false;
+    canUseCabinDoor=false; canUseStorageChest=false; canUseBed=false;canUseFarmPlot=false;currentFarmPlot=null;canUseAnimalPen=false;currentAnimalType=null;canUseKitchen=false;canUseLoom=false;
     if(builtCabin && !match && !canDrinkWater && !canUseWorkbench){
       const dx=player.x-builtCabin.x,dz=player.z-builtCabin.z;
       const lx=dx*Math.cos(builtCabin.yaw)-dz*Math.sin(builtCabin.yaw);
@@ -1336,6 +1380,7 @@ function startGame(THREE) {
     if(builtCabin&&!match&&!canDrinkWater&&!canUseWorkbench&&!canUseFarmPlot&&!canUseAnimalPen&&!canUseCabinDoor&&!canUseBed&&!canUseStorageChest&&kitchenPosition){
       canUseKitchen=Math.hypot(player.x-kitchenPosition.x,player.z-kitchenPosition.z)<=4.6;
     }
+    if(builtCabin&&!match&&!canDrinkWater&&!canUseWorkbench&&!canUseFarmPlot&&!canUseAnimalPen&&!canUseKitchen&&!canUseCabinDoor&&!canUseBed&&!canUseStorageChest&&loomPosition)canUseLoom=Math.hypot(player.x-loomPosition.x,player.z-loomPosition.z)<=3.4;
     let treeMatch = null;
     let bestTreeDistance = Infinity;
     for (let i = 0; i < treeSpots.length; i++) {
@@ -1350,10 +1395,10 @@ function startGame(THREE) {
       treeMatch = { tree, index: i };
       bestTreeDistance = distance;
     }
-    currentTreeTarget = !match && !canDrinkWater && !canUseWorkbench && !canUseFarmPlot && !canUseAnimalPen && !canUseKitchen ? treeMatch : null;
+    currentTreeTarget = !match && !canDrinkWater && !canUseWorkbench && !canUseFarmPlot && !canUseAnimalPen && !canUseKitchen && !canUseLoom ? treeMatch : null;
     canChopTree = Boolean(currentTreeTarget && tools.axe);
     currentResourceTarget = match;
-    const hasInteraction = Boolean(match) || canDrinkWater || canUseWorkbench || canUseFarmPlot || canUseAnimalPen || canUseKitchen || canUseCabinDoor || canUseBed || canUseStorageChest || Boolean(currentTreeTarget);
+    const hasInteraction = Boolean(match) || canDrinkWater || canUseWorkbench || canUseFarmPlot || canUseAnimalPen || canUseKitchen || canUseLoom || canUseCabinDoor || canUseBed || canUseStorageChest || Boolean(currentTreeTarget);
     interactionPrompt.classList.toggle("hidden", !hasInteraction);
     collectButton.classList.toggle("hidden", !hasInteraction || !isMobile);
 
@@ -1382,6 +1427,8 @@ function startGame(THREE) {
       interactionName.textContent = "Fogueira e panela";
       interactionVerb.textContent = "preparar alimentos";
       collectButton.textContent = "USAR COZINHA";
+    } else if (canUseLoom) {
+      interactionType.textContent = "OFÍCIO ARTESANAL";interactionName.textContent = "Tear de lã";interactionVerb.textContent = "tecer e fabricar roupas";collectButton.textContent = "USAR TEAR";
     } else if (canUseCabinDoor) {
       interactionType.textContent = "SUA CABANA";
       interactionName.textContent = cabinDoorOpen ? "Porta aberta" : "Porta fechada";
@@ -1612,7 +1659,7 @@ function startGame(THREE) {
   sleepPanel.addEventListener("click",event=>{const button=event.target.closest("button[data-sleep-hours]");if(button)sleepFor(Number(button.dataset.sleepHours));});
   sleepClose.addEventListener("click",closeSleepPanel);
   function performCurrentInteraction(){
-    if(!chestPanel.classList.contains("hidden")||!sleepPanel.classList.contains("hidden")||!farmPanel.classList.contains("hidden")||!animalPanel.classList.contains("hidden")||!kitchenPanel.classList.contains("hidden"))return;
+    if(!chestPanel.classList.contains("hidden")||!sleepPanel.classList.contains("hidden")||!farmPanel.classList.contains("hidden")||!animalPanel.classList.contains("hidden")||!kitchenPanel.classList.contains("hidden")||!loomPanel.classList.contains("hidden"))return;
     if(buildMode){confirmBuilding();return;}
     if(currentResourceTarget)collectCurrentResource();
     else if(canDrinkWater)drinkWater();
@@ -1620,6 +1667,7 @@ function startGame(THREE) {
     else if(canUseFarmPlot)openFarmPanel();
     else if(canUseAnimalPen)openAnimalPanel();
     else if(canUseKitchen)openKitchenPanel();
+    else if(canUseLoom)openLoomPanel();
     else if(canUseCabinDoor)toggleCabinDoor();
     else if(canUseBed)openSleepPanel();
     else if(canUseStorageChest)openChest();
@@ -1652,7 +1700,7 @@ function startGame(THREE) {
     const cos = Math.cos(player.yaw);
     const moveX = (-sin * forward + cos * strafe) * speed * delta;
     const moveZ = (-cos * forward - sin * strafe) * speed * delta;
-    if (sleepPanel.classList.contains("hidden") && farmPanel.classList.contains("hidden") && animalPanel.classList.contains("hidden") && kitchenPanel.classList.contains("hidden") && (moveX || moveZ)) {
+    if (sleepPanel.classList.contains("hidden") && farmPanel.classList.contains("hidden") && animalPanel.classList.contains("hidden") && kitchenPanel.classList.contains("hidden") && loomPanel.classList.contains("hidden") && (moveX || moveZ)) {
       const nextX = player.x + moveX;
       const nextZ = player.z + moveZ;
       if (!isBlocked(nextX, player.z)) player.x = nextX;

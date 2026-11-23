@@ -167,6 +167,18 @@ Esta etapa inclui coleta, mochila, alimentação e hidratação; fabricação e 
 - Cada preparo consome os ingredientes e uma madeira, e adiciona uma refeição à mochila.
 - As refeições preparadas podem ser consumidas na mochila; quantidades e ingredientes continuam salvos localmente.
 
+## Fase 6 — Vestuário e proteção contra o frio
+
+- Ao construir a cabana, um tear artesanal aparece próximo à cozinha.
+- Aproxime-se e pressione E no PC ou use o botão de ação no celular para abrir o tear.
+- Transforme 2 lãs em 1 tecido.
+- Túnica: 2 tecidos + 1 lã; proteção térmica de 28%.
+- Calças: 1 tecido + 1 lã; proteção térmica de 18%.
+- Botas: 1 tecido + 1 lã; proteção térmica de 14%.
+- Fabrique cada peça uma vez, equipe ou retire pelo painel do tear e acompanhe os itens na mochila.
+- O frio atua durante a noite (18h às 7h). O calor corporal recupera durante o dia ou dentro da cabana; roupas equipadas reduzem a perda de calor.
+- Calor corporal, roupas, equipamentos e materiais são salvos automaticamente.
+
 ## Interface da mochila
 
 - A mochila organiza os itens em recursos e ferramentas, sementes, alimentos e materiais especiais.
