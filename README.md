@@ -57,3 +57,14 @@ Os indicadores começam em 100%. Nesta etapa ainda não há itens para comer, be
 3. Iniciar sistemas de sobrevivência e inventário.
 4. Construção, agricultura, produção, moradores e dinastia.
 5. Substituir gradualmente os modelos provisórios por modelos 3D melhores.
+
+## Fase 2 — Coleta e inventário (protótipo)
+
+- Três pontos de coleta na clareira inicial: galhos, pedras e frutas silvestres.
+- Mire no recurso com a mira central e pressione E no PC.
+- No celular, o botão RECOLHER aparece quando um recurso está ao alcance e no centro da mira.
+- A mochila abre com I no PC ou pelo botão MOCHILA.
+- Quantidades recolhidas são guardadas localmente junto dos atributos e posição.
+- Os pontos de coleta já recolhidos continuam recolhidos ao recarregar o jogo.
+
+Esta versão é uma primeira demonstração de coleta e inventário; não inclui fabricação, consumo de alimentos ou construção.

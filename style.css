@@ -162,3 +162,97 @@ kbd { min-width: 17px; padding: 4px 5px; border: 1px solid rgba(241,232,210,.28)
   .sprint-button.pressed { border-color: var(--gold); color: #fff1ce; background: rgba(104,76,38,.82); transform: scale(.97); }
   .look-label { bottom: max(177px, calc(env(safe-area-inset-bottom) + 168px)); }
 }
+
+/* Coleta e mochila — continuação da Fase 2 */
+.inventory-toggle {
+  position: absolute;
+  z-index: 5;
+  top: 270px;
+  right: 24px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 12px;
+  border: 1px solid rgba(241,232,210,.3);
+  border-radius: 7px;
+  color: var(--cream);
+  background: rgba(22,34,25,.78);
+  box-shadow: 0 4px 16px rgba(0,0,0,.15);
+  font: inherit;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .13em;
+  cursor: pointer;
+}
+.inventory-toggle kbd { font-size: 8px; }
+.inventory-panel {
+  position: absolute;
+  z-index: 8;
+  top: 315px;
+  right: 24px;
+  width: 260px;
+  padding: 15px;
+  border: 1px solid rgba(212,177,107,.48);
+  border-radius: 11px;
+  color: var(--cream);
+  background: rgba(22,34,25,.94);
+  box-shadow: 0 14px 38px rgba(0,0,0,.32);
+  backdrop-filter: blur(12px);
+}
+.inventory-panel.hidden, .interaction-prompt.hidden, .collect-button.hidden, .game-toast.hidden { display: none !important; }
+.inventory-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 13px; }
+.inventory-header div { display: grid; gap: 4px; }
+.inventory-header strong { font-family: Georgia,serif; font-size: 20px; font-weight: 500; letter-spacing: .06em; }
+.inventory-close {
+  width: 30px; height: 30px; border: 1px solid rgba(241,232,210,.22); border-radius: 7px;
+  color: var(--cream); background: rgba(255,255,255,.06); font-size: 22px; cursor: pointer;
+}
+.inventory-items { display: grid; gap: 7px; }
+.inventory-item {
+  display: grid; grid-template-columns: 28px 1fr auto; align-items: center; gap: 9px;
+  min-height: 42px; padding: 7px 9px; border: 1px solid rgba(241,232,210,.12);
+  border-radius: 7px; background: rgba(255,255,255,.045);
+}
+.item-icon { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 6px; font-size: 15px; background: rgba(255,255,255,.08); }
+.item-branch { color: #d8b17a; }
+.item-stone { color: #c6c7b9; }
+.item-berry { color: #d87b88; }
+.item-name { color: rgba(241,232,210,.84); font-size: 11px; }
+.inventory-item strong { font-size: 13px; font-variant-numeric: tabular-nums; }
+.inventory-note { margin: 12px 2px 0; color: var(--muted); font-size: 9px; line-height: 1.5; }
+.interaction-prompt {
+  position: absolute; z-index: 4; left: 50%; bottom: 83px; transform: translateX(-50%);
+  display: grid; justify-items: center; gap: 5px; min-width: 200px; padding: 10px 16px;
+  border: 1px solid rgba(241,232,210,.25); border-radius: 9px; color: var(--cream);
+  background: rgba(22,34,25,.82); box-shadow: 0 8px 20px rgba(0,0,0,.2); pointer-events: none;
+  backdrop-filter: blur(8px);
+}
+.interaction-prompt span { color: var(--gold); font-size: 7px; font-weight: 900; letter-spacing: .18em; }
+.interaction-prompt strong { font-family: Georgia,serif; font-size: 16px; font-weight: 500; }
+.interaction-prompt small { color: var(--muted); font-size: 9px; }
+.interaction-prompt kbd { padding: 2px 5px; }
+.collect-button {
+  position: absolute; z-index: 6; right: 20px; bottom: 174px; display: none;
+  min-width: 94px; height: 46px; padding: 0 12px; border: 1px solid rgba(241,232,210,.6);
+  border-radius: 9px; color: var(--cream); background: rgba(46,73,49,.88);
+  box-shadow: 0 4px 16px rgba(0,0,0,.24); font: inherit; font-size: 9px; font-weight: 900;
+  letter-spacing: .12em; touch-action: none;
+}
+.game-toast {
+  position: absolute; z-index: 9; left: 50%; bottom: 116px; transform: translateX(-50%);
+  padding: 9px 14px; border: 1px solid rgba(212,177,107,.55); border-radius: 7px;
+  color: var(--cream); background: rgba(22,34,25,.9); box-shadow: 0 6px 18px rgba(0,0,0,.24);
+  font-size: 10px; font-weight: 800; letter-spacing: .04em; pointer-events: none; white-space: nowrap;
+}
+@media (max-width: 700px), (pointer: coarse) {
+  .inventory-toggle { top: 151px; right: 13px; padding: 8px 9px; font-size: 8px; }
+  .inventory-toggle kbd { display: none; }
+  .inventory-panel {
+    top: 50%; left: 50%; right: auto; width: min(290px, calc(100vw - 36px));
+    max-height: 55vh; overflow-y: auto; transform: translate(-50%,-50%);
+  }
+  .interaction-prompt { bottom: 226px; min-width: 174px; padding: 8px 12px; }
+  .interaction-prompt small { display: none; }
+  .collect-button:not(.hidden) { display: grid; place-items: center; }
+  .game-toast { bottom: 232px; max-width: calc(100vw - 30px); font-size: 9px; }
+}

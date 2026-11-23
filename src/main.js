@@ -7,6 +7,19 @@ const joystickWrap = document.getElementById("joystick-wrap");
 const joystickBase = document.getElementById("joystick-base");
 const joystickThumb = document.getElementById("joystick-thumb");
 const sprintButton = document.getElementById("sprint-button");
+const inventoryToggle = document.getElementById("inventory-toggle");
+const inventoryPanel = document.getElementById("inventory-panel");
+const inventoryClose = document.getElementById("inventory-close");
+const collectButton = document.getElementById("collect-button");
+const interactionPrompt = document.getElementById("interaction-prompt");
+const interactionName = document.getElementById("interaction-name");
+const gameToast = document.getElementById("game-toast");
+const inventoryUI = {
+  branches: document.getElementById("branches-count"),
+  stones: document.getElementById("stones-count"),
+  berries: document.getElementById("berries-count")
+};
+let toastTimer = 0;
 const survivalUI = {
   status: document.getElementById("survival-status"),
   health: { value: document.getElementById("health-value"), fill: document.getElementById("health-fill") },
@@ -136,6 +149,62 @@ function startGame(THREE) {
     seed = (seed * 16807) % 2147483647;
     return (seed - 1) / 2147483646;
   }
+  const collectibleNodes = [];
+  const collectibleMeshes = [];
+  function addResourceNode(id, itemKey, label, amount, x, z, build) {
+    if (collectedResources.has(id)) return;
+    const root = new THREE.Group();
+    root.position.set(x, groundHeight(x, z), z);
+    build(root);
+    scene.add(root);
+    const node = { id, itemKey, label, amount, root, x, z };
+    root.traverse((object) => {
+      if (object.isMesh) {
+        object.userData.resourceNode = node;
+        collectibleMeshes.push(object);
+      }
+    });
+    collectibleNodes.push(node);
+  }
+
+  // Pequenos recursos iniciais, posicionados na clareira em frente ao jogador.
+  addResourceNode("branch-pile-01", "branches", "Galhos", 3, -2.7, 29.5, (root) => {
+    const material = new THREE.MeshStandardMaterial({ color: 0x795638, roughness: 1 });
+    const twig = new THREE.CylinderGeometry(0.075, 0.095, 1.15, 5);
+    [[0,0.12,0,0.12],[0.12,0.13,0.2,-0.28],[-0.13,0.15,-0.18,0.38]].forEach(([x,y,z,rz]) => {
+      const mesh = new THREE.Mesh(twig, material);
+      mesh.position.set(x,y,z);
+      mesh.rotation.set(0,0,Math.PI/2+rz);
+      root.add(mesh);
+    });
+  });
+  addResourceNode("stone-cluster-01", "stones", "Pedras", 4, 2.9, 27.8, (root) => {
+    const material = new THREE.MeshStandardMaterial({ color: 0x85877c, roughness: 1, flatShading: true });
+    const geometry = new THREE.DodecahedronGeometry(0.34, 0);
+    [[-0.3,0.23,0],[0.2,0.2,0.12],[0.38,0.18,-0.32],[-0.08,0.16,-0.42]].forEach(([x,y,z],index) => {
+      const mesh = new THREE.Mesh(geometry,material);
+      mesh.position.set(x,y,z);
+      mesh.scale.set(1+index*0.05,0.8+index*0.04,0.9);
+      root.add(mesh);
+    });
+  });
+  addResourceNode("berry-bush-01", "berries", "Frutas silvestres", 3, 0.4, 21.7, (root) => {
+    const leaf = new THREE.MeshStandardMaterial({ color: 0x376842, roughness: 1, flatShading: true });
+    const berry = new THREE.MeshStandardMaterial({ color: 0x9f3342, roughness: 0.75 });
+    const bushGeometry = new THREE.IcosahedronGeometry(0.65, 0);
+    [[-0.35,0.52,0],[0.25,0.48,0.12],[0,0.72,-0.32]].forEach(([x,y,z]) => {
+      const mesh = new THREE.Mesh(bushGeometry,leaf);
+      mesh.position.set(x,y,z);
+      mesh.scale.set(1.05,0.9,0.95);
+      root.add(mesh);
+    });
+    [[-0.45,0.68,0.12],[0.12,0.92,0.18],[0.42,0.62,-0.2],[-0.06,0.54,-0.47]].forEach(([x,y,z]) => {
+      const mesh = new THREE.Mesh(new THREE.SphereGeometry(0.11,8,6),berry);
+      mesh.position.set(x,y,z);
+      root.add(mesh);
+    });
+  });
+
   const treeSpots = [];
   for (let i = 0; i < 470; i++) {
     const x = (random() - 0.5) * 198;
@@ -222,6 +291,15 @@ function startGame(THREE) {
     thirst: saved?.thirst ?? 100,
     energy: saved?.energy ?? 100
   };
+  const inventory = {
+    branches: saved?.inventory?.branches ?? 0,
+    stones: saved?.inventory?.stones ?? 0,
+    berries: saved?.inventory?.berries ?? 0
+  };
+  const collectedResources = new Set(saved?.collectedResources ?? []);
+  let currentResourceTarget = null;
+  let interactionScanTimer = 0;
+  let toastTimeout = 0;
   let survivalUiTimer = 0;
   function updateSurvivalUI(force = false) {
     if (!force && survivalUiTimer < 0.2) return;
@@ -241,6 +319,25 @@ function startGame(THREE) {
     survivalUI.status.className = mood;
   }
   updateSurvivalUI(true);
+  function updateInventoryUI() {
+    for (const key of ["branches", "stones", "berries"]) {
+      inventoryUI[key].textContent = String(inventory[key]);
+    }
+  }
+  function showToast(message) {
+    gameToast.textContent = message;
+    gameToast.classList.remove("hidden");
+    window.clearTimeout(toastTimeout);
+    toastTimeout = window.setTimeout(() => gameToast.classList.add("hidden"), 2100);
+  }
+  function toggleInventory(force) {
+    const open = typeof force === "boolean" ? force : inventoryPanel.classList.contains("hidden");
+    inventoryPanel.classList.toggle("hidden", !open);
+    inventoryToggle.setAttribute("aria-expanded", String(open));
+  }
+  inventoryToggle.addEventListener("click", () => toggleInventory());
+  inventoryClose.addEventListener("click", () => toggleInventory(false));
+  updateInventoryUI();
   const playerHeight = 1.72;
   const armGroup = new THREE.Group();
   const sleeveMaterial = new THREE.MeshStandardMaterial({ color: 0x756044, roughness: 1 });
@@ -275,6 +372,7 @@ function startGame(THREE) {
       if (!saved || !Number.isFinite(saved.x) || !Number.isFinite(saved.z)) return null;
       if (Math.abs(saved.x) > 104 || Math.abs(saved.z) > 104) return null;
       const safeStat = (value) => Number.isFinite(value) ? THREE.MathUtils.clamp(value, 0, 100) : 100;
+      const safeCount = (value) => Number.isSafeInteger(value) ? THREE.MathUtils.clamp(value, 0, 9999) : 0;
       return {
         x: saved.x,
         z: saved.z,
@@ -283,7 +381,15 @@ function startGame(THREE) {
         health: safeStat(saved.health),
         hunger: safeStat(saved.hunger),
         thirst: safeStat(saved.thirst),
-        energy: safeStat(saved.energy)
+        energy: safeStat(saved.energy),
+        inventory: {
+          branches: safeCount(saved.inventory?.branches),
+          stones: safeCount(saved.inventory?.stones),
+          berries: safeCount(saved.inventory?.berries)
+        },
+        collectedResources: Array.isArray(saved.collectedResources)
+          ? saved.collectedResources.filter((id) => ["branch-pile-01", "stone-cluster-01", "berry-bush-01"].includes(id))
+          : []
       };
     } catch {
       return null;
@@ -297,7 +403,9 @@ function startGame(THREE) {
     try {
       localStorage.setItem("legado-do-vale-prototipo", JSON.stringify({
         x: player.x, z: player.z, yaw: player.yaw, pitch: player.pitch,
-        health: survival.health, hunger: survival.hunger, thirst: survival.thirst, energy: survival.energy
+        health: survival.health, hunger: survival.hunger, thirst: survival.thirst, energy: survival.energy,
+        inventory: { ...inventory },
+        collectedResources: [...collectedResources]
       }));
     } catch { /* O jogo continua mesmo sem armazenamento disponível. */ }
   }
@@ -391,7 +499,9 @@ function startGame(THREE) {
 
   window.addEventListener("keydown", (event) => {
     const key = event.key.toLowerCase();
-    if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", " "].includes(key)) event.preventDefault();
+    if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", " ", "e", "i"].includes(key)) event.preventDefault();
+    if (!event.repeat && key === "e") collectCurrentResource();
+    if (!event.repeat && key === "i") toggleInventory();
     keys.add(key);
   });
   window.addEventListener("keyup", (event) => keys.delete(event.key.toLowerCase()));
@@ -412,6 +522,44 @@ function startGame(THREE) {
     }
     return false;
   }
+
+  const resourceRaycaster = new THREE.Raycaster();
+  const screenCenter = new THREE.Vector2(0, 0);
+  function updateResourceTarget() {
+    camera.updateMatrixWorld();
+    resourceRaycaster.setFromCamera(screenCenter, camera);
+    const hits = resourceRaycaster.intersectObjects(collectibleMeshes, false);
+    let match = null;
+    for (const hit of hits) {
+      const node = hit.object.userData.resourceNode;
+      if (!node || collectedResources.has(node.id)) continue;
+      const distance = Math.hypot(player.x - node.x, player.z - node.z);
+      if (distance <= 4.2) { match = node; break; }
+    }
+    currentResourceTarget = match;
+    interactionPrompt.classList.toggle("hidden", !match);
+    collectButton.classList.toggle("hidden", !match || !isMobile);
+    if (match) interactionName.textContent = match.label + " · " + match.amount;
+  }
+  function collectCurrentResource() {
+    const node = currentResourceTarget;
+    if (!node || collectedResources.has(node.id)) return;
+    inventory[node.itemKey] = Math.min(9999, inventory[node.itemKey] + node.amount);
+    collectedResources.add(node.id);
+    scene.remove(node.root);
+    for (let i = collectibleMeshes.length - 1; i >= 0; i--) {
+      if (collectibleMeshes[i].userData.resourceNode === node) collectibleMeshes.splice(i, 1);
+    }
+    const nodeIndex = collectibleNodes.indexOf(node);
+    if (nodeIndex >= 0) collectibleNodes.splice(nodeIndex, 1);
+    currentResourceTarget = null;
+    interactionPrompt.classList.add("hidden");
+    collectButton.classList.add("hidden");
+    updateInventoryUI();
+    saveProgress(true);
+    showToast("+" + node.amount + " · " + node.label + " recolhidos");
+  }
+  collectButton.addEventListener("click", collectCurrentResource);
 
   const clock = new THREE.Clock();
   function animate() {
@@ -460,6 +608,11 @@ function startGame(THREE) {
     updateSurvivalUI();
     saveProgress();
     applyCamera();
+    interactionScanTimer += delta;
+    if (interactionScanTimer >= 0.12) {
+      interactionScanTimer = 0;
+      updateResourceTarget();
+    }
     renderer.render(scene, camera);
   }
   animate();

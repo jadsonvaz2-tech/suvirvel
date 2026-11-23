@@ -48,6 +48,26 @@
         </div>
       </div>
     </section>
+    <button type="button" id="inventory-toggle" class="inventory-toggle" aria-expanded="false">MOCHILA <kbd>I</kbd></button>
+    <section id="inventory-panel" class="inventory-panel hidden" aria-label="Mochila do personagem">
+      <header class="inventory-header">
+        <div><span class="eyebrow">PERTENCES</span><strong>MOCHILA</strong></div>
+        <button type="button" id="inventory-close" class="inventory-close" aria-label="Fechar mochila">×</button>
+      </header>
+      <div class="inventory-items">
+        <div class="inventory-item"><span class="item-icon item-branch">⌁</span><span class="item-name">Galhos</span><strong id="branches-count">0</strong></div>
+        <div class="inventory-item"><span class="item-icon item-stone">◆</span><span class="item-name">Pedras</span><strong id="stones-count">0</strong></div>
+        <div class="inventory-item"><span class="item-icon item-berry">●</span><span class="item-name">Frutas silvestres</span><strong id="berries-count">0</strong></div>
+      </div>
+      <p class="inventory-note">Os recursos recolhidos ficam guardados neste dispositivo.</p>
+    </section>
+    <section id="interaction-prompt" class="interaction-prompt hidden" aria-live="polite">
+      <span>RECURSO AO ALCANCE</span>
+      <strong id="interaction-name">Galhos</strong>
+      <small>Pressione <kbd>E</kbd> para recolher</small>
+    </section>
+    <button type="button" id="collect-button" class="collect-button hidden">RECOLHER</button>
+    <div id="game-toast" class="game-toast hidden" role="status" aria-live="polite"></div>
     <section class="location-card">
       <span class="eyebrow">REGIÃO INICIAL</span>
       <strong>Vale Central</strong>
