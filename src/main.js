@@ -446,11 +446,9 @@ function startGame(THREE) {
     survival.thirst = Math.max(0, survival.thirst - 0.14 * delta);
     const isMoving = hasMoveInput;
     if (isMoving && running) {
-      survival.energy = Math.max(0, survival.energy - 14 * delta);
-    } else if (isMoving) {
-      survival.energy = Math.max(0, survival.energy - 0.45 * delta);
-    } else {
-      survival.energy = Math.min(100, survival.energy + 9 * delta);
+      survival.energy = Math.max(0, survival.energy - 6.5 * delta);
+    } else if (!isMoving) {
+      survival.energy = Math.min(100, survival.energy + 7.5 * delta);
     }
 
     if (survival.hunger <= 0 || survival.thirst <= 0) {
