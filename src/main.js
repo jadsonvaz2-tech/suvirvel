@@ -255,7 +255,7 @@ function startGame(THREE) {
   const recruitedVillagers=Array.isArray(saved?.recruitedVillagers)?saved.recruitedVillagers.slice(0,40):[];
   const villagerRelationships=Array.isArray(saved?.villagerRelationships)?saved.villagerRelationships.filter(item=>item&&typeof item.a==="string"&&typeof item.b==="string"&&item.a!==item.b&&Number.isFinite(item.affinity)&&["amizade","namoro","casados"].includes(item.status)).slice(0,40).map(item=>({a:item.a,b:item.b,affinity:THREE.MathUtils.clamp(item.affinity,0,100),status:item.status,weddingDay:Number.isSafeInteger(item.weddingDay)?Math.max(1,item.weddingDay):null})):[];
   const familyPregnancies=Array.isArray(saved?.familyPregnancies)?saved.familyPregnancies.filter(item=>item&&typeof item.a==="string"&&typeof item.b==="string"&&typeof item.houseId==="string"&&Number.isSafeInteger(item.startDay)&&Number.isSafeInteger(item.dueDay)&&item.dueDay>item.startDay).slice(0,40).map(item=>({a:item.a,b:item.b,houseId:item.houseId,startDay:Math.max(1,item.startDay),dueDay:Math.max(1,item.dueDay),childName:typeof item.childName==="string"?item.childName.slice(0,24):""})):[];
-  const familyChildren=Array.isArray(saved?.familyChildren)?saved.familyChildren.filter(item=>item&&typeof item.id==="string"&&typeof item.name==="string"&&typeof item.a==="string"&&typeof item.b==="string"&&typeof item.houseId==="string"&&Number.isSafeInteger(item.birthDay)).slice(0,80).map(item=>({id:item.id.slice(0,100),name:item.name.slice(0,24),a:item.a,b:item.b,houseId:item.houseId,birthDay:Math.max(1,item.birthDay),gender:item.gender==="F"?"F":"M"})):[];
+  const familyChildren=Array.isArray(saved?.familyChildren)?saved.familyChildren.filter(item=>item&&typeof item.id==="string"&&typeof item.name==="string"&&typeof item.a==="string"&&typeof item.b==="string"&&typeof item.houseId==="string"&&Number.isSafeInteger(item.birthDay)).slice(0,80).map(item=>({id:item.id.slice(0,100),name:item.name.slice(0,24),a:item.a,b:item.b,houseId:item.houseId,birthDay:Math.max(1,item.birthDay),gender:item.gender==="F"?"F":"M",adultProfession:typeof item.adultProfession==="string"&&villagerDefinitions.some(def=>def.role===item.adultProfession)?item.adultProfession:""})):[];
   let nextChildName=typeof saved?.nextChildName==="string"?saved.nextChildName.slice(0,24):"";
   const villageStock=Object.fromEntries(["wheat","carrots","cabbages","wood","branches","stones","wool","rawMeat","hide","trout","carp","minnow","roastedMeat","vegetableSoup","bread","omelet","berryPorridge","grilledTrout","grilledCarp","grilledMinnow","fabric","craftedGoods","tools"].map(key=>[key,Number.isSafeInteger(saved?.villageStock?.[key])?Math.max(0,Math.min(999999,saved.villageStock[key])):0]));
   let villageProductionLastMinute=Number.isSafeInteger(saved?.villageProductionLastMinute)?Math.max(0,saved.villageProductionLastMinute):totalGameMinutes();
@@ -595,6 +595,28 @@ function startGame(THREE) {
     const ageDays=Math.max(0,day-child.birthDay),ageYears=Math.floor(ageDays/30);
     return {ageDays,ageYears,stage:ageYears<=2?"Bebê":ageYears<=6?"Criança":ageYears<=17?"Jovem":"Adulto"};
   }
+  function createFamilyVillagerDefinition(child,profession="Agricultora"){
+    return {id:child.id,name:child.name,role:villagerDefinitions.some(def=>def.role===profession)?profession:"Agricultora",gender:child.gender==="F"?"F":"M",body:child.gender==="F"?0x8d596b:0x536d82,accent:child.gender==="F"?0xd7b18b:0xc5a16d};
+  }
+  function integrateAdultFamilyChildren(){
+    let changed=false;
+    for(const child of familyChildren){
+      if(childDevelopment(child).stage!=="Adulto"||villagers.some(item=>item.id===child.id))continue;
+      const house=villageHouses.find(item=>item.id===child.houseId)||villageHouses.find(item=>item.id===villagers.find(v=>v.id===child.a)?.houseId);
+      if(!house)continue;
+      const profession=child.adultProfession||"Agricultora";
+      child.adultProfession=profession;
+      const definition=createFamilyVillagerDefinition(child,profession);
+      const resident=createVillager(definition,house,0,profession);
+      villagers.push(resident);
+      recruitedVillagers.push({id:child.id,houseId:house.id,profession});
+      const actorIndex=familyActors.findIndex(actor=>actor.child.id===child.id);
+      if(actorIndex>=0){const actor=familyActors[actorIndex];if(actor.group)scene.remove(actor.group);familyActors.splice(actorIndex,1);}
+      showToast(child.name+" atingiu a idade adulta e agora faz parte dos trabalhadores da vila como "+profession+".");
+      changed=true;
+    }
+    return changed;
+  }
   function buildFamilyActorVisual(actor){
     if(actor.group)scene.remove(actor.group);
     const child=actor.child,stage=actor.stage;
@@ -630,7 +652,7 @@ function startGame(THREE) {
     actor.group=root;actor.arms=arms;actor.legs=legs;
   }
   function createFamilyActor(child){
-    if(familyActors.some(actor=>actor.child.id===child.id))return;
+    if(villagers.some(item=>item.id===child.id)||familyActors.some(actor=>actor.child.id===child.id))return;
     const parent=villagers.find(item=>item.id===child.a)||villagers.find(item=>item.id===child.b);
     const house=villageHouses.find(item=>item.id===child.houseId)||villageHouses.find(item=>item.id===parent?.houseId);
     if(!house)return;
@@ -705,6 +727,7 @@ function startGame(THREE) {
       nextChildName="";changed=true;
       showToast(a.name+" e "+b.name+" estão esperando um bebê! O nascimento está previsto para o dia "+(day+9)+".");
     }
+    if(integrateAdultFamilyChildren())changed=true;
     if(changed){saveProgress(true);if(!villagersDirectory.classList.contains("hidden"))renderVillagersDirectory();}
     return changed;
   }
@@ -792,7 +815,7 @@ function startGame(THREE) {
     const datingCount=villagerRelationships.filter(item=>item.status==="namoro").length,marriedCount=villagerRelationships.filter(item=>item.status==="casados").length;
     const relationshipMarkup='<section class="village-relationships"><h3 class="villager-invite-heading">RELACIONAMENTOS E FAMÍLIAS</h3><p>'+datingCount+' casais namorando · '+marriedCount+' casamentos celebrados</p>'+(villagerRelationships.length?villagerRelationships.map(item=>{const a=villagers.find(v=>v.id===item.a),b=villagers.find(v=>v.id===item.b);return a&&b?'<div class="village-couple"><strong>'+a.name+' &amp; '+b.name+'</strong><span>'+(item.status==="casados"?"Casados · cerimônia no dia "+item.weddingDay:item.status==="namoro"?"Namorando":"Conhecendo-se")+'</span><div class="villager-needs-track"><i style="width:'+item.affinity+'%"></i></div><small>Afinidade: '+Math.round(item.affinity)+'%</small></div>':"";}).join(""):'<small>A convivência dos moradores da mesma casa pode iniciar novas relações.</small>')+'</section>';
     const pregnancyMarkup='<section class="village-relationships"><h3 class="villager-invite-heading">GRAVIDEZ E NASCIMENTOS</h3>'+(familyPregnancies.length?familyPregnancies.map(item=>{const a=villagers.find(v=>v.id===item.a),b=villagers.find(v=>v.id===item.b);return '<div class="village-couple"><strong>'+(a?.name||"Morador")+" & "+(b?.name||"Morador")+'</strong><span>Gestação · nascimento previsto: dia '+item.dueDay+'</span><div class="villager-needs-track"><i style="width:'+Math.round(dayProgress(item)*100)+'%"></i></div><small>'+(item.childName?"Nome escolhido: "+item.childName:"Nome ainda não definido")+'</small></div>';}).join(""):'<small>Casais casados, felizes e bem alimentados poderão esperar filhos. A gestação dura 9 dias do jogo.</small>')+'<div class="family-name-control"><label for="family-child-name">Nome para o próximo bebê</label><input id="family-child-name" maxlength="24" placeholder="Digite um nome" value="'+nextChildName.replace(/&/g,"&amp;").replace(/"/g,"&quot;")+'"><button type="button" data-save-child-name>DEFINIR NOME</button><small>O nome será aplicado à próxima gravidez ou à gestação sem nome escolhido.</small></div></section>';
-    const familyTreeMarkup='<section class="village-relationships"><h3 class="villager-invite-heading">ÁRVORE FAMILIAR</h3>'+(familyChildren.length?familyChildren.map(child=>{const a=villagers.find(v=>v.id===child.a),b=villagers.find(v=>v.id===child.b),growth=childDevelopment(child);return '<div class="village-couple"><strong>👨‍👩‍👧 '+(a?.name||"Pai")+" + "+(b?.name||"Mãe")+" → "+child.name+'</strong><span>'+growth.stage+' · '+growth.ageYears+' ano(s) · nasceu no dia '+child.birthDay+'</span><small>Família da casa '+child.houseId.replace("house-","")+'</small></div>';}).join(""):'<small>Os filhos e suas gerações aparecerão aqui após os primeiros nascimentos.</small>')+'</section>';
+    const familyTreeMarkup='<section class="village-relationships"><h3 class="villager-invite-heading">ÁRVORE FAMILIAR</h3>'+(familyChildren.length?familyChildren.map(child=>{const a=villagers.find(v=>v.id===child.a),b=villagers.find(v=>v.id===child.b),growth=childDevelopment(child);return '<div class="village-couple"><strong>👨‍👩‍👧 '+(a?.name||"Pai")+" + "+(b?.name||"Mãe")+" → "+child.name+'</strong><span>'+growth.stage+' · '+growth.ageYears+' ano(s) · nasceu no dia '+child.birthDay+(growth.stage==="Adulto"?" · trabalhador da vila":"" )+'</span><small>Família da casa '+child.houseId.replace("house-","")+'</small></div>';}).join(""):'<small>Os filhos e suas gerações aparecerão aqui após os primeiros nascimentos.</small>')+'</section>';
     const foodStatus=villagers.length?(villageFoodReport.missing>0?"Último dia: "+villageFoodReport.served+" alimentados · "+villageFoodReport.missing+" sem refeição":"Último dia: todos receberam alimento"):"Convide moradores para iniciar o consumo diário.";
     const stockMarkup='<section class="village-stock"><h3 class="villager-invite-heading">DEPÓSITO DA VILA</h3><p class="village-food-status">🍲 Provisões: <strong>'+villageFoodCount()+' refeições</strong> · '+villagers.length+' moradores<br><small>'+foodStatus+'</small></p><div class="village-stock-grid">'+Object.entries(villageStockLabels).map(([key,label])=>'<span>'+label+'</span><strong>'+String(villageStock[key]||0)+'</strong>').join("")+'</div><button type="button" data-deposit-village class="village-deposit-button">DEPOSITAR RECURSOS DA MOCHILA</button><small class="village-stock-note">Cada morador consome 1 refeição por dia, retirada automaticamente do depósito. A cozinheira prepara carne assada ou sopa quando há ingredientes.</small></section>';
     villagersList.innerHTML=relationshipMarkup+pregnancyMarkup+familyTreeMarkup+(villagers.length?villagers.map(v=>{
@@ -843,6 +866,8 @@ function startGame(THREE) {
     const definition=villagerDefinitions.find(def=>def.role===select.value);
     if(!villager||!definition)return;
     villager.role=definition.role;villager.profession=definition.role;
+    const familyChild=familyChildren.find(child=>child.id===villager.id);
+    if(familyChild)familyChild.adultProfession=definition.role;
     const offsets=[[-5,-4],[5,-4],[-5,4],[5,4],[-7,0],[7,0],[0,-7],[0,7]];
     const index=villagerDefinitions.findIndex(def=>def.role===definition.role),offset=offsets[index%offsets.length];
     villager.workX=THREE.MathUtils.clamp(villager.homeX+offset[0],-90,90);villager.workZ=THREE.MathUtils.clamp(villager.homeZ+offset[1],-90,90);
@@ -1406,14 +1431,19 @@ function startGame(THREE) {
       house.group=createCabinModel();house.group.position.set(house.x,groundHeight(house.x,house.z),house.z);house.group.rotation.y=house.yaw;scene.add(house.group);
     }
     for(const residentData of recruitedVillagers){
-      const def=villagerDefinitions.find(item=>item.id===residentData.id),house=villageHouses.find(item=>item.id===residentData.houseId);
-      if(!def||!house||house.occupants.length>=2)continue;
-      house.occupants.push(def.id);villagers.push(createVillager(def,house,house.occupants.length-1,residentData.profession||def.role,residentData));
+      const child=familyChildren.find(item=>item.id===residentData.id&&childDevelopment(item).stage==="Adulto");
+      const def=villagerDefinitions.find(item=>item.id===residentData.id)||(child?createFamilyVillagerDefinition(child,residentData.profession||child.adultProfession||"Agricultora"):null);
+      const house=villageHouses.find(item=>item.id===residentData.houseId)||villageHouses.find(item=>item.id===child?.houseId);
+      if(!def||!house)continue;
+      if(!child&&house.occupants.length>=2)continue;
+      if(!child)house.occupants.push(def.id);
+      if(!villagers.some(item=>item.id===def.id))villagers.push(createVillager(def,house,child?0:house.occupants.length-1,residentData.profession||def.role,residentData));
     }
     const validIds=new Set(villagers.map(v=>v.id));
     for(let i=recruitedVillagers.length-1;i>=0;i--)if(!validIds.has(recruitedVillagers[i].id))recruitedVillagers.splice(i,1);
   }
   restoreVillagePopulation();
+  integrateAdultFamilyChildren();
   for(const child of familyChildren)createFamilyActor(child);
 
   const trunkGeometry = new THREE.CylinderGeometry(0.28, 0.48, 4.2, 6);
