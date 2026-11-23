@@ -1348,7 +1348,7 @@ function startGame(THREE) {
     fabric: saved?.inventory?.fabric ?? 0,
     tunic: saved?.inventory?.tunic ?? 0,
     trousers: saved?.inventory?.trousers ?? 0,
-    boots: saved?.inventory?.boots ?? 0, rawMeat:saved?.inventory?.rawMeat??0, hide:saved?.inventory?.hide??0, tannedLeather:saved?.inventory?.tannedLeather??0, leatherBackpack:saved?.inventory?.leatherBackpack??0, roastedMeat:saved?.inventory?.roastedMeat??0, arrows:saved?.inventory?.arrows??0, trout:saved?.inventory?.trout??0, carp:saved?.inventory?.carp??0, minnow:saved?.inventory?.minnow??0, grilledTrout:saved?.inventory?.grilledTrout??0, grilledCarp:saved?.inventory?.grilledCarp??0, grilledMinnow:saved?.inventory?.grilledMinnow??0
+    boots: saved?.inventory?.boots ?? 0, rawMeat:saved?.inventory?.rawMeat??0, hide:saved?.inventory?.hide??0, tannedLeather:saved?.inventory?.tannedLeather??0, leatherBackpack:saved?.inventory?.leatherBackpack??0, roastedMeat:saved?.inventory?.roastedMeat??0, arrows:saved?.inventory?.arrows??0, trout:saved?.inventory?.trout??0, carp:saved?.inventory?.carp??0, minnow:saved?.inventory?.minnow??0, grilledTrout:saved?.inventory?.grilledTrout??0, grilledCarp:saved?.inventory?.grilledCarp??0, grilledMinnow:saved?.inventory?.grilledMinnow??0,craftedGoods:saved?.inventory?.craftedGoods??0,tools:saved?.inventory?.tools??0
   };
   // Pacote único para quem já tinha uma fazenda salva: sementes para retomar o cultivo.
   let seedStarterPackClaimed = saved?.seedStarterPackClaimed === true;
@@ -1600,7 +1600,7 @@ function startGame(THREE) {
           fabric: safeCount(saved.inventory?.fabric),
           tunic: safeCount(saved.inventory?.tunic),
           trousers: safeCount(saved.inventory?.trousers),
-          boots: safeCount(saved.inventory?.boots), rawMeat:safeCount(saved.inventory?.rawMeat), hide:safeCount(saved.inventory?.hide), tannedLeather:safeCount(saved.inventory?.tannedLeather), leatherBackpack:safeCount(saved.inventory?.leatherBackpack), roastedMeat:safeCount(saved.inventory?.roastedMeat), arrows:safeCount(saved.inventory?.arrows), trout:safeCount(saved.inventory?.trout), carp:safeCount(saved.inventory?.carp), minnow:safeCount(saved.inventory?.minnow), grilledTrout:safeCount(saved.inventory?.grilledTrout), grilledCarp:safeCount(saved.inventory?.grilledCarp), grilledMinnow:safeCount(saved.inventory?.grilledMinnow)
+          boots: safeCount(saved.inventory?.boots), rawMeat:safeCount(saved.inventory?.rawMeat), hide:safeCount(saved.inventory?.hide), tannedLeather:safeCount(saved.inventory?.tannedLeather), leatherBackpack:safeCount(saved.inventory?.leatherBackpack), roastedMeat:safeCount(saved.inventory?.roastedMeat), arrows:safeCount(saved.inventory?.arrows), trout:safeCount(saved.inventory?.trout), carp:safeCount(saved.inventory?.carp), minnow:safeCount(saved.inventory?.minnow), grilledTrout:safeCount(saved.inventory?.grilledTrout), grilledCarp:safeCount(saved.inventory?.grilledCarp), grilledMinnow:safeCount(saved.inventory?.grilledMinnow), craftedGoods:safeCount(saved.inventory?.craftedGoods), tools:safeCount(saved.inventory?.tools)
         },
         animalCare:{
           chickens:{fedUntil:Number.isSafeInteger(saved.animalCare?.chickens?.fedUntil)?Math.max(0,saved.animalCare.chickens.fedUntil):0,nextAt:Number.isSafeInteger(saved.animalCare?.chickens?.nextAt)?Math.max(0,saved.animalCare.chickens.nextAt):0,ready:safeCount(saved.animalCare?.chickens?.ready)},
@@ -1839,7 +1839,7 @@ function startGame(THREE) {
   }
 
   const tradeGoods=[
-    {key:"branches",label:"Galhos",icon:"🌿",buy:3,sell:1},{key:"stones",label:"Pedras",icon:"🪨",buy:4,sell:2},
+    {key:"branches",label:"Galhos",icon:"🌿",buy:3,sell:1},{key:"stones",label:"Pedras",icon:"🪨",buy:4,sell:2},{key:"craftedGoods",label:"Artesanato",icon:"🧺",buy:24,sell:15},{key:"tools",label:"Ferramentas",icon:"🔨",buy:38,sell:24},
     {key:"berries",label:"Frutas",icon:"🫐",buy:3,sell:1},{key:"wood",label:"Madeira",icon:"🪵",buy:7,sell:4},
     {key:"wheat",label:"Trigo",icon:"🌾",buy:5,sell:3},{key:"carrots",label:"Cenouras",icon:"🥕",buy:5,sell:3},
     {key:"cabbages",label:"Repolhos",icon:"🥬",buy:6,sell:3},{key:"eggs",label:"Ovos",icon:"🥚",buy:8,sell:5},
@@ -1878,7 +1878,12 @@ function startGame(THREE) {
       const buy=marketPrice(item,"buy"),sell=marketPrice(item,"sell");
       return '<article class="merchant-item"><div class="merchant-item-copy"><strong>'+item.icon+' '+item.label+'</strong><small>Comprar: '+buy+' moedas · Vender: '+sell+' moedas · Você tem: '+(inventory[item.key]||0)+'</small></div><div class="merchant-item-actions"><button type="button" data-trade="buy" data-item="'+item.key+'" '+(coins<buy||inventoryLoad()>=carryCapacity()?"disabled":"")+'>COMPRAR</button><button type="button" data-trade="sell" data-item="'+item.key+'" '+((inventory[item.key]||0)<1?"disabled":"")+'>VENDER</button></div></article>';
     }).join("");
-    merchantContracts.innerHTML='<h3 class="merchant-section-title">ENCOMENDAS DO VALE</h3>'+dailyTradeContracts().map(contract=>{
+    const villageGoods=Object.keys(villageStockLabels).filter(key=>tradeGoods.some(item=>item.key===key));
+    const villageTradeMarkup='<h3 class="merchant-section-title">MERCADORIAS DO DEPÓSITO DA VILA</h3>'+villageGoods.map(key=>{
+      const item=tradeGoods.find(entry=>entry.key===key),quantity=villageStock[key]||0,price=marketPrice(item,"sell");
+      return '<article class="merchant-item village-merchant-item" data-village-stock-item="'+key+'"><div class="merchant-item-copy"><strong>'+item.icon+' '+item.label+'</strong><small>Estoque: '+quantity+' · Venda: '+price+' moedas por unidade</small></div><div class="merchant-item-actions village-stock-actions"><input type="number" min="1" max="'+Math.max(1,quantity)+'" value="'+(quantity?1:0)+'" data-village-qty="'+key+'" aria-label="Quantidade de '+item.label+'"><button type="button" data-village-stock-action="withdraw" data-item="'+key+'" '+(quantity<1||inventoryLoad()>=carryCapacity()?"disabled":"")+'>RETIRAR</button><button type="button" data-village-stock-action="sell" data-item="'+key+'" '+(quantity<1?"disabled":"")+'>VENDER</button></div></article>';
+    }).join("");
+    merchantContracts.innerHTML=villageTradeMarkup+'<h3 class="merchant-section-title">ENCOMENDAS DO VALE</h3>'+dailyTradeContracts().map(contract=>{
       const done=completedTradeContracts.has(contract.id),enough=(inventory[contract.key]||0)>=contract.quantity;
       return '<article class="merchant-contract"><div><strong>'+contract.icon+' '+contract.quantity+' × '+contract.label+'</strong><small>Recompensa: '+contract.reward+' moedas · +'+contract.rep+' reputação</small></div><button type="button" data-contract="'+contract.id+'" '+(done||!enough?"disabled":"")+'>'+(done?"CONCLUÍDA":enough?"ENTREGAR":"FALTAM "+Math.max(0,contract.quantity-(inventory[contract.key]||0)))+'</button></article>';
     }).join("");
@@ -1911,7 +1916,27 @@ function startGame(THREE) {
     updateInventoryUI();renderMerchantPanel();saveProgress(true);
   }
   merchantItems.addEventListener("click",event=>{const button=event.target.closest("button[data-trade]");if(button)tradeWithMerchant(button.dataset.trade,button.dataset.item);});
-  merchantContracts.addEventListener("click",event=>{const button=event.target.closest("button[data-contract]");if(button)deliverTradeContract(button.dataset.contract);});
+  merchantContracts.addEventListener("click",event=>{
+    const stockButton=event.target.closest("button[data-village-stock-action]");
+    if(stockButton){
+      const key=stockButton.dataset.item,action=stockButton.dataset.villageStockAction,item=tradeGoods.find(entry=>entry.key===key);
+      const row=stockButton.closest("[data-village-stock-item]"),input=row?.querySelector("[data-village-qty]");
+      const requested=Number(input?.value),amount=Number.isSafeInteger(requested)?requested:0,available=villageStock[key]||0;
+      if(!canUseMerchant||!item||!["withdraw","sell"].includes(action)||amount<1||amount>available){showToast("Quantidade inválida ou estoque insuficiente.");return;}
+      if(action==="withdraw"){
+        if(inventoryLoad()+amount>carryCapacity()){showToast("A mochila não tem espaço para retirar essa quantidade.");return;}
+        villageStock[key]-=amount;inventory[key]=Math.min(999999,(inventory[key]||0)+amount);
+        showToast("Retirado do depósito: "+amount+" × "+item.label+".");
+      }else{
+        const price=marketPrice(item,"sell"),revenue=price*amount;
+        if(coins+revenue>999999){showToast("A bolsa atingiu o limite de moedas.");return;}
+        villageStock[key]-=amount;coins+=revenue;
+        showToast("Venda do depósito: "+amount+" × "+item.label+" · +"+revenue+" moedas.");
+      }
+      updateInventoryUI();renderMerchantPanel();saveProgress(true);return;
+    }
+    const button=event.target.closest("button[data-contract]");if(button)deliverTradeContract(button.dataset.contract);
+  });
   merchantClose.addEventListener("click",closeMerchantPanel);
 
   function updateResourceTarget() {
