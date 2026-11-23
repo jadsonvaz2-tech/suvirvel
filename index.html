@@ -53,7 +53,7 @@
       </div>
     </section>
     <button type="button" id="inventory-toggle" class="inventory-toggle" aria-expanded="false">MOCHILA <kbd>I</kbd></button>
-    <button type="button" id="build-toggle" class="build-toggle">CONSTRUIR CABANA</button>
+    <button type="button" id="build-toggle" class="build-toggle">CONSTRUIR</button>
     <section id="inventory-panel" class="inventory-panel hidden" aria-label="Mochila do personagem">
       <header class="inventory-header">
         <div><span class="eyebrow">PERTENCES</span><strong>MOCHILA</strong></div>
@@ -194,12 +194,13 @@
       </div>
       <small class="building-help">O descanso é salvo automaticamente.</small>
     </section>
-    <section id="building-panel" class="building-panel hidden" aria-label="Construção da primeira cabana">
+    <section id="building-panel" class="building-panel hidden" aria-label="Construção e organização do assentamento">
       <header class="inventory-header">
         <div><span class="eyebrow">CONSTRUÇÃO</span><strong>PRIMEIRA CABANA</strong></div>
         <button type="button" id="building-close" class="inventory-close" aria-label="Cancelar construção">×</button>
       </header>
-      <p class="building-description">Mova-se para posicionar a prévia. Gire a cabana até encontrar o melhor lugar.</p>
+      <p class="building-description">Escolha uma estrutura e mova-se para posicionar a prévia. Gire com R ou pelo botão.</p>
+      <div id="building-options" class="building-options"></div>
       <div class="building-costs"><span id="building-materials">Madeira: 0/12 · Galhos: 0/8</span></div>
       <p id="building-status" class="building-status">Mova-se para escolher o local.</p>
       <div class="building-actions">

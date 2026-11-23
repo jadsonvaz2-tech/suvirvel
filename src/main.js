@@ -23,6 +23,7 @@ const buildingRotate = document.getElementById("building-rotate");
 const buildingConfirm = document.getElementById("building-confirm");
 const buildingStatus = document.getElementById("building-status");
 const buildingMaterials = document.getElementById("building-materials");
+const buildingOptions = document.getElementById("building-options");
 const chestPanel = document.getElementById("chest-panel");
 const chestClose = document.getElementById("chest-close");
 const chestItems = document.getElementById("chest-items");
@@ -244,7 +245,8 @@ function startGame(THREE) {
     return {id,crop:prior&&Object.hasOwn(cropTypes,prior.crop)?prior.crop:null,plantedAt:prior&&Number.isSafeInteger(prior.plantedAt)?Math.max(0,prior.plantedAt):0,localX:5.1,localZ:(index-1)*2.2,group:null,cropGroup:null,visualStage:-1,x:0,z:0};
   });
   let currentFarmPlot=null,canUseFarmPlot=false;
-  let kitchenPosition=null,kitchenFire=null,canUseKitchen=false,loomPosition=null,canUseLoom=false,tanneryPosition=null,canUseTannery=false,merchantPosition=null,canUseMerchant=false;
+  let kitchenPosition=null,kitchenFire=null,kitchenGroup=null,canUseKitchen=false,loomPosition=null,loomGroup=null,canUseLoom=false,tanneryPosition=null,tanneryGroup=null,canUseTannery=false,merchantPosition=null,canUseMerchant=false;
+  const savedStructurePositions=saved?.structurePositions&&typeof saved.structurePositions==="object"?saved.structurePositions:{};
   let gameTimeAccumulator=0;
   function updateGameClockUI(){gameClockUI.textContent="DIA "+gameTime.day+" · "+String(gameTime.hour).padStart(2,"0")+":"+String(gameTime.minute).padStart(2,"0");}
   function inventoryLoad(){return Object.values(inventory).reduce((total,value)=>total+(Number.isFinite(value)?value:0),0);}
@@ -480,6 +482,7 @@ function startGame(THREE) {
   let buildPreviewValid = false;
   let buildPreviewReason = "Mova-se para escolher o local.";
   let buildPreviewTimer = 0;
+  let buildSelectedId=null,buildSelectedItem=null;
   const cabinWood = new THREE.MeshStandardMaterial({ color: 0x795033, roughness: 0.98 });
   const cabinWoodLight = new THREE.MeshStandardMaterial({ color: 0x9b7048, roughness: 0.95 });
   const cabinRoof = new THREE.MeshStandardMaterial({ color: 0x55483a, roughness: 1 });
@@ -602,10 +605,11 @@ function startGame(THREE) {
       const bed=new THREE.Mesh(new THREE.BoxGeometry(1.85,0.2,1.85),soil);bed.position.y=0.1;group.add(bed);
       for(const x of [-0.93,0.93]){const edge=new THREE.Mesh(new THREE.BoxGeometry(0.1,0.24,1.95),wood);edge.position.set(x,0.17,0);group.add(edge);}
       for(const z of [-0.93,0.93]){const edge=new THREE.Mesh(new THREE.BoxGeometry(1.95,0.24,0.1),wood);edge.position.set(0,0.17,z);group.add(edge);}
-      const wx=builtCabin.x+plot.localX*Math.cos(builtCabin.yaw)+plot.localZ*Math.sin(builtCabin.yaw);
-      const wz=builtCabin.z-plot.localX*Math.sin(builtCabin.yaw)+plot.localZ*Math.cos(builtCabin.yaw);
+      const savedPlot=savedStructurePositions[plot.id];
+      const wx=Number.isFinite(savedPlot?.x)?savedPlot.x:builtCabin.x+plot.localX*Math.cos(builtCabin.yaw)+plot.localZ*Math.sin(builtCabin.yaw);
+      const wz=Number.isFinite(savedPlot?.z)?savedPlot.z:builtCabin.z-plot.localX*Math.sin(builtCabin.yaw)+plot.localZ*Math.cos(builtCabin.yaw);
       plot.x=wx;plot.z=wz;plot.group=group;plot.visualStage=-1;
-      group.position.set(wx,groundHeight(wx,wz),wz);group.rotation.y=builtCabin.yaw;scene.add(group);
+      group.position.set(wx,groundHeight(wx,wz),wz);group.rotation.y=Number.isFinite(savedPlot?.yaw)?savedPlot.yaw:builtCabin.yaw;scene.add(group);
       refreshFarmPlotVisual(plot);
     }
   }
@@ -642,7 +646,7 @@ function startGame(THREE) {
   function createAnimalEnclosures(){
     for(const type of ["chickens","sheep"]){
       const enclosure=animalEnclosures[type],center=localCabinPosition(enclosure.localX,enclosure.localZ),group=new THREE.Group();
-      enclosure.x=center.x;enclosure.z=center.z;enclosure.group=group;
+      enclosure.x=center.x;enclosure.z=center.z;enclosure.yaw=builtCabin.yaw;enclosure.group=group;
       const width=type==="chickens"?3.8:5.6,depth=type==="chickens"?3.8:5.0;addFenceRect(group,width,depth);
       if(type==="chickens"){
         const coop=new THREE.Group(),planks=new THREE.MeshStandardMaterial({color:0x9a7047,roughness:1}),roofMat=new THREE.MeshStandardMaterial({color:0x594431,roughness:1});
@@ -654,7 +658,8 @@ function startGame(THREE) {
       }else{
         const trough=new THREE.Mesh(new THREE.BoxGeometry(1.25,0.24,0.42),darkWoodAnimal);trough.position.set(0,0.22,-1.55);group.add(trough);
       }
-      group.position.set(center.x,groundHeight(center.x,center.z),center.z);group.rotation.y=builtCabin.yaw;scene.add(group);
+      const savedPen=savedStructurePositions[type+"-pen"];if(Number.isFinite(savedPen?.x)){enclosure.x=savedPen.x;enclosure.z=savedPen.z;enclosure.yaw=Number.isFinite(savedPen.yaw)?savedPen.yaw:builtCabin.yaw;}
+      group.position.set(enclosure.x,groundHeight(enclosure.x,enclosure.z),enclosure.z);group.rotation.y=enclosure.yaw;scene.add(group);
     }
     [[-0.65,-0.55],[0.65,-0.35],[0.25,0.85]].forEach((offset,index)=>{const actor=createChicken();actor.type="chickens";actor.offset=offset;actor.phase=index*2.1;actor.group.scale.setScalar(0.9);animalActors.push(actor);scene.add(actor.group);});
     [[-1.0,-0.45],[0.95,0.65]].forEach((offset,index)=>{const actor=createSheep();actor.type="sheep";actor.offset=offset;actor.phase=index*2.7;animalActors.push(actor);scene.add(actor.group);});
@@ -676,9 +681,10 @@ function startGame(THREE) {
     animalAnimationTime+=delta;
     for(const actor of animalActors){
       const enclosure=animalEnclosures[actor.type],t=animalAnimationTime*0.72+actor.phase,radius=actor.type==="chickens"?0.36:0.48;
-      const world=localCabinPosition(enclosure.localX+actor.offset[0]+Math.sin(t)*radius,enclosure.localZ+actor.offset[1]+Math.cos(t*0.83)*radius);
+      const ox=actor.offset[0]+Math.sin(t)*radius,oz=actor.offset[1]+Math.cos(t*0.83)*radius,yaw=enclosure.yaw??builtCabin.yaw;
+      const world={x:enclosure.x+ox*Math.cos(yaw)+oz*Math.sin(yaw),z:enclosure.z-ox*Math.sin(yaw)+oz*Math.cos(yaw)};
       actor.group.position.set(world.x,groundHeight(world.x,world.z)+Math.abs(Math.sin(t*2))*0.025,world.z);
-      actor.group.rotation.y=Math.atan2(Math.cos(t),Math.sin(t*0.83))+builtCabin.yaw;
+      actor.group.rotation.y=Math.atan2(Math.cos(t),Math.sin(t*0.83))+yaw;
       actor.legs.forEach((leg,index)=>{leg.rotation.x=Math.sin(t*3+(index%2)*Math.PI)*0.28;});
     }
   }
@@ -694,7 +700,7 @@ function startGame(THREE) {
   }
   function createKitchenStation(){
     kitchenPosition=localCabinPosition(0,-6.6);
-    const group=new THREE.Group();
+    const group=new THREE.Group();kitchenGroup=group;
     const stone=new THREE.MeshStandardMaterial({color:0x77766d,roughness:1}),darkStone=new THREE.MeshStandardMaterial({color:0x494a43,roughness:1}),iron=new THREE.MeshStandardMaterial({color:0x3e4140,metalness:0.35,roughness:0.72});
     const hearth=new THREE.Mesh(new THREE.BoxGeometry(1.65,0.34,1.35),darkStone);hearth.position.y=0.17;group.add(hearth);
     for(let i=0;i<8;i++){const angle=i*Math.PI/4,rock=new THREE.Mesh(new THREE.DodecahedronGeometry(0.28,0),stone);rock.position.set(Math.cos(angle)*0.58,0.34,Math.sin(angle)*0.46);rock.scale.set(1,0.78,0.9);group.add(rock);}
@@ -705,7 +711,8 @@ function startGame(THREE) {
     const flame=new THREE.Mesh(new THREE.ConeGeometry(0.22,0.72,7),new THREE.MeshStandardMaterial({color:0xff8b27,emissive:0xff5a12,emissiveIntensity:1.8,roughness:0.5}));flame.position.set(0,0.72,0.08);group.add(flame);
     const flameCore=new THREE.Mesh(new THREE.ConeGeometry(0.11,0.44,6),new THREE.MeshBasicMaterial({color:0xffe08a}));flameCore.position.set(0,0.62,0.08);group.add(flameCore);
     const light=new THREE.PointLight(0xff9a42,1.35,8,2);light.position.set(0,1.1,0.2);group.add(light);
-    group.position.set(kitchenPosition.x,groundHeight(kitchenPosition.x,kitchenPosition.z),kitchenPosition.z);group.rotation.y=builtCabin.yaw;scene.add(group);
+    const savedKitchen=savedStructurePositions.kitchen;if(Number.isFinite(savedKitchen?.x))kitchenPosition={x:savedKitchen.x,z:savedKitchen.z};
+    group.position.set(kitchenPosition.x,groundHeight(kitchenPosition.x,kitchenPosition.z),kitchenPosition.z);group.rotation.y=Number.isFinite(savedKitchen?.yaw)?savedKitchen.yaw:builtCabin.yaw;scene.add(group);
     kitchenFire={flame,flameCore,light,time:0};
   }
   const cookingRecipes={
@@ -747,14 +754,15 @@ function startGame(THREE) {
   kitchenClose.addEventListener("click",closeKitchenPanel);
   function createLoomStation(){
     // Tear no lado oposto à cozinha e aos cercados, com espaço livre para aproximação.
-    loomPosition=localCabinPosition(7.2,-6.6);const group=new THREE.Group(),wood=new THREE.MeshStandardMaterial({color:0x765033,roughness:1}),dark=new THREE.MeshStandardMaterial({color:0x4d3524,roughness:1}),thread=new THREE.MeshStandardMaterial({color:0xc8b58f,roughness:1});
+    loomPosition=localCabinPosition(7.2,-6.6);const group=new THREE.Group();loomGroup=group;const wood=new THREE.MeshStandardMaterial({color:0x765033,roughness:1}),dark=new THREE.MeshStandardMaterial({color:0x4d3524,roughness:1}),thread=new THREE.MeshStandardMaterial({color:0xc8b58f,roughness:1});
     const legGeo=new THREE.BoxGeometry(0.13,1.45,0.13);for(const x of [-0.78,0.78])for(const z of [-0.42,0.42]){const leg=new THREE.Mesh(legGeo,wood);leg.position.set(x,0.72,z);group.add(leg);}
     const beam=new THREE.Mesh(new THREE.BoxGeometry(1.8,0.16,0.16),dark);beam.position.set(0,1.48,-0.42);group.add(beam);const frontBeam=beam.clone();frontBeam.position.z=0.42;group.add(frontBeam);
     const top=new THREE.Mesh(new THREE.BoxGeometry(1.9,0.13,1.05),wood);top.position.y=0.82;group.add(top);const rollerGeo=new THREE.CylinderGeometry(0.09,0.09,1.75,8);
     for(const z of [-0.36,0.36]){const roller=new THREE.Mesh(rollerGeo,dark);roller.rotation.z=Math.PI/2;roller.position.set(0,1.18,z);group.add(roller);}
     for(let i=0;i<13;i++){const strand=new THREE.Mesh(new THREE.CylinderGeometry(0.012,0.012,0.83,5),thread);strand.position.set(-0.55+i*0.092,1.22,0);group.add(strand);}
     const cloth=new THREE.Mesh(new THREE.PlaneGeometry(1.02,0.62),new THREE.MeshStandardMaterial({color:0xb9a27d,side:THREE.DoubleSide,roughness:1}));cloth.position.set(0,1.18,0.03);group.add(cloth);
-    group.position.set(loomPosition.x,groundHeight(loomPosition.x,loomPosition.z),loomPosition.z);group.rotation.y=builtCabin.yaw;scene.add(group);
+    const savedLoom=savedStructurePositions.loom;if(Number.isFinite(savedLoom?.x))loomPosition={x:savedLoom.x,z:savedLoom.z};
+    group.position.set(loomPosition.x,groundHeight(loomPosition.x,loomPosition.z),loomPosition.z);group.rotation.y=Number.isFinite(savedLoom?.yaw)?savedLoom.yaw:builtCabin.yaw;scene.add(group);
   }
   const clothingRecipes={tunic:{label:"Túnica de lã",icon:"🧥",ingredients:{fabric:2,wool:1},warmth:28},trousers:{label:"Calças forradas",icon:"👖",ingredients:{fabric:1,wool:1},warmth:18},boots:{label:"Botas de lã",icon:"🥾",ingredients:{fabric:1,wool:1},warmth:14}};
   function renderLoomPanel(){
@@ -796,7 +804,7 @@ function startGame(THREE) {
   loomActions.addEventListener("click",event=>{const fabric=event.target.closest("button[data-loom-fabric]"),craft=event.target.closest("button[data-loom-craft]"),equip=event.target.closest("button[data-loom-equip]");if(fabric)craftClothing("fabric");if(craft)craftClothing(craft.dataset.loomCraft);if(equip)toggleClothing(equip.dataset.loomEquip);});
   loomClose.addEventListener("click",closeLoomPanel);
   function createTanneryStation(){
-    tanneryPosition=localCabinPosition(7.5,3.6);const group=new THREE.Group();
+    tanneryPosition=localCabinPosition(7.5,3.6);const group=new THREE.Group();tanneryGroup=group;
     const wood=new THREE.MeshStandardMaterial({color:0x79502f,roughness:1}),dark=new THREE.MeshStandardMaterial({color:0x493323,roughness:1}),hideMat=new THREE.MeshStandardMaterial({color:0x9a754d,roughness:1,side:THREE.DoubleSide});
     const vat=new THREE.Mesh(new THREE.CylinderGeometry(0.72,0.62,0.72,12),dark);vat.position.set(-0.85,0.38,0);group.add(vat);
     const rim=new THREE.Mesh(new THREE.TorusGeometry(0.68,0.07,7,14),wood);rim.rotation.x=Math.PI/2;rim.position.set(-0.85,0.76,0);group.add(rim);
@@ -804,7 +812,8 @@ function startGame(THREE) {
     const beam=new THREE.Mesh(new THREE.BoxGeometry(1.9,0.13,0.14),dark);beam.position.set(0.62,1.35,0);group.add(beam);
     const hide=new THREE.Mesh(new THREE.PlaneGeometry(1.45,0.92),hideMat);hide.position.set(0.62,1.27,0.03);hide.rotation.x=-0.12;group.add(hide);
     for(let i=0;i<4;i++){const strip=new THREE.Mesh(new THREE.BoxGeometry(0.08,0.05,0.92),wood);strip.position.set(-0.08+i*0.46,1.18,0.04);group.add(strip);}
-    group.position.set(tanneryPosition.x,groundHeight(tanneryPosition.x,tanneryPosition.z),tanneryPosition.z);group.rotation.y=builtCabin.yaw;scene.add(group);
+    const savedTannery=savedStructurePositions.tannery;if(Number.isFinite(savedTannery?.x))tanneryPosition={x:savedTannery.x,z:savedTannery.z};
+    group.position.set(tanneryPosition.x,groundHeight(tanneryPosition.x,tanneryPosition.z),tanneryPosition.z);group.rotation.y=Number.isFinite(savedTannery?.yaw)?savedTannery.yaw:builtCabin.yaw;scene.add(group);
   }
   function placeCabin() {
     cabinModel=createCabinModel();
@@ -818,12 +827,76 @@ function startGame(THREE) {
     cabinBed.position.set(builtCabin.x-1.15*Math.cos(builtCabin.yaw)+0.48*Math.sin(builtCabin.yaw),groundHeight(builtCabin.x,builtCabin.z),builtCabin.z+1.15*Math.sin(builtCabin.yaw)+0.48*Math.cos(builtCabin.yaw));
     cabinBed.rotation.y=builtCabin.yaw;scene.add(cabinBed);
     // Mantém a banca do mercador no lado oposto ao curtume, com espaço para circular.
-    merchantPosition=localCabinPosition(-8.5,3.8);
+    const savedMerchant=savedStructurePositions.merchant;
+    merchantPosition=Number.isFinite(savedMerchant?.x)?{x:savedMerchant.x,z:savedMerchant.z}:localCabinPosition(-10,-7);
     merchantStall.position.set(merchantPosition.x,groundHeight(merchantPosition.x,merchantPosition.z),merchantPosition.z);
-    merchantStall.rotation.y=builtCabin.yaw;
+    merchantStall.rotation.y=Number.isFinite(savedMerchant?.yaw)?savedMerchant.yaw:builtCabin.yaw;
     createKitchenStation();createLoomStation();createTanneryStation();
     createFarmPlots();
     createAnimalEnclosures();
+    applySavedStructurePositions();
+  }
+
+  function getBuildableStructures(){
+    if(!builtCabin)return [];
+    const items=[
+      {id:"workbench",label:"Bancada de fabricação",group:workbench,radius:1.8,apply:(x,z)=>{workbenchPosition.x=x;workbenchPosition.z=z;}},
+      {id:"merchant",label:"Banca do mercador",group:merchantStall,radius:2.2,apply:(x,z)=>{merchantPosition={x,z};}},
+      {id:"kitchen",label:"Cozinha",group:kitchenGroup,radius:1.7,apply:(x,z)=>{kitchenPosition={x,z};}},
+      {id:"loom",label:"Tear de lã",group:loomGroup,radius:1.7,apply:(x,z)=>{loomPosition={x,z};}},
+      {id:"tannery",label:"Curtume",group:tanneryGroup,radius:2,apply:(x,z)=>{tanneryPosition={x,z};}},
+      {id:"chickens-pen",label:"Cercado das galinhas",group:animalEnclosures.chickens.group,radius:2.8,apply:(x,z,yaw)=>Object.assign(animalEnclosures.chickens,{x,z,yaw})},
+      {id:"sheep-pen",label:"Cercado das ovelhas",group:animalEnclosures.sheep.group,radius:3.4,apply:(x,z,yaw)=>Object.assign(animalEnclosures.sheep,{x,z,yaw})}
+    ];
+    for(const plot of farmPlots)items.push({id:plot.id,label:"Horta "+plot.id.slice(-1),group:plot.group,radius:1.35,apply:(x,z)=>{plot.x=x;plot.z=z;}});
+    return items.filter(item=>item.group);
+  }
+  function applySavedStructurePositions(){
+    for(const item of getBuildableStructures()){
+      const pos=savedStructurePositions[item.id];if(!Number.isFinite(pos?.x)||!Number.isFinite(pos?.z))continue;
+      const yaw=Number.isFinite(pos.yaw)?pos.yaw:item.group.rotation.y;
+      item.apply(pos.x,pos.z,yaw);item.group.position.set(pos.x,groundHeight(pos.x,pos.z),pos.z);item.group.rotation.y=yaw;
+    }
+    updateAnimalAnimations(0);
+  }
+  function structurePositionsForSave(){
+    return Object.fromEntries(getBuildableStructures().map(item=>[item.id,{x:item.group.position.x,z:item.group.position.z,yaw:item.group.rotation.y}]));
+  }
+  function renderBuildingOptions(){
+    if(!buildingOptions)return;
+    buildingOptions.innerHTML="";
+    if(!builtCabin){
+      const button=document.createElement("button");button.type="button";button.className="building-option";button.dataset.buildId="cabin";
+      button.innerHTML="<strong>Cabana de madeira</strong><small>12 madeiras · 8 galhos</small>";buildingOptions.appendChild(button);
+      buildingStatus.textContent="Escolha a cabana para começar seu assentamento.";
+    }else{
+      const heading=document.createElement("small");heading.className="building-options-heading";heading.textContent="ESCOLHA UMA ESTRUTURA PARA REPOSICIONAR";buildingOptions.appendChild(heading);
+      for(const item of getBuildableStructures()){const button=document.createElement("button");button.type="button";button.className="building-option";button.dataset.buildId=item.id;button.textContent=item.label;buildingOptions.appendChild(button);}
+      buildingStatus.textContent="Selecione uma estrutura. Mova-se para escolher o novo local.";
+    }
+    buildingOptions.querySelectorAll("[data-build-id]").forEach(button=>button.addEventListener("click",()=>selectBuildOption(button.dataset.buildId)));
+  }
+  function selectBuildOption(id){
+    if(id==="cabin"){if(builtCabin)return;buildSelectedId="cabin";buildSelectedItem=null;}
+    else{const item=getBuildableStructures().find(entry=>entry.id===id);if(!item)return;buildSelectedId=id;buildSelectedItem=item;}
+    if(buildPreview)scene.remove(buildPreview);
+    buildPreview=cabinGhost(id==="cabin"?createCabinModel():buildSelectedItem.group.clone(true));scene.add(buildPreview);
+    buildingOptions.querySelectorAll("[data-build-id]").forEach(button=>button.classList.toggle("selected",button.dataset.buildId===id));
+    buildingMaterials.textContent=id==="cabin"?"Madeira: "+inventory.wood+"/12 · Galhos: "+inventory.branches+"/8":"Reposicionamento gratuito · nenhum material será consumido";
+    buildRotation=0;updateBuildPreview();
+  }
+  function structurePlacementValid(x,z,item){
+    if(Math.abs(x)>96||Math.abs(z)>96)return "Fora da área de construção.";
+    if(riverDistance(x,z)<9)return "Muito perto do rio.";
+    const heights=[[-1,-1],[1,-1],[-1,1],[1,1]].map(([ox,oz])=>groundHeight(x+ox*item.radius*0.55,z+oz*item.radius*0.55));
+    if(Math.max(...heights)-Math.min(...heights)>0.85)return "O terreno está muito inclinado.";
+    for(let i=0;i<treeSpots.length;i++){if(felledTrees.has(i))continue;const tree=treeSpots[i];if((tree.x-x)**2+(tree.z-z)**2<(item.radius+0.8)**2)return "Há uma árvore neste local.";}
+    for(const other of getBuildableStructures()){
+      if(other.id===item.id)continue;const dx=other.group.position.x-x,dz=other.group.position.z-z;
+      if(dx*dx+dz*dz<((item.radius+other.radius)*0.78)**2)return "Muito perto de outra estrutura.";
+    }
+    if(builtCabin){const dx=x-builtCabin.x,dz=z-builtCabin.z;if(dx*dx+dz*dz<(item.radius+2.4)**2)return "Muito perto da cabana.";}
+    return "";
   }
   function cabinGhost(model) {
     const ghost=model.clone(true);
@@ -864,42 +937,41 @@ function startGame(THREE) {
     if (!buildPreview) return;
     buildPreview.traverse((node)=>{if(node.isMesh)node.material.color.set(valid?0x8bd49a:0xe17a69);});
   }
-  function updateBuildPreview() {
-    if (!buildMode || !buildPreview) return;
-    const fx=-Math.sin(player.yaw),fz=-Math.cos(player.yaw);
-    const x=Math.round((player.x+fx*8.2)*2)/2,z=Math.round((player.z+fz*8.2)*2)/2;
-    const yaw=player.yaw+Math.PI+buildRotation;
-    buildPreview.position.set(x,groundHeight(x,z),z); buildPreview.rotation.y=yaw;
-    buildPreviewReason=cabinFootprintValid(x,z,yaw); buildPreviewValid=!buildPreviewReason;
-    setBuildPreviewAppearance(buildPreviewValid);
-    buildingStatus.textContent=buildPreviewValid?"Local adequado · confirme a construção":buildPreviewReason;
-    buildingStatus.classList.toggle("invalid",!buildPreviewValid);
-    buildingConfirm.disabled=!buildPreviewValid || inventory.wood<12 || inventory.branches<8 || Boolean(builtCabin);
+  function updateBuildPreview(){
+    if(!buildMode||!buildPreview||!buildSelectedId){buildingConfirm.disabled=true;return;}
+    const fx=-Math.sin(player.yaw),fz=-Math.cos(player.yaw),x=Math.round((player.x+fx*8.2)*2)/2,z=Math.round((player.z+fz*8.2)*2)/2,yaw=player.yaw+Math.PI+buildRotation;
+    buildPreview.position.set(x,groundHeight(x,z),z);buildPreview.rotation.y=yaw;
+    buildPreviewReason=buildSelectedId==="cabin"?cabinFootprintValid(x,z,yaw):structurePlacementValid(x,z,buildSelectedItem);
+    buildPreviewValid=!buildPreviewReason;setBuildPreviewAppearance(buildPreviewValid);
+    buildingStatus.textContent=buildPreviewValid?"Local adequado · confirme a posição":buildPreviewReason;buildingStatus.classList.toggle("invalid",!buildPreviewValid);
+    buildingConfirm.disabled=!buildPreviewValid||(buildSelectedId==="cabin"&&(inventory.wood<12||inventory.branches<8||Boolean(builtCabin)));
   }
-  function startBuilding() {
-    if (builtCabin) { showToast("Você já construiu sua primeira cabana."); return; }
-    buildMode=true; buildingPanel.classList.remove("hidden");
-    if (!buildPreview) { buildPreview=cabinGhost(createCabinModel()); scene.add(buildPreview); }
-    updateBuildPreview(); updateInventoryUI();
+  function startBuilding(){
+    buildMode=true;buildingPanel.classList.remove("hidden");renderBuildingOptions();
+    if(!builtCabin)selectBuildOption("cabin");
+    else{buildSelectedId=null;buildSelectedItem=null;buildingConfirm.disabled=true;buildingMaterials.textContent="Escolha uma estrutura para reposicionar";}
+    updateInventoryUI();
   }
   function stopBuilding() {
     buildMode=false; buildingPanel.classList.add("hidden");
     if (buildPreview) { scene.remove(buildPreview); buildPreview=null; }
-    buildPreviewValid=false;
+    buildPreviewValid=false;buildSelectedId=null;buildSelectedItem=null;
   }
   function rotateBuilding() {
     if (!buildMode) return;
     buildRotation=(buildRotation+Math.PI/4)%(Math.PI*2); updateBuildPreview();
   }
-  function confirmBuilding() {
-    if (!buildMode || builtCabin) return;
-    updateBuildPreview();
-    if (!buildPreviewValid) { showToast(buildPreviewReason); return; }
-    if (inventory.wood<12 || inventory.branches<8) { showToast("Faltam materiais: 12 madeiras e 8 galhos."); updateInventoryUI(); return; }
+  function confirmBuilding(){
+    if(!buildMode||!buildSelectedId)return;updateBuildPreview();if(!buildPreviewValid){showToast(buildPreviewReason);return;}
     const position=buildPreview.position,yaw=buildPreview.rotation.y;
-    inventory.wood-=12; inventory.branches-=8; builtCabin={x:position.x,z:position.z,yaw};
-    placeCabin();
-    stopBuilding(); updateInventoryUI(); saveProgress(true); showToast("Cabana construída! Seu primeiro abrigo está pronto.");
+    if(buildSelectedId==="cabin"){
+      if(builtCabin)return;if(inventory.wood<12||inventory.branches<8){showToast("Faltam materiais: 12 madeiras e 8 galhos.");updateInventoryUI();return;}
+      inventory.wood-=12;inventory.branches-=8;builtCabin={x:position.x,z:position.z,yaw};placeCabin();
+      stopBuilding();updateInventoryUI();saveProgress(true);showToast("Cabana construída! Seu primeiro abrigo está pronto.");return;
+    }
+    const item=getBuildableStructures().find(entry=>entry.id===buildSelectedId);if(!item)return;
+    item.apply(position.x,position.z,yaw);item.group.position.set(position.x,groundHeight(position.x,position.z),position.z);item.group.rotation.y=yaw;
+    updateAnimalAnimations(0);stopBuilding();saveProgress(true);showToast(item.label+" reposicionado!");
   }
   if (builtCabin) placeCabin();
   buildToggle.addEventListener("click",startBuilding);
@@ -1310,6 +1382,7 @@ function startGame(THREE) {
           hour: Number.isInteger(saved.gameTime?.hour) ? THREE.MathUtils.clamp(saved.gameTime.hour,0,23) : 8,
           minute: Number.isInteger(saved.gameTime?.minute) ? THREE.MathUtils.clamp(saved.gameTime.minute,0,59) : 0
         },
+        structurePositions:saved.structurePositions&&typeof saved.structurePositions==="object"?Object.fromEntries(Object.entries(saved.structurePositions).filter(([id,pos])=>/^(workbench|merchant|kitchen|loom|tannery|chickens-pen|sheep-pen|farm-plot-[1-3])$/.test(id)&&pos&&Number.isFinite(pos.x)&&Number.isFinite(pos.z)&&Math.abs(pos.x)<=96&&Math.abs(pos.z)<=96).map(([id,pos])=>[id,{x:pos.x,z:pos.z,yaw:Number.isFinite(pos.yaw)?pos.yaw:0}])):{},
         builtCabin: saved.builtCabin && Number.isFinite(saved.builtCabin.x) && Number.isFinite(saved.builtCabin.z) && Math.abs(saved.builtCabin.x)<=96 && Math.abs(saved.builtCabin.z)<=96 ? { x:saved.builtCabin.x, z:saved.builtCabin.z, yaw:Number.isFinite(saved.builtCabin.yaw)?saved.builtCabin.yaw:0 } : null,
         resourceBase: saved.resourceBase &&
           Number.isFinite(saved.resourceBase.x) && Number.isFinite(saved.resourceBase.z)
@@ -1361,7 +1434,8 @@ function startGame(THREE) {
         resourceRespawnAt: Object.fromEntries(resourceRespawnAt),
         felledTrees: [...felledTrees],
         treeHits: Object.fromEntries(treeHitCounts),
-        builtCabin: builtCabin ? { ...builtCabin } : null
+        builtCabin: builtCabin ? { ...builtCabin } : null,
+        structurePositions:structurePositionsForSave()
       }));
     } catch { /* O jogo continua mesmo sem armazenamento disponível. */ }
   }
@@ -1502,9 +1576,9 @@ function startGame(THREE) {
       const dx=x-builtCabin.x,dz=z-builtCabin.z;
       const lx=dx*Math.cos(builtCabin.yaw)-dz*Math.sin(builtCabin.yaw),lz=dx*Math.sin(builtCabin.yaw)+dz*Math.cos(builtCabin.yaw);
       if(Math.abs(lx+1.15)<0.78 && Math.abs(lz-0.48)<1.12)return true;
-      for(const plot of farmPlots){const pdx=x-plot.x,pdz=z-plot.z,localX=pdx*Math.cos(builtCabin.yaw)-pdz*Math.sin(builtCabin.yaw),localZ=pdx*Math.sin(builtCabin.yaw)+pdz*Math.cos(builtCabin.yaw);if(Math.abs(localX-plot.localX)<1.02&&Math.abs(localZ-plot.localZ)<1.02)return true;}
-      const fenceBlocked=(cx,cz,halfW,halfD)=>{const rx=lx-cx,rz=lz-cz;return (Math.abs(Math.abs(rx)-halfW)<0.24&&Math.abs(rz)<=halfD+0.2)||(Math.abs(Math.abs(rz)-halfD)<0.24&&Math.abs(rx)<=halfW+0.2);};
-      if(fenceBlocked(animalEnclosures.chickens.localX,animalEnclosures.chickens.localZ,1.9,1.9)||fenceBlocked(animalEnclosures.sheep.localX,animalEnclosures.sheep.localZ,2.8,2.5))return true;
+      for(const plot of farmPlots){const pdx=x-plot.x,pdz=z-plot.z;if(Math.abs(pdx)<1.05&&Math.abs(pdz)<1.05)return true;}
+      const fenceBlocked=(enclosure,halfW,halfD)=>{const dx=x-enclosure.x,dz=z-enclosure.z,yaw=enclosure.yaw??builtCabin.yaw,rx=dx*Math.cos(yaw)-dz*Math.sin(yaw),rz=dx*Math.sin(yaw)+dz*Math.cos(yaw);return (Math.abs(Math.abs(rx)-halfW)<0.24&&Math.abs(rz)<=halfD+0.2)||(Math.abs(Math.abs(rz)-halfD)<0.24&&Math.abs(rx)<=halfW+0.2);};
+      if(fenceBlocked(animalEnclosures.chickens,1.9,1.9)||fenceBlocked(animalEnclosures.sheep,2.8,2.5))return true;
       const footprint=Math.abs(lx)<2.48 && Math.abs(lz)<2.82;
       if(footprint){
         const side=Math.abs(lx)>2.02 && Math.abs(lz)<2.68;
