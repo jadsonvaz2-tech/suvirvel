@@ -559,3 +559,7 @@ kbd { min-width: 17px; padding: 4px 5px; border: 1px solid rgba(241,232,210,.28)
 
 /* Depósito e produção dos moradores */
 .village-stock{margin:12px 14px;padding:10px;border:1px solid rgba(212,177,107,.3);border-radius:8px;background:rgba(212,177,107,.06)}.village-stock-grid{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:5px 12px;max-height:155px;overflow:auto}.village-stock-grid span{color:var(--cream);font-size:9px}.village-stock-grid strong{color:#f0d39b;font-size:9px;font-variant-numeric:tabular-nums}.village-stock-note{display:block;margin-top:8px;color:var(--muted);font-size:8px;line-height:1.4}
+
+
+/* Necessidades e felicidade individual dos moradores */
+.villager-needs-detail{display:grid;gap:6px;margin-top:10px;padding:10px;border:1px solid rgba(212,177,107,.25);border-radius:7px;background:rgba(255,255,255,.035)}.villager-needs-detail strong{font-size:10px;color:#f0d39b}.villager-needs-detail small{font-size:9px;color:var(--muted)}.villager-needs-track{height:6px;overflow:hidden;border-radius:99px;background:rgba(255,255,255,.12)}.villager-needs-track i{display:block;height:100%;border-radius:99px;background:#75b77b}.villager-needs-track.hunger i{background:#d6a454}.villager-directory-item .villager-needs-track{width:min(180px,100%);margin:2px 0}
