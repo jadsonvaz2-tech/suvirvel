@@ -49,6 +49,7 @@ const loomPanel = document.getElementById("loom-panel"), loomClose = document.ge
 const tanneryPanel=document.getElementById("tannery-panel"),tanneryClose=document.getElementById("tannery-close"),tanneryTitle=document.getElementById("tannery-title"),tanneryStatus=document.getElementById("tannery-status"),tanneryActions=document.getElementById("tannery-actions");
 const fishingPanel=document.getElementById("fishing-panel"),fishingClose=document.getElementById("fishing-close"),fishingStatus=document.getElementById("fishing-status"),fishingAction=document.getElementById("fishing-action");
 const merchantPanel=document.getElementById("merchant-panel"),merchantClose=document.getElementById("merchant-close"),merchantTitle=document.getElementById("merchant-title"),merchantStatus=document.getElementById("merchant-status"),merchantCoins=document.getElementById("merchant-coins"),merchantItems=document.getElementById("merchant-items"),merchantContracts=document.getElementById("merchant-contracts"),merchantRank=document.getElementById("merchant-rank"),walletUI=document.getElementById("wallet-coins");
+const villagerPanel=document.getElementById("villager-panel"),villagerClose=document.getElementById("villager-close"),villagerTitle=document.getElementById("villager-title"),villagerDialogue=document.getElementById("villager-dialogue"),villagerTask=document.getElementById("villager-task");
 const gameClockUI = document.getElementById("game-clock");
 const interactionType = document.getElementById("interaction-type");
 const interactionVerb = document.getElementById("interaction-verb");
@@ -245,6 +246,9 @@ function startGame(THREE) {
     return {id,crop:prior&&Object.hasOwn(cropTypes,prior.crop)?prior.crop:null,plantedAt:prior&&Number.isSafeInteger(prior.plantedAt)?Math.max(0,prior.plantedAt):0,localX:5.1,localZ:(index-1)*2.2,group:null,cropGroup:null,visualStage:-1,x:0,z:0};
   });
   let currentFarmPlot=null,canUseFarmPlot=false;
+  let currentVillager=null;
+  const completedVillagerTasks=new Set(Array.isArray(saved?.completedVillagerTasks)?saved.completedVillagerTasks.filter(id=>["farmer-task","woodcutter-task","blacksmith-task"].includes(id)):[]);
+  const villagers=[];
   let kitchenPosition=null,kitchenFire=null,kitchenGroup=null,canUseKitchen=false,loomPosition=null,loomGroup=null,canUseLoom=false,tanneryPosition=null,tanneryGroup=null,canUseTannery=false,merchantPosition=null,canUseMerchant=false;
   const savedStructurePositions=saved?.structurePositions&&typeof saved.structurePositions==="object"?saved.structurePositions:{};
   let gameTimeAccumulator=0;
@@ -473,6 +477,85 @@ function startGame(THREE) {
   const merchantHat=new THREE.Mesh(new THREE.CylinderGeometry(0.38,0.3,0.16,8),stallCloth);merchantHat.position.set(0,2.72,-0.92);merchantStall.add(merchantHat);
   merchantStall.position.set(merchantPosition.x,groundHeight(merchantPosition.x,merchantPosition.z),merchantPosition.z);scene.add(merchantStall);
   const merchantLabel=makeResourceLabel("MERCADOR · E","#d4b16b");merchantLabel.position.set(0,3.35,0);merchantLabel.scale.set(4.0,1,1);merchantStall.add(merchantLabel);
+
+  // Moradores do vale: três ofícios com rotinas diurnas e descanso noturno.
+  const villagerDefinitions=[
+    {id:"farmer",name:"Helena",role:"Agricultora",taskId:"farmer-task",request:"3 trigo",key:"wheat",quantity:3,reward:18,body:0x718b4e,accent:0xd8b36b,side:-7.2,forward:5.2},
+    {id:"woodcutter",name:"Bento",role:"Lenhador",taskId:"woodcutter-task",request:"3 madeiras",key:"wood",quantity:3,reward:20,body:0x79513a,accent:0xb7a078,side:7.1,forward:5.0},
+    {id:"blacksmith",name:"Afonso",role:"Ferreiro",taskId:"blacksmith-task",request:"2 pedras",key:"stones",quantity:2,reward:22,body:0x53616b,accent:0x9b6b4d,side:0.5,forward:10.0}
+  ];
+  function createVillager(def){
+    const root=new THREE.Group();
+    const robe=new THREE.Mesh(new THREE.CylinderGeometry(.28,.38,1.12,7),new THREE.MeshStandardMaterial({color:def.body,roughness:1}));
+    robe.position.y=.78;root.add(robe);
+    const belt=new THREE.Mesh(new THREE.TorusGeometry(.29,.045,5,8),new THREE.MeshStandardMaterial({color:0x59412d,roughness:1}));
+    belt.rotation.x=Math.PI/2;belt.position.y=.72;root.add(belt);
+    const head=new THREE.Mesh(new THREE.SphereGeometry(.235,9,7),new THREE.MeshStandardMaterial({color:0xd5a77c,roughness:1}));
+    head.position.y=1.53;root.add(head);
+    const cap=new THREE.Mesh(new THREE.ConeGeometry(.27,.28,7),new THREE.MeshStandardMaterial({color:def.accent,roughness:1}));
+    cap.position.y=1.79;root.add(cap);
+    const armMat=new THREE.MeshStandardMaterial({color:def.body,roughness:1});
+    for(const side of [-1,1]){const arm=new THREE.Mesh(new THREE.CylinderGeometry(.09,.12,.62,6),armMat);arm.position.set(side*.34,.92,0);arm.rotation.z=side*-.16;root.add(arm);}
+    const footMat=new THREE.MeshStandardMaterial({color:0x3c3025,roughness:1});
+    for(const side of [-1,1]){const foot=new THREE.Mesh(new THREE.BoxGeometry(.17,.16,.32),footMat);foot.position.set(side*.14,.12,.04);root.add(foot);}
+    const start=resourcePosition(def.side,def.forward);
+    root.position.set(start.x,groundHeight(start.x,start.z),start.z);
+    scene.add(root);
+    const label=makeResourceLabel(def.name+" · E","#d4b16b");label.position.set(0,2.45,0);label.scale.set(2.8,.7,1);root.add(label);
+    return { ...def,group:root,x:start.x,z:start.z,homeX:start.x,homeZ:start.z,targetX:start.x,targetZ:start.z,wait:1+Math.random()*3,walk:0,arms:root.children.filter((child,index)=>index>=4&&index<=5) };
+  }
+  for(const definition of villagerDefinitions)villagers.push(createVillager(definition));
+  function updateVillagers(delta){
+    const hour=gameTime.hour+gameTime.minute/60;
+    const working=hour>=6&&hour<20;
+    for(const villager of villagers){
+      if(!working)continue;
+      villager.wait-=delta;
+      const dx=villager.targetX-villager.x,dz=villager.targetZ-villager.z,distance=Math.hypot(dx,dz);
+      if(distance<.35||villager.wait<=0){
+        const angle=Math.random()*Math.PI*2,radius=1.2+Math.random()*3.2;
+        villager.targetX=villager.homeX+Math.cos(angle)*radius;
+        villager.targetZ=villager.homeZ+Math.sin(angle)*radius;
+        villager.targetX=THREE.MathUtils.clamp(villager.targetX,-92,92);
+        villager.targetZ=THREE.MathUtils.clamp(villager.targetZ,-92,92);
+        villager.wait=distance<.35?1+Math.random()*2:0;
+      }else{
+        const step=Math.min(distance,1.05*delta);
+        villager.x+=dx/distance*step;villager.z+=dz/distance*step;
+        villager.group.position.x=villager.x;villager.group.position.z=villager.z;
+        villager.group.position.y=groundHeight(villager.x,villager.z);
+        villager.group.rotation.y=Math.atan2(dx,dz);
+        villager.walk+=delta*8;
+        villager.arms.forEach((arm,index)=>{arm.rotation.x=Math.sin(villager.walk+index*Math.PI)*.22;});
+      }
+    }
+  }
+  function openVillagerPanel(villager){
+    if(!villager)return;
+    currentVillager=villager;
+    villagerTitle.textContent=villager.name+" · "+villager.role.toUpperCase();
+    const done=completedVillagerTasks.has(villager.taskId);
+    const have=inventory[villager.key]||0;
+    villagerDialogue.textContent=done
+      ?"Obrigado pela ajuda anterior. O vale está melhor graças a você!"
+      :"Olá, viajante! Estou precisando de "+villager.request+". Você pode me ajudar?";
+    villagerTask.innerHTML=done
+      ?'<div class="villager-task-note">Tarefa concluída · recompensa já recebida.</div>'
+      :'<div class="villager-task-note">Entregue '+villager.request+' · Você tem: '+have+' · Recompensa: '+villager.reward+' moedas.</div><button type="button" class="building-primary" data-villager-deliver="'+villager.taskId+'" '+(have<villager.quantity?"disabled":"")+'>ENTREGAR E RECEBER</button>';
+    villagerPanel.classList.remove("hidden");
+  }
+  function closeVillagerPanel(){villagerPanel.classList.add("hidden");currentVillager=null;}
+  villagerTask.addEventListener("click",event=>{
+    const button=event.target.closest("[data-villager-deliver]");
+    if(!button||!currentVillager||completedVillagerTasks.has(currentVillager.taskId))return;
+    const v=currentVillager;
+    if((inventory[v.key]||0)<v.quantity){showToast("Você ainda não tem os itens solicitados.");return;}
+    inventory[v.key]-=v.quantity;coins+=v.reward;completedVillagerTasks.add(v.taskId);
+    updateInventoryUI();updateWalletUI();saveProgress(true);
+    showToast("Tarefa concluída! +"+v.reward+" moedas.");
+    openVillagerPanel(v);
+  });
+  villagerClose.addEventListener("click",closeVillagerPanel);
 
   let builtCabin = saved?.builtCabin ?? null;
   // Primeira construção: cabana de madeira com prévia translúcida.
@@ -1386,6 +1469,7 @@ function startGame(THREE) {
           hour: Number.isInteger(saved.gameTime?.hour) ? THREE.MathUtils.clamp(saved.gameTime.hour,0,23) : 8,
           minute: Number.isInteger(saved.gameTime?.minute) ? THREE.MathUtils.clamp(saved.gameTime.minute,0,59) : 0
         },
+        completedVillagerTasks:Array.isArray(saved.completedVillagerTasks)?saved.completedVillagerTasks.filter(id=>["farmer-task","woodcutter-task","blacksmith-task"].includes(id)):[],
         structurePositions:saved.structurePositions&&typeof saved.structurePositions==="object"?Object.fromEntries(Object.entries(saved.structurePositions).filter(([id,pos])=>/^(workbench|merchant|kitchen|loom|tannery|chickens-pen|sheep-pen|farm-plot-[1-3])$/.test(id)&&pos&&Number.isFinite(pos.x)&&Number.isFinite(pos.z)&&Math.abs(pos.x)<=96&&Math.abs(pos.z)<=96).map(([id,pos])=>[id,{x:pos.x,z:pos.z,yaw:Number.isFinite(pos.yaw)?pos.yaw:0}])):{},
         builtCabin: saved.builtCabin && Number.isFinite(saved.builtCabin.x) && Number.isFinite(saved.builtCabin.z) && Math.abs(saved.builtCabin.x)<=96 && Math.abs(saved.builtCabin.z)<=96 ? { x:saved.builtCabin.x, z:saved.builtCabin.z, yaw:Number.isFinite(saved.builtCabin.yaw)?saved.builtCabin.yaw:0 } : null,
         resourceBase: saved.resourceBase &&
@@ -1424,6 +1508,7 @@ function startGame(THREE) {
         coins,
         tradeReputation,
         completedTradeContracts:[...completedTradeContracts],
+        completedVillagerTasks:[...completedVillagerTasks],
         tanneryState:{...tanneryState},
         fishingSpotState:{lastCatch:fishingLastCatch},
         health: survival.health, hunger: survival.hunger, thirst: survival.thirst, energy: survival.energy, warmth: survival.warmth, clothing:{...clothing},
@@ -1694,6 +1779,9 @@ function startGame(THREE) {
     let nearestFishing=null,nearestFishingDistance=Infinity;
     for(const spot of fishingSpots){const d=Math.hypot(spot.x-player.x,spot.z-player.z);if(d<5.2&&d<nearestFishingDistance){nearestFishing=spot;nearestFishingDistance=d;}}
     currentFishingSpot=nearestFishing;canUseFishingSpot=Boolean(nearestFishing&&!match&&tools.fishingRod);
+    let nearestVillager=null,nearestVillagerDistance=Infinity;
+    for(const villager of villagers){const distance=Math.hypot(villager.x-player.x,villager.z-player.z);if(distance<=4.6&&distance<nearestVillagerDistance){nearestVillager=villager;nearestVillagerDistance=distance;}}
+    currentVillager=(!match&&!canUseMerchant&&!canUseFishingSpot)?nearestVillager:null;
     const merchantDistance=merchantPosition?Math.hypot(merchantPosition.x-player.x,merchantPosition.z-player.z):Infinity;
     canUseMerchant=Boolean(!match&&merchantDistance<=5.0);
     const tanneryDistance=tanneryPosition?Math.hypot(tanneryPosition.x-player.x,tanneryPosition.z-player.z):Infinity;
@@ -1747,7 +1835,7 @@ function startGame(THREE) {
     currentTreeTarget = !match && !canUseLoom && !canDrinkWater && !canUseWorkbench && !canUseFarmPlot && !canUseAnimalPen && !canUseKitchen && !canUseLoom ? treeMatch : null;
     canChopTree = Boolean(currentTreeTarget && tools.axe);
     currentResourceTarget = match;
-    const hasInteraction = Boolean(match) || canUseMerchant || canUseTannery || canUseFishingSpot || canDrinkWater || canUseWorkbench || canUseFarmPlot || canUseAnimalPen || canUseKitchen || canUseLoom || canUseCabinDoor || canUseBed || canUseStorageChest || Boolean(currentTreeTarget) || Boolean(currentWildlifeTarget);
+    const hasInteraction = Boolean(match) || Boolean(currentVillager) || canUseMerchant || canUseTannery || canUseFishingSpot || canDrinkWater || canUseWorkbench || canUseFarmPlot || canUseAnimalPen || canUseKitchen || canUseLoom || canUseCabinDoor || canUseBed || canUseStorageChest || Boolean(currentTreeTarget) || Boolean(currentWildlifeTarget);
     interactionPrompt.classList.toggle("hidden", !hasInteraction);
     collectButton.classList.toggle("hidden", !hasInteraction || !isMobile);
 
@@ -1756,6 +1844,11 @@ function startGame(THREE) {
       interactionName.textContent = match.label + " · " + match.amount;
       interactionVerb.textContent = "recolher";
       collectButton.textContent = "RECOLHER";
+    } else if (currentVillager) {
+      interactionType.textContent="MORADOR DO VALE";
+      interactionName.textContent=currentVillager.name+" · "+currentVillager.role;
+      interactionVerb.textContent="conversar e conhecer uma tarefa";
+      collectButton.textContent="CONVERSAR";
     } else if (canUseMerchant) {
       interactionType.textContent="COMÉRCIO";interactionName.textContent="Banca do mercador";interactionVerb.textContent="comprar e vender mercadorias";collectButton.textContent="NEGOCIAR";
     } else if (canUseFishingSpot) {
@@ -2026,9 +2119,10 @@ function startGame(THREE) {
   sleepPanel.addEventListener("click",event=>{const button=event.target.closest("button[data-sleep-hours]");if(button)sleepFor(Number(button.dataset.sleepHours));});
   sleepClose.addEventListener("click",closeSleepPanel);
   function performCurrentInteraction(){
-    if(!chestPanel.classList.contains("hidden")||!sleepPanel.classList.contains("hidden")||!farmPanel.classList.contains("hidden")||!animalPanel.classList.contains("hidden")||!kitchenPanel.classList.contains("hidden")||!loomPanel.classList.contains("hidden")||!tanneryPanel.classList.contains("hidden")||!fishingPanel.classList.contains("hidden")||!merchantPanel.classList.contains("hidden"))return;
+    if(!chestPanel.classList.contains("hidden")||!sleepPanel.classList.contains("hidden")||!farmPanel.classList.contains("hidden")||!animalPanel.classList.contains("hidden")||!kitchenPanel.classList.contains("hidden")||!loomPanel.classList.contains("hidden")||!tanneryPanel.classList.contains("hidden")||!fishingPanel.classList.contains("hidden")||!merchantPanel.classList.contains("hidden")||!villagerPanel.classList.contains("hidden"))return;
     if(buildMode){confirmBuilding();return;}
     if(currentResourceTarget)collectCurrentResource();
+    else if(currentVillager)openVillagerPanel(currentVillager);
     else if(canUseMerchant)openMerchantPanel();
     else if(canUseTannery)openTanneryPanel();
     else if(canUseFishingSpot)openFishingPanel();
@@ -2053,6 +2147,7 @@ function startGame(THREE) {
     requestAnimationFrame(animate);
     const delta = Math.min(clock.getDelta(), 0.05);
     updateFishingProgress(delta);
+    if(villagers.length)updateVillagers(delta);
     if(kitchenFire){kitchenFire.time+=delta;const flicker=1+Math.sin(kitchenFire.time*13)*0.12+Math.sin(kitchenFire.time*21)*0.06;kitchenFire.flame.scale.set(1, flicker, 1);kitchenFire.flame.rotation.y=kitchenFire.time*1.8;kitchenFire.flameCore.scale.y=0.9+Math.sin(kitchenFire.time*17)*0.12;kitchenFire.light.intensity=1.25+Math.sin(kitchenFire.time*15)*0.22;}
     gameTimeAccumulator+=delta;
     while(gameTimeAccumulator>=5){gameTimeAccumulator-=5;advanceGameMinutes(1);}
@@ -2073,7 +2168,7 @@ function startGame(THREE) {
     const cos = Math.cos(player.yaw);
     const moveX = (-sin * forward + cos * strafe) * speed * delta;
     const moveZ = (-cos * forward - sin * strafe) * speed * delta;
-    if (sleepPanel.classList.contains("hidden") && farmPanel.classList.contains("hidden") && animalPanel.classList.contains("hidden") && kitchenPanel.classList.contains("hidden") && loomPanel.classList.contains("hidden") && tanneryPanel.classList.contains("hidden") && fishingPanel.classList.contains("hidden") && merchantPanel.classList.contains("hidden") && (moveX || moveZ)) {
+    if (sleepPanel.classList.contains("hidden") && farmPanel.classList.contains("hidden") && animalPanel.classList.contains("hidden") && kitchenPanel.classList.contains("hidden") && loomPanel.classList.contains("hidden") && tanneryPanel.classList.contains("hidden") && fishingPanel.classList.contains("hidden") && merchantPanel.classList.contains("hidden") && villagerPanel.classList.contains("hidden") && (moveX || moveZ)) {
       const nextX = player.x + moveX;
       const nextZ = player.z + moveZ;
       if (!isBlocked(nextX, player.z)) player.x = nextX;
