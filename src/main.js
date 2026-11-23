@@ -817,6 +817,10 @@ function startGame(THREE) {
     cabinBed=createCabinBed();
     cabinBed.position.set(builtCabin.x-1.15*Math.cos(builtCabin.yaw)+0.48*Math.sin(builtCabin.yaw),groundHeight(builtCabin.x,builtCabin.z),builtCabin.z+1.15*Math.sin(builtCabin.yaw)+0.48*Math.cos(builtCabin.yaw));
     cabinBed.rotation.y=builtCabin.yaw;scene.add(cabinBed);
+    // Mantém a banca do mercador no lado oposto ao curtume, com espaço para circular.
+    merchantPosition=localCabinPosition(-8.5,3.8);
+    merchantStall.position.set(merchantPosition.x,groundHeight(merchantPosition.x,merchantPosition.z),merchantPosition.z);
+    merchantStall.rotation.y=builtCabin.yaw;
     createKitchenStation();createLoomStation();createTanneryStation();
     createFarmPlots();
     createAnimalEnclosures();
