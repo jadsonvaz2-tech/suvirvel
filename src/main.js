@@ -255,7 +255,11 @@ function startGame(THREE) {
   const recruitedVillagers=Array.isArray(saved?.recruitedVillagers)?saved.recruitedVillagers.slice(0,120):[];
   const villagerRelationships=Array.isArray(saved?.villagerRelationships)?saved.villagerRelationships.filter(item=>item&&typeof item.a==="string"&&typeof item.b==="string"&&item.a!==item.b&&Number.isFinite(item.affinity)&&["amizade","namoro","casados"].includes(item.status)).slice(0,300).map(item=>({a:item.a,b:item.b,affinity:THREE.MathUtils.clamp(item.affinity,0,100),status:item.status,weddingDay:Number.isSafeInteger(item.weddingDay)?Math.max(1,item.weddingDay):null})):[];
   const familyPregnancies=Array.isArray(saved?.familyPregnancies)?saved.familyPregnancies.filter(item=>item&&typeof item.a==="string"&&typeof item.b==="string"&&typeof item.houseId==="string"&&Number.isSafeInteger(item.startDay)&&Number.isSafeInteger(item.dueDay)&&item.dueDay>item.startDay).slice(0,120).map(item=>({a:item.a,b:item.b,houseId:item.houseId,startDay:Math.max(1,item.startDay),dueDay:Math.max(1,item.dueDay),childName:typeof item.childName==="string"?item.childName.slice(0,24):""})):[];
-  const familyChildren=Array.isArray(saved?.familyChildren)?saved.familyChildren.filter(item=>item&&typeof item.id==="string"&&typeof item.name==="string"&&typeof item.a==="string"&&typeof item.b==="string"&&typeof item.houseId==="string"&&Number.isSafeInteger(item.birthDay)).slice(0,80).map(item=>({id:item.id.slice(0,100),name:item.name.slice(0,24),a:item.a,b:item.b,houseId:item.houseId,birthDay:Math.max(1,item.birthDay),gender:item.gender==="F"?"F":"M",adultProfession:typeof item.adultProfession==="string"?item.adultProfession:""})):[];
+  const familyChildren=Array.isArray(saved?.familyChildren)?saved.familyChildren.filter(item=>item&&typeof item.id==="string"&&typeof item.name==="string"&&typeof item.a==="string"&&typeof item.b==="string"&&typeof item.houseId==="string"&&Number.isSafeInteger(item.birthDay)).slice(0,300).map(item=>({id:item.id.slice(0,100),name:item.name.slice(0,24),a:item.a,b:item.b,houseId:item.houseId,birthDay:Math.max(1,item.birthDay),gender:item.gender==="F"?"F":"M",adultProfession:typeof item.adultProfession==="string"?item.adultProfession:""})):[];
+  const dynastyState={
+    heirId:typeof saved?.dynastyState?.heirId==="string"&&familyChildren.some(child=>child.id===saved.dynastyState.heirId)?saved.dynastyState.heirId:"",
+    familyHouseId:typeof saved?.dynastyState?.familyHouseId==="string"&&villageHouses.some(house=>house.id===saved.dynastyState.familyHouseId)?saved.dynastyState.familyHouseId:(villageHouses[0]?.id||"")
+  };
   let nextChildName=typeof saved?.nextChildName==="string"?saved.nextChildName.slice(0,24):"";
   const villageStock=Object.fromEntries(["wheat","carrots","cabbages","wood","branches","stones","wool","rawMeat","hide","trout","carp","minnow","roastedMeat","vegetableSoup","bread","omelet","berryPorridge","grilledTrout","grilledCarp","grilledMinnow","fabric","craftedGoods","tools"].map(key=>[key,Number.isSafeInteger(saved?.villageStock?.[key])?Math.max(0,Math.min(999999,saved.villageStock[key])):0]));
   let villageProductionLastMinute=Number.isSafeInteger(saved?.villageProductionLastMinute)?Math.max(0,saved.villageProductionLastMinute):totalGameMinutes();
@@ -863,8 +867,12 @@ function startGame(THREE) {
       const growth=childDevelopment(child);
       return '<div class="village-couple"><strong>👨‍👩‍👧 '+(a?.name||parentA?.name||"Pai")+" + "+(b?.name||parentB?.name||"Mãe")+" → "+child.name+'</strong><span>'+generation+' · '+growth.stage+' · '+growth.ageYears+' ano(s) · nasceu no dia '+child.birthDay+(growth.stage==="Adulto"?" · trabalhador da vila":"")+'</span>'+(grandparents.length?'<small>Avós: '+grandparents.join(" / ")+'</small>':"")+'<small>Família da casa '+child.houseId.replace("house-","")+'</small></div>';
     }).join(""):'<small>Os filhos e suas gerações aparecerão aqui após os primeiros nascimentos.</small>')+'</section>';const foodStatus=villagers.length?(villageFoodReport.missing>0?"Último dia: "+villageFoodReport.served+" alimentados · "+villageFoodReport.missing+" sem refeição":"Último dia: todos receberam alimento"):"Convide moradores para iniciar o consumo diário.";
-    const stockMarkup='<section class="village-stock"><h3 class="villager-invite-heading">DEPÓSITO DA VILA</h3><p class="village-food-status">🍲 Provisões: <strong>'+villageFoodCount()+' refeições</strong> · '+villagers.length+' moradores<br><small>'+foodStatus+'</small></p><div class="village-stock-grid">'+Object.entries(villageStockLabels).map(([key,label])=>'<span>'+label+'</span><strong>'+String(villageStock[key]||0)+'</strong>').join("")+'</div><button type="button" data-deposit-village class="village-deposit-button">DEPOSITAR RECURSOS DA MOCHILA</button><small class="village-stock-note">Cada morador consome 1 refeição por dia, retirada automaticamente do depósito. A cozinheira prepara carne assada ou sopa quando há ingredientes.</small></section>';
-    villagersList.innerHTML=relationshipMarkup+pregnancyMarkup+familyTreeMarkup+(villagers.length?villagers.map(v=>{
+    const eligibleHeirs=familyChildren.slice().sort((a,b)=>a.birthDay-b.birthDay);
+    const selectedHeir=familyChildren.find(child=>child.id===dynastyState.heirId);
+    const storedAssets=Object.values(inventory).reduce((sum,value)=>sum+(Number.isFinite(value)?Math.max(0,value):0),0)+Object.values(villageStock).reduce((sum,value)=>sum+(Number.isFinite(value)?Math.max(0,value):0),0);
+    const dynastyMarkup='<section class="village-relationships"><h3 class="villager-invite-heading">DINASTIA · HERANÇA E SUCESSÃO</h3><p>Fundador: Personagem principal · '+familyChildren.length+' descendentes registrados · '+villageHouses.length+' propriedades familiares</p><label class="villager-profession-label">HERDEIRO PRINCIPAL <select data-dynasty-heir><option value="">Escolher sucessor</option>'+eligibleHeirs.map(child=>'<option value="'+child.id+'" '+(dynastyState.heirId===child.id?"selected":"")+'>'+child.name+' · '+childDevelopment(child).stage+' · '+childDevelopment(child).ageYears+' ano(s)</option>').join("")+'</select></label><label class="villager-profession-label">RESIDÊNCIA PRINCIPAL DA FAMÍLIA <select data-dynasty-house><option value="">Selecionar propriedade</option>'+villageHouses.map((house,index)=>'<option value="'+house.id+'" '+(dynastyState.familyHouseId===house.id?"selected":"")+'>Casa '+(index+1)+'</option>').join("")+'</select></label><div class="village-couple"><strong>Patrimônio preparado para a sucessão</strong><span>'+coins+' moedas · '+villageHouses.length+' casas · '+storedAssets+' itens em inventário e depósito</span><small>'+(selectedHeir?'Sucessor escolhido: '+selectedHeir.name:'Nenhum sucessor escolhido')+' · '+(dynastyState.familyHouseId?'Residência familiar definida':'Residência familiar não definida')+'</small><small>A herança ficará vinculada ao sucessor e à residência escolhida. Nenhum bem ou moeda será transferido agora; a sucessão por falecimento será uma etapa futura.</small></div></section>';
+        const stockMarkup='<section class="village-stock"><h3 class="villager-invite-heading">DEPÓSITO DA VILA</h3><p class="village-food-status">🍲 Provisões: <strong>'+villageFoodCount()+' refeições</strong> · '+villagers.length+' moradores<br><small>'+foodStatus+'</small></p><div class="village-stock-grid">'+Object.entries(villageStockLabels).map(([key,label])=>'<span>'+label+'</span><strong>'+String(villageStock[key]||0)+'</strong>').join("")+'</div><button type="button" data-deposit-village class="village-deposit-button">DEPOSITAR RECURSOS DA MOCHILA</button><small class="village-stock-note">Cada morador consome 1 refeição por dia, retirada automaticamente do depósito. A cozinheira prepara carne assada ou sopa quando há ingredientes.</small></section>';
+    villagersList.innerHTML=dynastyMarkup+relationshipMarkup+pregnancyMarkup+familyTreeMarkup+(villagers.length?villagers.map(v=>{
       const distance=Math.hypot(v.x-player.x,v.z-player.z),direction=villagerDirection(v);
       const mood=v.happiness>=75?"Muito feliz":v.happiness>=50?"Satisfeito":v.happiness>=25?"Insatisfeito":"Muito insatisfeito";
       return '<article class="villager-directory-item"><div><strong>'+v.name+'</strong><span>'+v.role+' · '+mood+'</span><small class="villager-romance">'+villagerRelationshipLabel(v)+'</small><small>Felicidade '+Math.round(v.happiness)+'/100 · Fome '+Math.round(v.hunger)+'/100</small><div class="villager-needs-track"><i style="width:'+v.happiness+'%"></i></div><small>'+v.foodStatus+' · '+v.housingStatus+' · '+(v.atWork?"Trabalhando":"Em casa / deslocando-se")+' · '+direction+' · '+distance.toFixed(0)+' m · Casa '+v.houseId.replace("house-","")+'</small><label class="villager-profession-label">PROFISSÃO <select data-villager-profession="'+v.id+'">'+villagerDefinitions.map(def=>'<option value="'+def.role+'" '+(def.role===v.role?"selected":"")+' >'+def.role+'</option>').join("")+'</select></label></div><button type="button" data-face-villager="'+v.id+'">LOCALIZAR</button></article>';
@@ -906,6 +914,24 @@ function startGame(THREE) {
     updateInventoryUI();saveProgress(true);renderVillagersDirectory();showToast(deposited+" recursos depositados no estoque da vila.");
   });
   villagersList.addEventListener("change",event=>{
+    const heirSelect=event.target.closest("select[data-dynasty-heir]");
+    if(heirSelect){
+      const heir=familyChildren.find(child=>child.id===heirSelect.value);
+      if(heirSelect.value&&!heir){showToast("Esse descendente não está disponível para sucessão.");return;}
+      dynastyState.heirId=heir?.id||"";
+      saveProgress(true);renderVillagersDirectory();
+      showToast(heir?"Herdeiro da dinastia definido: "+heir.name+".":"Escolha do herdeiro removida.");
+      return;
+    }
+    const houseSelect=event.target.closest("select[data-dynasty-house]");
+    if(houseSelect){
+      const house=villageHouses.find(item=>item.id===houseSelect.value);
+      if(houseSelect.value&&!house){showToast("Essa propriedade não está disponível.");return;}
+      dynastyState.familyHouseId=house?.id||"";
+      saveProgress(true);renderVillagersDirectory();
+      showToast(house?"Residência principal da família definida.":"Residência familiar removida.");
+      return;
+    }
     const select=event.target.closest("select[data-villager-profession]");
     if(!select)return;
     const villager=villagers.find(v=>v.id===select.dataset.villagerProfession);
@@ -1963,6 +1989,7 @@ function startGame(THREE) {
         villagerRelationships:villagerRelationships.map(item=>({...item})),
         familyPregnancies:familyPregnancies.map(item=>({...item})),
         familyChildren:familyChildren.map(item=>({...item})),
+        dynastyState:{...dynastyState},
         nextChildName,
         structurePositions:structurePositionsForSave()
       }));
