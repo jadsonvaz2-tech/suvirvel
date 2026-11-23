@@ -252,7 +252,7 @@ function startGame(THREE) {
   const villagers=[];
   const villageHouses=(Array.isArray(saved?.villageHouses)?saved.villageHouses:[]).map((house,index)=>({id:house.id||"house-"+(index+1),x:house.x,z:house.z,yaw:house.yaw||0,group:null,occupants:[]}));
   const recruitedVillagers=Array.isArray(saved?.recruitedVillagers)?saved.recruitedVillagers.slice(0,40):[];
-  const villageStock=Object.fromEntries(["wheat","carrots","cabbages","wood","branches","rawMeat","hide","trout","carp","minnow","roastedMeat","vegetableSoup","fabric","craftedGoods","tools"].map(key=>[key,Number.isSafeInteger(saved?.villageStock?.[key])?Math.max(0,Math.min(999999,saved.villageStock[key])):0]));
+  const villageStock=Object.fromEntries(["wheat","carrots","cabbages","wood","branches","stones","wool","rawMeat","hide","trout","carp","minnow","roastedMeat","vegetableSoup","fabric","craftedGoods","tools"].map(key=>[key,Number.isSafeInteger(saved?.villageStock?.[key])?Math.max(0,Math.min(999999,saved.villageStock[key])):0]));
   let villageProductionLastMinute=Number.isSafeInteger(saved?.villageProductionLastMinute)?Math.max(0,saved.villageProductionLastMinute):totalGameMinutes();
   let kitchenPosition=null,kitchenFire=null,kitchenGroup=null,canUseKitchen=false,loomPosition=null,loomGroup=null,canUseLoom=false,tanneryPosition=null,tanneryGroup=null,canUseTannery=false,merchantPosition=null,canUseMerchant=false;
   const savedStructurePositions=saved?.structurePositions&&typeof saved.structurePositions==="object"?saved.structurePositions:{};
@@ -522,7 +522,7 @@ function startGame(THREE) {
     const offset=workOffsets[professionIndex%workOffsets.length];
     return {...def,role:profession,profession,labelMesh:label,group:root,x:start.x,z:start.z,homeX:start.x,homeZ:start.z,workX:THREE.MathUtils.clamp(start.x+offset[0],-90,90),workZ:THREE.MathUtils.clamp(start.z+offset[1],-90,90),targetX:start.x,targetZ:start.z,wait:1+Math.random()*3,walk:0,arms:root.children.filter((child,index)=>index>=4&&index<=5),houseId:house.id,atWork:false};
   }
-  const villageStockLabels={wheat:"Trigo",carrots:"Cenouras",cabbages:"Repolhos",wood:"Madeira",branches:"Galhos",rawMeat:"Carne crua",hide:"Couro bruto",trout:"Trutas",carp:"Carpas",minnow:"Lambaris",roastedMeat:"Carne assada",vegetableSoup:"Sopa de legumes",fabric:"Tecido",craftedGoods:"Artesanato",tools:"Ferramentas"};
+  const villageStockLabels={wheat:"Trigo",carrots:"Cenouras",cabbages:"Repolhos",wood:"Madeira",branches:"Galhos",stones:"Pedras",wool:"Lã",rawMeat:"Carne crua",hide:"Couro bruto",trout:"Trutas",carp:"Carpas",minnow:"Lambaris",roastedMeat:"Carne assada",vegetableSoup:"Sopa de legumes",fabric:"Tecido",craftedGoods:"Artesanato",tools:"Ferramentas"};
   function addVillageStock(key,amount=1){villageStock[key]=Math.min(999999,(villageStock[key]||0)+amount);}
   function processVillagerWorkHour(villager){
     switch(villager.role){
@@ -610,7 +610,7 @@ function startGame(THREE) {
     const capacity=villageHouses.length*2;
     const free=villageHouses.reduce((n,house)=>n+Math.max(0,2-house.occupants.length),0);
     villagersSummary.textContent=villagers.length+" moradores · "+villageHouses.length+" casas · "+free+" vagas disponíveis";
-    const stockMarkup='<section class="village-stock"><h3 class="villager-invite-heading">DEPÓSITO DA VILA</h3><div class="village-stock-grid">'+Object.entries(villageStockLabels).map(([key,label])=>'<span>'+label+'</span><strong>'+String(villageStock[key]||0)+'</strong>').join("")+'</div><small class="village-stock-note">A produção acontece entre 07:00 e 19:00, conforme os moradores e suas profissões.</small></section>';
+    const stockMarkup='<section class="village-stock"><h3 class="villager-invite-heading">DEPÓSITO DA VILA</h3><div class="village-stock-grid">'+Object.entries(villageStockLabels).map(([key,label])=>'<span>'+label+'</span><strong>'+String(villageStock[key]||0)+'</strong>').join("")+'</div><button type="button" data-deposit-village class="village-deposit-button">DEPOSITAR RECURSOS DA MOCHILA</button><small class="village-stock-note">A produção acontece entre 07:00 e 19:00. Deposite materiais para cozinheiros, tecelões e ferreiros trabalharem.</small></section>';
     villagersList.innerHTML=villagers.length?villagers.map(v=>{
       const distance=Math.hypot(v.x-player.x,v.z-player.z),direction=villagerDirection(v);
       return '<article class="villager-directory-item"><div><strong>'+v.name+'</strong><span>'+v.role+'</span><small>'+(v.atWork?"Trabalhando":"Em casa / deslocando-se")+' · '+direction+' · '+distance.toFixed(0)+' m · Casa '+v.houseId.replace("house-","")+'</small><label class="villager-profession-label">PROFISSÃO <select data-villager-profession="'+v.id+'">'+villagerDefinitions.map(def=>'<option value="'+def.role+'" '+(def.role===v.role?"selected":"")+' >'+def.role+'</option>').join("")+'</select></label></div><button type="button" data-face-villager="'+v.id+'">LOCALIZAR</button></article>';
@@ -636,6 +636,14 @@ function startGame(THREE) {
   function closeVillagersDirectory(){villagersDirectory.classList.add("hidden");}
   villagersToggle.addEventListener("click",openVillagersDirectory);
   villagersDirectoryClose.addEventListener("click",closeVillagersDirectory);
+  villagersDirectory.addEventListener("click",event=>{
+    if(!event.target.closest("[data-deposit-village]"))return;
+    const depositKeys=["wood","branches","stones","wool","rawMeat","hide","wheat","carrots","cabbages","trout","carp","minnow"];
+    let deposited=0;
+    for(const key of depositKeys){const amount=Math.max(0,Math.floor(inventory[key]||0));if(amount){addVillageStock(key,amount);inventory[key]-=amount;deposited+=amount;}}
+    if(!deposited){showToast("Você não tem recursos compatíveis para depositar.");return;}
+    updateInventoryUI();saveProgress(true);renderVillagersDirectory();showToast(deposited+" recursos depositados no estoque da vila.");
+  });
   villagersList.addEventListener("change",event=>{
     const select=event.target.closest("select[data-villager-profession]");
     if(!select)return;
@@ -1611,7 +1619,7 @@ function startGame(THREE) {
           minute: Number.isInteger(saved.gameTime?.minute) ? THREE.MathUtils.clamp(saved.gameTime.minute,0,59) : 0
         },
         completedVillagerTasks:[],
-        villageStock:saved.villageStock&&typeof saved.villageStock==="object"?Object.fromEntries(["wheat","carrots","cabbages","wood","branches","rawMeat","hide","trout","carp","minnow","roastedMeat","vegetableSoup","fabric","craftedGoods","tools"].map(key=>[key,safeCount(saved.villageStock[key])])):{},
+        villageStock:saved.villageStock&&typeof saved.villageStock==="object"?Object.fromEntries(["wheat","carrots","cabbages","wood","branches","stones","wool","rawMeat","hide","trout","carp","minnow","roastedMeat","vegetableSoup","fabric","craftedGoods","tools"].map(key=>[key,safeCount(saved.villageStock[key])])):{},
         villageProductionLastMinute:Number.isSafeInteger(saved.villageProductionLastMinute)?Math.max(0,saved.villageProductionLastMinute):null,
         villageHouses:Array.isArray(saved.villageHouses)?saved.villageHouses.filter(house=>house&&typeof house.id==="string"&&Number.isFinite(house.x)&&Number.isFinite(house.z)&&Math.abs(house.x)<=96&&Math.abs(house.z)<=96).slice(0,40).map(house=>({id:house.id,x:house.x,z:house.z,yaw:Number.isFinite(house.yaw)?house.yaw:0})):[],
         recruitedVillagers:Array.isArray(saved.recruitedVillagers)?saved.recruitedVillagers.filter(item=>item&&typeof item.id==="string"&&typeof item.houseId==="string").slice(0,40).map(item=>({id:item.id,houseId:item.houseId,profession:typeof item.profession==="string"&&item.profession.length<40?item.profession:null})):[],
