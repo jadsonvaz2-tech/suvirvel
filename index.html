@@ -27,7 +27,7 @@
     <section class="survival-panel" aria-label="Condição do viajante">
       <div class="survival-heading">
         <span>CONDIÇÃO DO VIAJANTE</span>
-        <strong id="survival-status">ESTÁVEL</strong>
+        <strong id="<span class="wallet-coins" aria-label="Moedas">🪙 <strong id="wallet-coins">30</strong></span>survival-status">ESTÁVEL</strong>
       </div>
       <div class="survival-grid">
         <div class="survival-stat stat-health">
@@ -226,6 +226,13 @@
       <button type="button" id="craft-bow-button" class="craft-action-button" disabled>FABRICAR ARCO · 4 GALHOS + 2 TECIDOS</button>
       <button type="button" id="craft-arrows-button" class="craft-action-button" disabled>FABRICAR 5 FLECHAS · 2 GALHOS + 1 PEDRA</button>
       <button type="button" id="craft-fishing-rod-button" class="craft-action-button" disabled>FABRICAR VARA DE PESCA · 3 GALHOS + 1 TECIDO</button>
+    </section>
+    <section id="merchant-panel" class="merchant-panel hidden" aria-label="Comércio medieval">
+      <header class="inventory-header"><div><span class="eyebrow">COMÉRCIO DO VALE</span><strong id="merchant-title">MERCADOR DO VALE</strong></div><button type="button" id="merchant-close" class="inventory-close" aria-label="Fechar comércio">×</button></header>
+      <p id="merchant-status" class="building-description">Compre e venda recursos com o mercador.</p>
+      <div id="merchant-coins" class="merchant-coins">Sua bolsa: 30 moedas</div>
+      <div id="merchant-items" class="merchant-items"></div>
+      <small class="building-help">Cada operação negocia uma unidade. Moedas e mercadorias são salvas automaticamente.</small>
     </section>
     <div id="game-toast" class="game-toast hidden" role="status" aria-live="polite"></div>
     <section class="location-card">

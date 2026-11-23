@@ -47,6 +47,7 @@ const kitchenRecipes = document.getElementById("kitchen-recipes");
 const loomPanel = document.getElementById("loom-panel"), loomClose = document.getElementById("loom-close"), loomTitle = document.getElementById("loom-title"), loomStatus = document.getElementById("loom-status"), loomActions = document.getElementById("loom-actions");
 const tanneryPanel=document.getElementById("tannery-panel"),tanneryClose=document.getElementById("tannery-close"),tanneryTitle=document.getElementById("tannery-title"),tanneryStatus=document.getElementById("tannery-status"),tanneryActions=document.getElementById("tannery-actions");
 const fishingPanel=document.getElementById("fishing-panel"),fishingClose=document.getElementById("fishing-close"),fishingStatus=document.getElementById("fishing-status"),fishingAction=document.getElementById("fishing-action");
+const merchantPanel=document.getElementById("merchant-panel"),merchantClose=document.getElementById("merchant-close"),merchantTitle=document.getElementById("merchant-title"),merchantStatus=document.getElementById("merchant-status"),merchantCoins=document.getElementById("merchant-coins"),merchantItems=document.getElementById("merchant-items"),walletUI=document.getElementById("wallet-coins");
 const gameClockUI = document.getElementById("game-clock");
 const interactionType = document.getElementById("interaction-type");
 const interactionVerb = document.getElementById("interaction-verb");
@@ -243,7 +244,7 @@ function startGame(THREE) {
     return {id,crop:prior&&Object.hasOwn(cropTypes,prior.crop)?prior.crop:null,plantedAt:prior&&Number.isSafeInteger(prior.plantedAt)?Math.max(0,prior.plantedAt):0,localX:5.1,localZ:(index-1)*2.2,group:null,cropGroup:null,visualStage:-1,x:0,z:0};
   });
   let currentFarmPlot=null,canUseFarmPlot=false;
-  let kitchenPosition=null,kitchenFire=null,canUseKitchen=false,loomPosition=null,canUseLoom=false,tanneryPosition=null,canUseTannery=false;
+  let kitchenPosition=null,kitchenFire=null,canUseKitchen=false,loomPosition=null,canUseLoom=false,tanneryPosition=null,canUseTannery=false,merchantPosition=null,canUseMerchant=false;
   let gameTimeAccumulator=0;
   function updateGameClockUI(){gameClockUI.textContent="DIA "+gameTime.day+" · "+String(gameTime.hour).padStart(2,"0")+":"+String(gameTime.minute).padStart(2,"0");}
   function inventoryLoad(){return Object.values(inventory).reduce((total,value)=>total+(Number.isFinite(value)?value:0),0);}
@@ -455,6 +456,21 @@ function startGame(THREE) {
   benchLabel.scale.set(4.1, 1.02, 1);
   workbench.add(benchLabel);
   scene.add(workbench);
+
+  // Pequena banca de comércio na clareira inicial, próxima à oficina.
+  merchantPosition=resourcePosition(-4.8,2.7);
+  const merchantStall=new THREE.Group();
+  const stallWood=new THREE.MeshStandardMaterial({color:0x805532,roughness:0.95});
+  const stallCloth=new THREE.MeshStandardMaterial({color:0x9a4d36,roughness:0.9});
+  const stallTop=new THREE.Mesh(new THREE.BoxGeometry(3.2,0.16,1.35),stallWood);stallTop.position.y=1.18;merchantStall.add(stallTop);
+  for(const x of [-1.35,1.35])for(const z of [-0.52,0.52]){const leg=new THREE.Mesh(new THREE.BoxGeometry(0.14,1.15,0.14),stallWood);leg.position.set(x,0.58,z);merchantStall.add(leg);}
+  const canopy=new THREE.Mesh(new THREE.BoxGeometry(3.5,0.14,1.75),stallCloth);canopy.position.set(0,2.55,0);merchantStall.add(canopy);
+  for(let i=0;i<5;i++){const stripe=new THREE.Mesh(new THREE.BoxGeometry(0.13,0.025,1.72),new THREE.MeshStandardMaterial({color:0xe3c99a,roughness:1}));stripe.position.set(-1.4+i*0.7,2.64,0);merchantStall.add(stripe);}
+  const merchantBody=new THREE.Mesh(new THREE.CylinderGeometry(0.34,0.42,1.12,8),new THREE.MeshStandardMaterial({color:0x526b4c,roughness:1}));merchantBody.position.set(0,1.72,-0.92);merchantStall.add(merchantBody);
+  const merchantHead=new THREE.Mesh(new THREE.SphereGeometry(0.29,10,8),new THREE.MeshStandardMaterial({color:0xd5a77c,roughness:1}));merchantHead.position.set(0,2.48,-0.92);merchantStall.add(merchantHead);
+  const merchantHat=new THREE.Mesh(new THREE.CylinderGeometry(0.38,0.3,0.16,8),stallCloth);merchantHat.position.set(0,2.72,-0.92);merchantStall.add(merchantHat);
+  merchantStall.position.set(merchantPosition.x,groundHeight(merchantPosition.x,merchantPosition.z),merchantPosition.z);scene.add(merchantStall);
+  const merchantLabel=makeResourceLabel("MERCADOR · E","#d4b16b");merchantLabel.position.set(0,3.35,0);merchantLabel.scale.set(4.0,1,1);merchantStall.add(merchantLabel);
 
   let builtCabin = saved?.builtCabin ?? null;
   // Primeira construção: cabana de madeira com prévia translúcida.
@@ -1001,6 +1017,7 @@ function startGame(THREE) {
     thirst: saved?.thirst ?? 100,
     energy: saved?.energy ?? 100, warmth: saved?.warmth ?? 100
   };
+  let coins = Number.isSafeInteger(saved?.coins) ? Math.max(0,Math.min(999999,saved.coins)) : 30;
   const inventory = {
     branches: saved?.inventory?.branches ?? 0,
     stones: saved?.inventory?.stones ?? 0,
@@ -1069,6 +1086,7 @@ function startGame(THREE) {
   updateSurvivalUI(true);
   function updateInventoryUI() {
     for (const key of Object.keys(inventoryUI)) inventoryUI[key].textContent=String(inventory[key]??0);
+    if(walletUI)walletUI.textContent=String(coins);
     const loadLabel=document.getElementById("carry-load");if(loadLabel)loadLabel.textContent=inventoryLoad()+" / "+carryCapacity();
     const backpackStatus=document.getElementById("leather-backpack-status");if(backpackStatus)backpackStatus.textContent=tools.leatherBackpack?"Equipada · +40 espaços":"Guardada";
     for(const button of inventoryPanel.querySelectorAll("[data-eat-crop]")){
@@ -1243,6 +1261,7 @@ function startGame(THREE) {
         z: saved.z,
         yaw: Number.isFinite(saved.yaw) ? saved.yaw : 0,
         pitch: Number.isFinite(saved.pitch) ? THREE.MathUtils.clamp(saved.pitch, -1.15, 1.15) : -0.04,
+        coins: Number.isSafeInteger(saved.coins)?THREE.MathUtils.clamp(saved.coins,0,999999):30,
         health: safeStat(saved.health),
         hunger: safeStat(saved.hunger),
         thirst: safeStat(saved.thirst),
@@ -1321,6 +1340,7 @@ function startGame(THREE) {
       localStorage.setItem("legado-do-vale-prototipo", JSON.stringify({
         x: player.x, z: player.z, yaw: player.yaw, pitch: player.pitch,
         seedStarterPackClaimed: true,
+        coins,
         tanneryState:{...tanneryState},
         fishingSpotState:{lastCatch:fishingLastCatch},
         health: survival.health, hunger: survival.hunger, thirst: survival.thirst, energy: survival.energy, warmth: survival.warmth, clothing:{...clothing},
@@ -1438,6 +1458,7 @@ function startGame(THREE) {
     if (!event.repeat && key === "escape") {
       if(buildMode)stopBuilding();
       else if(!tanneryPanel.classList.contains("hidden"))closeTanneryPanel();
+      else if(!merchantPanel.classList.contains("hidden"))closeMerchantPanel();
       else if(!fishingPanel.classList.contains("hidden"))closeFishingPanel();
       else if(!loomPanel.classList.contains("hidden"))closeLoomPanel();
       else if(!kitchenPanel.classList.contains("hidden"))closeKitchenPanel();
@@ -1491,6 +1512,37 @@ function startGame(THREE) {
     return false;
   }
 
+  const tradeGoods=[
+    {key:"branches",label:"Galhos",icon:"🌿",buy:3,sell:1},{key:"stones",label:"Pedras",icon:"🪨",buy:4,sell:2},
+    {key:"berries",label:"Frutas",icon:"🫐",buy:3,sell:1},{key:"wood",label:"Madeira",icon:"🪵",buy:7,sell:4},
+    {key:"wheat",label:"Trigo",icon:"🌾",buy:5,sell:3},{key:"carrots",label:"Cenouras",icon:"🥕",buy:5,sell:3},
+    {key:"cabbages",label:"Repolhos",icon:"🥬",buy:6,sell:3},{key:"eggs",label:"Ovos",icon:"🥚",buy:8,sell:5},
+    {key:"wool",label:"Lã",icon:"🐑",buy:12,sell:7},{key:"fabric",label:"Tecido",icon:"🧵",buy:18,sell:11},
+    {key:"hide",label:"Couro cru",icon:"🟤",buy:13,sell:8},{key:"tannedLeather",label:"Couro curtido",icon:"🟫",buy:24,sell:15},
+    {key:"trout",label:"Truta",icon:"🐟",buy:11,sell:7},{key:"carp",label:"Carpa",icon:"🐠",buy:9,sell:5},
+    {key:"minnow",label:"Peixe pequeno",icon:"🐟",buy:5,sell:2}
+  ];
+  function renderMerchantPanel(){
+    merchantCoins.textContent="Sua bolsa: "+coins+" moedas";
+    merchantItems.innerHTML=tradeGoods.map(item=>'<article class="merchant-item"><div class="merchant-item-copy"><strong>'+item.icon+' '+item.label+'</strong><small>Comprar: '+item.buy+' moedas · Vender: '+item.sell+' moedas · Você tem: '+inventory[item.key]+'</small></div><div class="merchant-item-actions"><button type="button" data-trade="buy" data-item="'+item.key+'" '+(coins<item.buy||inventoryLoad()>=carryCapacity()?"disabled":"")+'>COMPRAR</button><button type="button" data-trade="sell" data-item="'+item.key+'" '+(inventory[item.key]<1?"disabled":"")+'>VENDER</button></div></article>').join("");
+  }
+  function openMerchantPanel(){if(!canUseMerchant)return;merchantTitle.textContent="MERCADOR DO VALE";merchantStatus.textContent="Negocie recursos e produtos. Cada operação compra ou vende uma unidade.";renderMerchantPanel();merchantPanel.classList.remove("hidden");}
+  function closeMerchantPanel(){merchantPanel.classList.add("hidden");}
+  function tradeWithMerchant(action,key){
+    const item=tradeGoods.find(entry=>entry.key===key);if(!item||!canUseMerchant)return;
+    if(action==="buy"){
+      if(coins<item.buy){showToast("Moedas insuficientes para comprar "+item.label.toLowerCase()+".");return;}
+      if(inventoryLoad()>=carryCapacity()){showToast("Mochila cheia. Guarde itens antes de comprar.");return;}
+      coins-=item.buy;inventory[key]=Math.min(9999,inventory[key]+1);showToast("Compra realizada · 1 "+item.label.toLowerCase()+".");
+    }else if(action==="sell"){
+      if(inventory[key]<1){showToast("Você não tem "+item.label.toLowerCase()+" para vender.");return;}
+      inventory[key]--;coins=Math.min(999999,coins+item.sell);showToast("Venda realizada · +"+item.sell+" moedas.");
+    }else return;
+    updateInventoryUI();renderMerchantPanel();saveProgress(true);
+  }
+  merchantItems.addEventListener("click",event=>{const button=event.target.closest("button[data-trade]");if(button)tradeWithMerchant(button.dataset.trade,button.dataset.item);});
+  merchantClose.addEventListener("click",closeMerchantPanel);
+
   function updateResourceTarget() {
     if (buildMode) { interactionPrompt.classList.add("hidden"); collectButton.classList.add("hidden"); return; }
     const facingX = -Math.sin(player.yaw);
@@ -1513,6 +1565,8 @@ function startGame(THREE) {
     let nearestFishing=null,nearestFishingDistance=Infinity;
     for(const spot of fishingSpots){const d=Math.hypot(spot.x-player.x,spot.z-player.z);if(d<5.2&&d<nearestFishingDistance){nearestFishing=spot;nearestFishingDistance=d;}}
     currentFishingSpot=nearestFishing;canUseFishingSpot=Boolean(nearestFishing&&!match&&tools.fishingRod);
+    const merchantDistance=merchantPosition?Math.hypot(merchantPosition.x-player.x,merchantPosition.z-player.z):Infinity;
+    canUseMerchant=Boolean(!match&&merchantDistance<=5.0);
     const tanneryDistance=tanneryPosition?Math.hypot(tanneryPosition.x-player.x,tanneryPosition.z-player.z):Infinity;
     canUseTannery=Boolean(builtCabin&&!match&&tanneryDistance<=4.4);
     const loomDistance=loomPosition?Math.hypot(loomPosition.x-player.x,loomPosition.z-player.z):Infinity;
@@ -1564,7 +1618,7 @@ function startGame(THREE) {
     currentTreeTarget = !match && !canUseLoom && !canDrinkWater && !canUseWorkbench && !canUseFarmPlot && !canUseAnimalPen && !canUseKitchen && !canUseLoom ? treeMatch : null;
     canChopTree = Boolean(currentTreeTarget && tools.axe);
     currentResourceTarget = match;
-    const hasInteraction = Boolean(match) || canUseTannery || canUseFishingSpot || canDrinkWater || canUseWorkbench || canUseFarmPlot || canUseAnimalPen || canUseKitchen || canUseLoom || canUseCabinDoor || canUseBed || canUseStorageChest || Boolean(currentTreeTarget) || Boolean(currentWildlifeTarget);
+    const hasInteraction = Boolean(match) || canUseMerchant || canUseTannery || canUseFishingSpot || canDrinkWater || canUseWorkbench || canUseFarmPlot || canUseAnimalPen || canUseKitchen || canUseLoom || canUseCabinDoor || canUseBed || canUseStorageChest || Boolean(currentTreeTarget) || Boolean(currentWildlifeTarget);
     interactionPrompt.classList.toggle("hidden", !hasInteraction);
     collectButton.classList.toggle("hidden", !hasInteraction || !isMobile);
 
@@ -1573,6 +1627,8 @@ function startGame(THREE) {
       interactionName.textContent = match.label + " · " + match.amount;
       interactionVerb.textContent = "recolher";
       collectButton.textContent = "RECOLHER";
+    } else if (canUseMerchant) {
+      interactionType.textContent="COMÉRCIO";interactionName.textContent="Banca do mercador";interactionVerb.textContent="comprar e vender mercadorias";collectButton.textContent="NEGOCIAR";
     } else if (canUseFishingSpot) {
       interactionType.textContent="PESCA";interactionName.textContent="Margem de pesca";interactionVerb.textContent="lançar a linha e pescar";collectButton.textContent="PESCAR";
     } else if (canUseTannery) {
@@ -1841,9 +1897,10 @@ function startGame(THREE) {
   sleepPanel.addEventListener("click",event=>{const button=event.target.closest("button[data-sleep-hours]");if(button)sleepFor(Number(button.dataset.sleepHours));});
   sleepClose.addEventListener("click",closeSleepPanel);
   function performCurrentInteraction(){
-    if(!chestPanel.classList.contains("hidden")||!sleepPanel.classList.contains("hidden")||!farmPanel.classList.contains("hidden")||!animalPanel.classList.contains("hidden")||!kitchenPanel.classList.contains("hidden")||!loomPanel.classList.contains("hidden")||!tanneryPanel.classList.contains("hidden")||!fishingPanel.classList.contains("hidden"))return;
+    if(!chestPanel.classList.contains("hidden")||!sleepPanel.classList.contains("hidden")||!farmPanel.classList.contains("hidden")||!animalPanel.classList.contains("hidden")||!kitchenPanel.classList.contains("hidden")||!loomPanel.classList.contains("hidden")||!tanneryPanel.classList.contains("hidden")||!fishingPanel.classList.contains("hidden")||!merchantPanel.classList.contains("hidden"))return;
     if(buildMode){confirmBuilding();return;}
     if(currentResourceTarget)collectCurrentResource();
+    else if(canUseMerchant)openMerchantPanel();
     else if(canUseTannery)openTanneryPanel();
     else if(canUseFishingSpot)openFishingPanel();
     else if(canUseLoom)openLoomPanel();
@@ -1887,7 +1944,7 @@ function startGame(THREE) {
     const cos = Math.cos(player.yaw);
     const moveX = (-sin * forward + cos * strafe) * speed * delta;
     const moveZ = (-cos * forward - sin * strafe) * speed * delta;
-    if (sleepPanel.classList.contains("hidden") && farmPanel.classList.contains("hidden") && animalPanel.classList.contains("hidden") && kitchenPanel.classList.contains("hidden") && loomPanel.classList.contains("hidden") && tanneryPanel.classList.contains("hidden") && fishingPanel.classList.contains("hidden") && (moveX || moveZ)) {
+    if (sleepPanel.classList.contains("hidden") && farmPanel.classList.contains("hidden") && animalPanel.classList.contains("hidden") && kitchenPanel.classList.contains("hidden") && loomPanel.classList.contains("hidden") && tanneryPanel.classList.contains("hidden") && fishingPanel.classList.contains("hidden") && merchantPanel.classList.contains("hidden") && (moveX || moveZ)) {
       const nextX = player.x + moveX;
       const nextZ = player.z + moveZ;
       if (!isBlocked(nextX, player.z)) player.x = nextX;
