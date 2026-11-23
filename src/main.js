@@ -1815,6 +1815,7 @@ function startGame(THREE) {
       canUseKitchen=Math.hypot(player.x-kitchenPosition.x,player.z-kitchenPosition.z)<=4.6;
     }
 
+    if(canUseTannery||canUseLoom||canDrinkWater||canUseWorkbench||canUseFarmPlot||canUseAnimalPen||canUseKitchen||canUseCabinDoor||canUseBed||canUseStorageChest||canUseMerchant||canUseFishingSpot)currentVillager=null;
     let wildlifeMatch=null,bestWildlifeDistance=Infinity;
     for(const actor of wildlifeActors){const dx=actor.x-player.x,dz=actor.z-player.z,distance=Math.hypot(dx,dz);if(distance>34||distance<2)continue;const facing=(dx*facingX+dz*facingZ)/distance;if(facing<.91||distance>=bestWildlifeDistance)continue;wildlifeMatch=actor;bestWildlifeDistance=distance;}
     currentWildlifeTarget=wildlifeMatch;
