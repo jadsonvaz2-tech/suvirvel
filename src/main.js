@@ -308,6 +308,7 @@ function startGame(THREE) {
   workbench.add(benchLabel);
   scene.add(workbench);
 
+  let builtCabin = saved?.builtCabin ?? null;
   // Primeira construção: cabana de madeira com prévia translúcida.
   let buildMode = false;
   let buildRotation = 0;
@@ -558,7 +559,6 @@ function startGame(THREE) {
     wood: saved?.inventory?.wood ?? 0
   };
   const tools = { axe: saved?.tools?.axe === true };
-  let builtCabin = saved?.builtCabin ?? null;
   let currentResourceTarget = null;
   let canDrinkWater = false;
   let canUseWorkbench = false;
