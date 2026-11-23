@@ -122,3 +122,13 @@ Esta etapa inclui coleta, mochila, alimentação e hidratação; fabricação e 
 - Fome e sede diminuem durante o descanso; se alguma necessidade chegar a zero, a saúde também pode ser afetada.
 - O relógio (dia e horário), vigor e necessidades são salvos automaticamente e continuam após atualizar a página.
 - O relógio do jogo começa no Dia 1 às 08:00 e avança um minuto a cada cinco segundos reais.
+
+
+## Fase 3 — Agricultura
+
+- Ao construir a cabana, três canteiros de madeira e terra aparecem ao lado do abrigo.
+- A mochila começa com 3 sementes de cada cultura: trigo, cenoura e repolho.
+- Aproxime-se de um canteiro e pressione E (ou use o botão de ação no celular) para plantar ou colher.
+- Cada canteiro recebe uma cultura por vez. O crescimento é calculado pelo relógio do jogo: trigo 6 horas, cenoura 8 horas e repolho 10 horas.
+- Colha as culturas maduras e consuma trigo (+20 de fome), cenoura (+28) ou repolho (+34).
+- Sementes, colheitas, horário e estado de cada canteiro são salvos automaticamente no dispositivo.

@@ -61,6 +61,12 @@
         <div class="inventory-item inventory-item-food"><span class="item-icon item-berry">●</span><span class="item-name">Frutas silvestres</span><strong id="berries-count">0</strong><button type="button" id="eat-berry-button" class="eat-berry-button" disabled>COMER 1</button></div>
         <div class="inventory-item"><span class="item-icon item-axe">🪓</span><span class="item-name">Machado simples</span><strong id="axe-count">0</strong></div>
         <div class="inventory-item"><span class="item-icon item-wood">▰</span><span class="item-name">Madeira</span><strong id="wood-count">0</strong></div>
+        <div class="inventory-item"><span class="item-icon item-seed">✦</span><span class="item-name">Sementes de trigo</span><strong id="wheat-seeds-count">3</strong></div>
+        <div class="inventory-item"><span class="item-icon item-seed">✦</span><span class="item-name">Sementes de cenoura</span><strong id="carrot-seeds-count">3</strong></div>
+        <div class="inventory-item"><span class="item-icon item-seed">✦</span><span class="item-name">Sementes de repolho</span><strong id="cabbage-seeds-count">3</strong></div>
+        <div class="inventory-item inventory-item-food"><span class="item-icon item-food">🌾</span><span class="item-name">Trigo colhido</span><strong id="wheat-count">0</strong><button type="button" data-eat-crop="wheat" class="eat-berry-button" disabled>COMER 1</button></div>
+        <div class="inventory-item inventory-item-food"><span class="item-icon item-food">🥕</span><span class="item-name">Cenouras</span><strong id="carrots-count">0</strong><button type="button" data-eat-crop="carrots" class="eat-berry-button" disabled>COMER 1</button></div>
+        <div class="inventory-item inventory-item-food"><span class="item-icon item-food">🥬</span><span class="item-name">Repolhos</span><strong id="cabbages-count">0</strong><button type="button" data-eat-crop="cabbages" class="eat-berry-button" disabled>COMER 1</button></div>
       </div>
       <p class="inventory-note">Os recursos recolhidos ficam guardados neste dispositivo.</p>
     </section>
@@ -78,6 +84,15 @@
       <p class="building-description">Guarde recursos para liberar espaço na mochila ou retire o que precisar. Cada toque transfere uma unidade.</p>
       <div id="chest-items" class="chest-items"></div>
       <small class="building-help">O conteúdo é salvo automaticamente neste dispositivo.</small>
+    </section>
+    <section id="farm-panel" class="farm-panel hidden" aria-label="Cuidar da plantação">
+      <header class="inventory-header">
+        <div><span class="eyebrow">AGRICULTURA</span><strong id="farm-plot-title">CANTEIRO</strong></div>
+        <button type="button" id="farm-close" class="inventory-close" aria-label="Fechar plantação">×</button>
+      </header>
+      <p id="farm-plot-status" class="building-description">Escolha uma semente para plantar.</p>
+      <div id="farm-actions" class="farm-actions"></div>
+      <small class="building-help">O crescimento acompanha o relógio do jogo e é salvo automaticamente.</small>
     </section>
     <section id="sleep-panel" class="sleep-panel hidden" aria-label="Descansar na cama">
       <header class="inventory-header">

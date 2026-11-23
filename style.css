@@ -354,3 +354,14 @@ kbd { min-width: 17px; padding: 4px 5px; border: 1px solid rgba(241,232,210,.28)
 .sleep-actions button strong { font:inherit; font-size:10px; font-weight:900; letter-spacing:.08em; }
 .sleep-actions button small { color:var(--muted); font-size:9px; }
 @media (max-width:700px),(pointer:coarse) { .game-clock { margin-left:5px; padding:4px 6px; font-size:8px; } .top-status { font-size:8px; } }
+
+
+/* Agricultura e canteiros */
+.item-seed,.item-food { color:#a8c77a; }
+.farm-panel { position:absolute; z-index:17; top:50%; left:50%; width:min(380px,calc(100vw - 32px)); max-height:min(82vh,640px); overflow:auto; padding:18px; border:1px solid rgba(132,166,102,.72); border-radius:11px; color:var(--cream); background:rgba(22,34,25,.98); box-shadow:0 16px 42px rgba(0,0,0,.46); backdrop-filter:blur(12px); transform:translate(-50%,-50%); }
+.farm-panel.hidden { display:none !important; }
+.farm-actions { display:grid; gap:8px; }
+.farm-actions button { display:grid; gap:5px; min-height:54px; padding:10px 12px; border:1px solid rgba(145,176,112,.52); border-radius:7px; color:var(--cream); background:rgba(71,102,54,.42); text-align:left; cursor:pointer; }
+.farm-actions button strong { font:inherit; font-size:10px; font-weight:900; letter-spacing:.06em; }
+.farm-actions button small { color:var(--muted); font-size:9px; }
+.farm-actions button:disabled { opacity:.42; cursor:not-allowed; }
