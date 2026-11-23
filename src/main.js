@@ -11,6 +11,7 @@ const inventoryToggle = document.getElementById("inventory-toggle");
 const inventoryPanel = document.getElementById("inventory-panel");
 const inventoryClose = document.getElementById("inventory-close");
 const eatBerryButton = document.getElementById("eat-berry-button");
+const axeCountUI = document.getElementById("axe-count");
 const craftingPanel = document.getElementById("crafting-panel");
 const craftingClose = document.getElementById("crafting-close");
 const craftAxeButton = document.getElementById("craft-axe-button");
@@ -418,6 +419,7 @@ function startGame(THREE) {
     for (const key of ["branches", "stones", "berries"]) {
       inventoryUI[key].textContent = String(inventory[key]);
     }
+    axeCountUI.textContent = tools.axe ? "1" : "0";
     const canEatBerry = inventory.berries > 0 && survival.hunger < 99.5;
     eatBerryButton.disabled = !canEatBerry;
     workbenchStatus.textContent = tools.axe ? "Machado fabricado" : "Machado ainda não fabricado";

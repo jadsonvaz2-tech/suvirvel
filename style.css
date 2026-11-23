@@ -307,3 +307,5 @@ kbd { min-width: 17px; padding: 4px 5px; border: 1px solid rgba(241,232,210,.28)
 .craft-costs b { color: var(--gold); }
 .craft-action-button { width: 100%; min-height: 42px; margin-top: 10px; border: 1px solid rgba(212,177,107,.65); border-radius: 7px; color: #fff1ce; background: rgba(111,82,42,.72); font: inherit; font-size: 9px; font-weight: 900; letter-spacing: .13em; cursor: pointer; }
 .craft-action-button:disabled { opacity: .42; cursor: not-allowed; }
+
+.item-axe { color: #d7bd8d; }

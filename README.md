@@ -78,6 +78,6 @@ Esta etapa inclui coleta, mochila, alimentação e hidratação; fabricação e 
 - Uma bancada de fabricação low-poly fica posicionada na clareira inicial, próxima ao ponto de partida.
 - Aproxime-se da bancada e pressione E no PC ou toque em USAR BANCADA no celular.
 - Na oficina, fabrique um machado simples usando 3 galhos e 2 pedras da mochila.
-- Os materiais são descontados somente quando a fabricação é concluída; o machado fica registrado como ferramenta fabricada.
+- Os materiais são descontados somente quando a fabricação é concluída; o machado fica registrado como ferramenta fabricada e aparece na mochila.
 - A mochila e o estado do machado são salvos localmente, inclusive após atualizar a página.
 - A receita já prepara o inventário para futuras ferramentas e atividades, sem alterar as funções de sobrevivência, coleta, alimentação e hidratação.
