@@ -250,6 +250,7 @@ function startGame(THREE) {
   let currentVillager=null;
   const completedVillagerTasks=new Set();
   const villagers=[];
+  const familyActors=[];
   const villageHouses=(Array.isArray(saved?.villageHouses)?saved.villageHouses:[]).map((house,index)=>({id:house.id||"house-"+(index+1),x:house.x,z:house.z,yaw:house.yaw||0,group:null,occupants:[]}));
   const recruitedVillagers=Array.isArray(saved?.recruitedVillagers)?saved.recruitedVillagers.slice(0,40):[];
   const villagerRelationships=Array.isArray(saved?.villagerRelationships)?saved.villagerRelationships.filter(item=>item&&typeof item.a==="string"&&typeof item.b==="string"&&item.a!==item.b&&Number.isFinite(item.affinity)&&["amizade","namoro","casados"].includes(item.status)).slice(0,40).map(item=>({a:item.a,b:item.b,affinity:THREE.MathUtils.clamp(item.affinity,0,100),status:item.status,weddingDay:Number.isSafeInteger(item.weddingDay)?Math.max(1,item.weddingDay):null})):[];
@@ -594,6 +595,86 @@ function startGame(THREE) {
     const ageDays=Math.max(0,day-child.birthDay),ageYears=Math.floor(ageDays/30);
     return {ageDays,ageYears,stage:ageYears<=2?"Bebê":ageYears<=6?"Criança":ageYears<=17?"Jovem":"Adulto"};
   }
+  function buildFamilyActorVisual(actor){
+    if(actor.group)scene.remove(actor.group);
+    const child=actor.child,stage=actor.stage;
+    const scale=stage==="Bebê"?.43:stage==="Criança"?.68:stage==="Jovem"?.86:1;
+    const tunicColor=child.gender==="F"?0x8d596b:0x536d82;
+    const accentColor=child.gender==="F"?0xd7b18b:0xc5a16d;
+    const skinMaterial=new THREE.MeshStandardMaterial({color:0xd5a77c,roughness:1});
+    const tunicMaterial=new THREE.MeshStandardMaterial({color:tunicColor,roughness:1});
+    const accentMaterial=new THREE.MeshStandardMaterial({color:accentColor,roughness:1});
+    const hairMaterial=new THREE.MeshStandardMaterial({color:child.gender==="F"?0x49352c:0x59412f,roughness:1});
+    const bootMaterial=new THREE.MeshStandardMaterial({color:0x3c3025,roughness:1});
+    const root=new THREE.Group();
+    const torso=new THREE.Mesh(new THREE.CylinderGeometry(.19,.27,.68,7),tunicMaterial);
+    torso.position.y=.88;root.add(torso);
+    const belt=new THREE.Mesh(new THREE.TorusGeometry(.22,.035,5,8),accentMaterial);
+    belt.rotation.x=Math.PI/2;belt.position.y=.65;root.add(belt);
+    const head=new THREE.Mesh(new THREE.SphereGeometry(.205,9,7),skinMaterial);
+    head.position.y=1.42;root.add(head);
+    const hair=new THREE.Mesh(new THREE.SphereGeometry(.215,8,6,0,Math.PI*2,0,Math.PI*.55),hairMaterial);
+    hair.position.y=1.49;root.add(hair);
+    const arms=[],legs=[];
+    for(const side of [-1,1]){
+      const arm=new THREE.Mesh(new THREE.CylinderGeometry(.065,.085,.48,6),tunicMaterial);
+      arm.position.set(side*.27,.94,0);arm.rotation.z=side*-.13;root.add(arm);arms.push(arm);
+      const leg=new THREE.Mesh(new THREE.CylinderGeometry(.075,.09,.38,6),bootMaterial);
+      leg.position.set(side*.105,.28,0);root.add(leg);legs.push(leg);
+    }
+    const label=makeResourceLabel(child.name+" · "+stage.toUpperCase(),"#f0c76f");
+    label.position.set(0,1.95,0);label.scale.set(2.65,.66,1);root.add(label);
+    root.scale.setScalar(scale);
+    root.position.set(actor.x,groundHeight(actor.x,actor.z),actor.z);
+    scene.add(root);
+    actor.group=root;actor.arms=arms;actor.legs=legs;
+  }
+  function createFamilyActor(child){
+    if(familyActors.some(actor=>actor.child.id===child.id))return;
+    const parent=villagers.find(item=>item.id===child.a)||villagers.find(item=>item.id===child.b);
+    const house=villageHouses.find(item=>item.id===child.houseId)||villageHouses.find(item=>item.id===parent?.houseId);
+    if(!house)return;
+    const development=childDevelopment(child);
+    const index=familyActors.length,side=index%2===0?-1:1,depth=2.4+Math.floor(index/2)%3*.65;
+    const x=house.x+side*1.45,z=house.z+depth;
+    const actor={child,stage:development.stage,ageYears:development.ageYears,houseId:house.id,homeX:x,homeZ:z,x,z,targetX:x,targetZ:z,wait:1+Math.random()*3,walk:Math.random()*6,group:null,arms:[],legs:[]};
+    familyActors.push(actor);buildFamilyActorVisual(actor);
+  }
+  function updateFamilyActors(delta){
+    for(const actor of familyActors){
+      const development=childDevelopment(actor.child);
+      if(development.stage!==actor.stage){
+        actor.stage=development.stage;actor.ageYears=development.ageYears;
+        buildFamilyActorVisual(actor);
+        showToast(actor.child.name+" agora está na fase: "+actor.stage.toLowerCase()+".");
+      }
+      if(actor.stage==="Bebê")continue;
+      actor.wait-=delta;
+      let dx=actor.targetX-actor.x,dz=actor.targetZ-actor.z,distance=Math.hypot(dx,dz);
+      if(distance<.18&&actor.wait<=0){
+        const radius=actor.stage==="Criança"?3.5:actor.stage==="Jovem"?5.5:7;
+        const angle=Math.random()*Math.PI*2,range=1.2+Math.random()*radius;
+        actor.targetX=THREE.MathUtils.clamp(actor.homeX+Math.cos(angle)*range,-94,94);
+        actor.targetZ=THREE.MathUtils.clamp(actor.homeZ+Math.sin(angle)*range,-94,94);
+        actor.wait=1+Math.random()*3;
+        dx=actor.targetX-actor.x;dz=actor.targetZ-actor.z;distance=Math.hypot(dx,dz);
+      }
+      if(distance>.18){
+        const speed=actor.stage==="Criança"?.72:actor.stage==="Jovem"?.92:1.02;
+        const step=Math.min(distance,speed*delta);
+        actor.x+=dx/distance*step;actor.z+=dz/distance*step;
+        actor.group.position.x=actor.x;actor.group.position.z=actor.z;
+        actor.group.position.y=groundHeight(actor.x,actor.z);
+        actor.group.rotation.y=Math.atan2(dx,dz);
+        actor.walk+=delta*7;
+        actor.arms.forEach((arm,index)=>{arm.rotation.x=Math.sin(actor.walk+index*Math.PI)*.2;});
+        actor.legs.forEach((leg,index)=>{leg.rotation.x=Math.sin(actor.walk+index*Math.PI)*.32;});
+      }else{
+        actor.arms.forEach(arm=>{arm.rotation.x=0;});
+        actor.legs.forEach(leg=>{leg.rotation.x=0;});
+      }
+    }
+  }
   function familyPairKey(a,b){return [a,b].sort().join("|");}
   function processFamilyLifecycle(day){
     let changed=false;
@@ -605,7 +686,8 @@ function startGame(THREE) {
       const names=["Aline","Davi","Clara","Miguel","Lia","Samuel","Rosa","Tomás","Isabel","Bento"];
       const pairCount=familyChildren.filter(child=>familyPairKey(child.a,child.b)===familyPairKey(pregnancy.a,pregnancy.b)).length;
       const chosen=(pregnancy.childName||"").trim()||names[(day+pairCount*3)%names.length];
-      familyChildren.push({id:"child-"+pregnancy.a+"-"+pregnancy.b+"-"+day,name:chosen.slice(0,24),a:pregnancy.a,b:pregnancy.b,houseId:pregnancy.houseId,birthDay:day,gender:Math.random()<0.5?"F":"M"});
+      const newborn={id:"child-"+pregnancy.a+"-"+pregnancy.b+"-"+day,name:chosen.slice(0,24),a:pregnancy.a,b:pregnancy.b,houseId:pregnancy.houseId,birthDay:day,gender:Math.random()<0.5?"F":"M"};
+      familyChildren.push(newborn);createFamilyActor(newborn);
       familyPregnancies.splice(i,1);changed=true;
       showToast("Uma nova vida chegou ao vale! "+chosen+" nasceu na família de "+parentA.name+" e "+parentB.name+".");
     }
@@ -1332,6 +1414,7 @@ function startGame(THREE) {
     for(let i=recruitedVillagers.length-1;i>=0;i--)if(!validIds.has(recruitedVillagers[i].id))recruitedVillagers.splice(i,1);
   }
   restoreVillagePopulation();
+  for(const child of familyChildren)createFamilyActor(child);
 
   const trunkGeometry = new THREE.CylinderGeometry(0.28, 0.48, 4.2, 6);
   const crownGeometry = new THREE.ConeGeometry(3.05, 7.0, 7);
@@ -2453,6 +2536,7 @@ function startGame(THREE) {
     const delta = Math.min(clock.getDelta(), 0.05);
     updateFishingProgress(delta);
     if(villagers.length)updateVillagers(delta);
+    if(familyActors.length)updateFamilyActors(delta);
     if(kitchenFire){kitchenFire.time+=delta;const flicker=1+Math.sin(kitchenFire.time*13)*0.12+Math.sin(kitchenFire.time*21)*0.06;kitchenFire.flame.scale.set(1, flicker, 1);kitchenFire.flame.rotation.y=kitchenFire.time*1.8;kitchenFire.flameCore.scale.y=0.9+Math.sin(kitchenFire.time*17)*0.12;kitchenFire.light.intensity=1.25+Math.sin(kitchenFire.time*15)*0.22;}
     gameTimeAccumulator+=delta;
     while(gameTimeAccumulator>=5){gameTimeAccumulator-=5;advanceGameMinutes(1);}
