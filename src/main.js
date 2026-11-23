@@ -25,7 +25,8 @@ const gameToast = document.getElementById("game-toast");
 const inventoryUI = {
   branches: document.getElementById("branches-count"),
   stones: document.getElementById("stones-count"),
-  berries: document.getElementById("berries-count")
+  berries: document.getElementById("berries-count"),
+  wood: document.getElementById("wood-count")
 };
 let toastTimer = 0;
 const survivalUI = {
@@ -300,6 +301,9 @@ function startGame(THREE) {
   workbench.add(benchLabel);
   scene.add(workbench);
 
+  const felledTrees = new Set(saved?.felledTrees ?? []);
+  const savedTreeHits = saved?.treeHits ?? {};
+  const treeHitCounts = new Map(Object.entries(savedTreeHits).map(([key, value]) => [Number(key), value]));
   const treeSpots = [];
   for (let i = 0; i < 470; i++) {
     const x = (random() - 0.5) * 198;
@@ -321,6 +325,16 @@ function startGame(THREE) {
   treeSpots.forEach((tree, index) => {
     const y = groundHeight(tree.x, tree.z);
     const s = tree.scale;
+    if (felledTrees.has(index)) {
+      addTreeRemains(tree, y);
+      dummy.position.set(0, -1000, 0);
+      dummy.scale.set(0, 0, 0);
+      dummy.updateMatrix();
+      trunkMesh.setMatrixAt(index, dummy.matrix);
+      crownMesh.setMatrixAt(index, dummy.matrix);
+      crownTopMesh.setMatrixAt(index, dummy.matrix);
+      return;
+    }
     dummy.position.set(tree.x, y + 2.1 * s, tree.z);
     dummy.rotation.set(0, tree.turn, 0);
     dummy.scale.set(s, s, s);
@@ -339,6 +353,23 @@ function startGame(THREE) {
     crownTopMesh.setColorAt(index, tint.clone().multiplyScalar(1.12));
   });
   scene.add(trunkMesh, crownMesh, crownTopMesh);
+  trunkMesh.instanceMatrix.needsUpdate = true;
+  crownMesh.instanceMatrix.needsUpdate = true;
+  crownTopMesh.instanceMatrix.needsUpdate = true;
+
+  const treeRemainsMaterial = new THREE.MeshStandardMaterial({ color: 0x806044, roughness: 1 });
+  const logMaterial = new THREE.MeshStandardMaterial({ color: 0x9a7046, roughness: 1 });
+  function addTreeRemains(tree, groundY = groundHeight(tree.x, tree.z)) {
+    const stump = new THREE.Mesh(new THREE.CylinderGeometry(0.42 * tree.scale, 0.5 * tree.scale, 0.62, 7), treeRemainsMaterial);
+    stump.position.set(tree.x, groundY + 0.31, tree.z);
+    stump.rotation.y = tree.turn;
+    scene.add(stump);
+    const log = new THREE.Mesh(new THREE.CylinderGeometry(0.28 * tree.scale, 0.32 * tree.scale, 2.0 * tree.scale, 7), logMaterial);
+    log.rotation.z = Math.PI / 2;
+    log.rotation.y = tree.turn;
+    log.position.set(tree.x + 0.95 * tree.scale, groundY + 0.32 * tree.scale, tree.z + 0.55 * tree.scale);
+    scene.add(log);
+  }
 
   // Pedras espalhadas nas clareiras e perto das margens.
   const rockGeometry = new THREE.DodecahedronGeometry(1, 0);
@@ -388,12 +419,17 @@ function startGame(THREE) {
   const inventory = {
     branches: saved?.inventory?.branches ?? 0,
     stones: saved?.inventory?.stones ?? 0,
-    berries: saved?.inventory?.berries ?? 0
+    berries: saved?.inventory?.berries ?? 0,
+    wood: saved?.inventory?.wood ?? 0
   };
   const tools = { axe: saved?.tools?.axe === true };
   let currentResourceTarget = null;
   let canDrinkWater = false;
   let canUseWorkbench = false;
+  let currentTreeTarget = null;
+  let canChopTree = false;
+  let axeSwingTimer = 0;
+  const fallingTrees = [];
   let interactionScanTimer = 0;
   let toastTimeout = 0;
   let survivalUiTimer = 0;
@@ -416,7 +452,7 @@ function startGame(THREE) {
   }
   updateSurvivalUI(true);
   function updateInventoryUI() {
-    for (const key of ["branches", "stones", "berries"]) {
+    for (const key of ["branches", "stones", "berries", "wood"]) {
       inventoryUI[key].textContent = String(inventory[key]);
     }
     axeCountUI.textContent = tools.axe ? "1" : "0";
@@ -473,6 +509,7 @@ function startGame(THREE) {
     inventory.branches -= 3;
     inventory.stones -= 2;
     tools.axe = true;
+    updateAxeVisual();
     updateInventoryUI();
     saveProgress(true);
     showToast("Machado fabricado! Materiais guardados na mochila foram usados.");
@@ -502,6 +539,17 @@ function startGame(THREE) {
   const rightHand = leftHand.clone();
   rightHand.position.x = 0.37;
   armGroup.add(leftSleeve, rightSleeve, leftHand, rightHand);
+  const axeModel = new THREE.Group();
+  const axeHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.065, 0.78, 7), new THREE.MeshStandardMaterial({ color: 0x8a5b32, roughness: 1 }));
+  axeHandle.rotation.z = -0.18;
+  axeHandle.position.set(0.47, -0.14, -0.76);
+  const axeHead = new THREE.Mesh(new THREE.BoxGeometry(0.34, 0.25, 0.12), new THREE.MeshStandardMaterial({ color: 0x9ba5a2, metalness: 0.28, roughness: 0.72 }));
+  axeHead.position.set(0.62, 0.18, -0.76);
+  axeHead.rotation.z = -0.18;
+  axeModel.add(axeHandle, axeHead);
+  axeModel.visible = tools.axe;
+  armGroup.add(axeModel);
+  function updateAxeVisual() { axeModel.visible = tools.axe; }
   camera.add(armGroup);
   scene.add(camera);
 
@@ -534,7 +582,8 @@ function startGame(THREE) {
         inventory: {
           branches: safeCount(saved.inventory?.branches),
           stones: safeCount(saved.inventory?.stones),
-          berries: safeCount(saved.inventory?.berries)
+          berries: safeCount(saved.inventory?.berries),
+          wood: safeCount(saved.inventory?.wood)
         },
         tools: { axe: saved.tools?.axe === true },
         resourceBase: saved.resourceBase &&
@@ -547,7 +596,9 @@ function startGame(THREE) {
           : null,
         collectedResources: Array.isArray(saved.collectedResources)
           ? saved.collectedResources.filter((id) => ["branch-pile-01", "stone-cluster-01", "berry-bush-01"].includes(id))
-          : []
+          : [],
+        felledTrees: Array.isArray(saved.felledTrees) ? saved.felledTrees.filter((index) => Number.isInteger(index) && index >= 0 && index < 470) : [],
+        treeHits: saved.treeHits && typeof saved.treeHits === "object" ? Object.fromEntries(Object.entries(saved.treeHits).filter(([key, value]) => /^\\d+$/.test(key) && Number.isInteger(value) && value >= 0 && value < 3)) : {}
       };
     } catch {
       return null;
@@ -565,7 +616,9 @@ function startGame(THREE) {
         inventory: { ...inventory },
         tools: { ...tools },
         resourceBase: { ...resourceBase },
-        collectedResources: [...collectedResources]
+        collectedResources: [...collectedResources],
+        felledTrees: [...felledTrees],
+        treeHits: Object.fromEntries(treeHitCounts)
       }));
     } catch { /* O jogo continua mesmo sem armazenamento disponível. */ }
   }
@@ -676,7 +729,9 @@ function startGame(THREE) {
   function isBlocked(x, z) {
     if (Math.abs(x) > 104 || Math.abs(z) > 104) return true;
     if (riverDistance(x, z) < 8.2) return true;
-    for (const tree of treeSpots) {
+    for (let i = 0; i < treeSpots.length; i++) {
+      if (felledTrees.has(i)) continue;
+      const tree = treeSpots[i];
       const dx = x - tree.x;
       const dz = z - tree.z;
       if (dx * dx + dz * dz < 2.0) return true;
@@ -709,8 +764,24 @@ function startGame(THREE) {
     canDrinkWater = !match && bankDistance >= 8.2 && bankDistance <= 12.4 && survival.thirst < 99.5;
     const benchDistance = Math.hypot(workbenchPosition.x - player.x, workbenchPosition.z - player.z);
     canUseWorkbench = !match && !canDrinkWater && benchDistance <= 5.2;
+    let treeMatch = null;
+    let bestTreeDistance = Infinity;
+    for (let i = 0; i < treeSpots.length; i++) {
+      if (felledTrees.has(i)) continue;
+      const tree = treeSpots[i];
+      const dx = tree.x - player.x;
+      const dz = tree.z - player.z;
+      const distance = Math.hypot(dx, dz);
+      if (distance > 5.6 || distance < 1.4) continue;
+      const facing = (dx * facingX + dz * facingZ) / distance;
+      if (facing < 0.72 || distance >= bestTreeDistance) continue;
+      treeMatch = { tree, index: i };
+      bestTreeDistance = distance;
+    }
+    currentTreeTarget = !match && !canDrinkWater && !canUseWorkbench ? treeMatch : null;
+    canChopTree = Boolean(currentTreeTarget && tools.axe);
     currentResourceTarget = match;
-    const hasInteraction = Boolean(match) || canDrinkWater || canUseWorkbench;
+    const hasInteraction = Boolean(match) || canDrinkWater || canUseWorkbench || Boolean(currentTreeTarget);
     interactionPrompt.classList.toggle("hidden", !hasInteraction);
     collectButton.classList.toggle("hidden", !hasInteraction || !isMobile);
 
@@ -729,6 +800,11 @@ function startGame(THREE) {
       interactionName.textContent = "Bancada de fabricação";
       interactionVerb.textContent = "usar bancada";
       collectButton.textContent = "USAR BANCADA";
+    } else if (currentTreeTarget) {
+      interactionType.textContent = "ÁRVORE";
+      interactionName.textContent = canChopTree ? "Madeira · " + (3 - (treeHitCounts.get(currentTreeTarget.index) ?? 0)) + " golpes" : "Machado necessário";
+      interactionVerb.textContent = canChopTree ? "cortar árvore" : "fabricar um machado na bancada";
+      collectButton.textContent = canChopTree ? "CORTAR ÁRVORE" : "PRECISA DE MACHADO";
     }
   }
   function drinkWater() {
@@ -759,10 +835,75 @@ function startGame(THREE) {
     saveProgress(true);
     showToast("+" + node.amount + " · " + node.label + " recolhidos");
   }
+  function hideTreeInstance(index) {
+    const hidden = new THREE.Object3D();
+    hidden.position.set(0, -1000, 0);
+    hidden.scale.set(0, 0, 0);
+    hidden.updateMatrix();
+    trunkMesh.setMatrixAt(index, hidden.matrix);
+    crownMesh.setMatrixAt(index, hidden.matrix);
+    crownTopMesh.setMatrixAt(index, hidden.matrix);
+    trunkMesh.instanceMatrix.needsUpdate = true;
+    crownMesh.instanceMatrix.needsUpdate = true;
+    crownTopMesh.instanceMatrix.needsUpdate = true;
+  }
+  function createFallingTree(index) {
+    const tree = treeSpots[index];
+    const groundY = groundHeight(tree.x, tree.z);
+    hideTreeInstance(index);
+    const group = new THREE.Group();
+    group.position.set(tree.x, groundY, tree.z);
+    const s = tree.scale;
+    const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+    trunk.position.y = 2.1 * s;
+    trunk.scale.set(s, s, s);
+    const crown = new THREE.Mesh(crownGeometry, crownMaterial);
+    crown.position.y = 6.2 * s;
+    crown.scale.set(s, s, s);
+    const crownTop = new THREE.Mesh(crownTopGeometry, crownMaterial);
+    crownTop.position.y = 10.0 * s;
+    crownTop.scale.set(s * 0.78, s * 0.78, s * 0.78);
+    group.add(trunk, crown, crownTop);
+    group.rotation.y = Math.atan2(player.x - tree.x, player.z - tree.z);
+    scene.add(group);
+    fallingTrees.push({ index, group, elapsed: 0, duration: 0.82, groundY });
+  }
+  function finishTreeFelling(index, groundY) {
+    const tree = treeSpots[index];
+    addTreeRemains(tree, groundY);
+    felledTrees.add(index);
+    treeHitCounts.delete(index);
+    inventory.wood = Math.min(9999, inventory.wood + 4);
+    updateInventoryUI();
+    saveProgress(true);
+    showToast("+4 madeiras · árvore derrubada");
+  }
+  function chopCurrentTree() {
+    const target = currentTreeTarget;
+    if (!target || !tools.axe || felledTrees.has(target.index)) return;
+    axeSwingTimer = 0.34;
+    const hits = (treeHitCounts.get(target.index) ?? 0) + 1;
+    treeHitCounts.set(target.index, hits);
+    if (hits >= 3) {
+      createFallingTree(target.index);
+      currentTreeTarget = null;
+      canChopTree = false;
+      interactionPrompt.classList.add("hidden");
+      collectButton.classList.add("hidden");
+      saveProgress(true);
+      showToast("Árvore atingida! Ela está caindo...");
+    } else {
+      saveProgress(true);
+      showToast("Golpe " + hits + "/3 · continue cortando");
+      updateResourceTarget();
+    }
+  }
   function performCurrentInteraction() {
     if (currentResourceTarget) collectCurrentResource();
     else if (canDrinkWater) drinkWater();
     else if (canUseWorkbench) openCrafting();
+    else if (canChopTree) chopCurrentTree();
+    else if (currentTreeTarget && !tools.axe) showToast("Você precisa fabricar um machado na bancada.");
   }
   collectButton.addEventListener("click", performCurrentInteraction);
 
@@ -811,6 +952,26 @@ function startGame(THREE) {
 
     survivalUiTimer += delta;
     updateSurvivalUI();
+    if (axeSwingTimer > 0) {
+      axeSwingTimer = Math.max(0, axeSwingTimer - delta);
+      const swingProgress = 1 - axeSwingTimer / 0.34;
+      axeModel.rotation.x = -0.18 + Math.sin(swingProgress * Math.PI) * 1.05;
+      axeModel.rotation.z = Math.sin(swingProgress * Math.PI) * 0.22;
+    } else {
+      axeModel.rotation.x = -0.18;
+      axeModel.rotation.z = 0;
+    }
+    for (let i = fallingTrees.length - 1; i >= 0; i--) {
+      const falling = fallingTrees[i];
+      falling.elapsed += delta;
+      const progress = Math.min(1, falling.elapsed / falling.duration);
+      falling.group.rotation.x = progress * (Math.PI / 2);
+      if (progress >= 1) {
+        scene.remove(falling.group);
+        finishTreeFelling(falling.index, falling.groundY);
+        fallingTrees.splice(i, 1);
+      }
+    }
     saveProgress();
     applyCamera();
     interactionScanTimer += delta;

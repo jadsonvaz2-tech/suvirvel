@@ -81,3 +81,14 @@ Esta etapa inclui coleta, mochila, alimentação e hidratação; fabricação e 
 - Os materiais são descontados somente quando a fabricação é concluída; o machado fica registrado como ferramenta fabricada e aparece na mochila.
 - A mochila e o estado do machado são salvos localmente, inclusive após atualizar a página.
 - A receita já prepara o inventário para futuras ferramentas e atividades, sem alterar as funções de sobrevivência, coleta, alimentação e hidratação.
+
+
+## Fase 2 — Corte de árvores e madeira
+
+- Depois de fabricar o machado, aproxime-se de uma árvore e mire nela.
+- Pressione E no PC ou toque em CORTAR ÁRVORE no celular para golpear.
+- Cada árvore precisa de três golpes; o braço e o machado fazem uma animação a cada golpe.
+- No terceiro golpe, a árvore cai com animação e deixa um toco e um tronco no chão.
+- Cada árvore derrubada concede 4 unidades de madeira, exibidas na mochila.
+- Árvores derrubadas, golpes em andamento e madeira ficam salvos localmente para continuar após recarregar a página.
+- Árvores derrubadas deixam de bloquear a passagem. Os sistemas anteriores de coleta, sobrevivência, alimentação, hidratação e fabricação permanecem disponíveis.

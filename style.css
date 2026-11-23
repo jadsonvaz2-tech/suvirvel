@@ -309,3 +309,7 @@ kbd { min-width: 17px; padding: 4px 5px; border: 1px solid rgba(241,232,210,.28)
 .craft-action-button:disabled { opacity: .42; cursor: not-allowed; }
 
 .item-axe { color: #d7bd8d; }
+
+
+/* Machado, corte de árvores e madeira */
+.item-wood { color: #d2a36c; }
