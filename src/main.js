@@ -48,7 +48,7 @@ const kitchenRecipes = document.getElementById("kitchen-recipes");
 const loomPanel = document.getElementById("loom-panel"), loomClose = document.getElementById("loom-close"), loomTitle = document.getElementById("loom-title"), loomStatus = document.getElementById("loom-status"), loomActions = document.getElementById("loom-actions");
 const tanneryPanel=document.getElementById("tannery-panel"),tanneryClose=document.getElementById("tannery-close"),tanneryTitle=document.getElementById("tannery-title"),tanneryStatus=document.getElementById("tannery-status"),tanneryActions=document.getElementById("tannery-actions");
 const fishingPanel=document.getElementById("fishing-panel"),fishingClose=document.getElementById("fishing-close"),fishingStatus=document.getElementById("fishing-status"),fishingAction=document.getElementById("fishing-action");
-const merchantPanel=document.getElementById("merchant-panel"),merchantClose=document.getElementById("merchant-close"),merchantTitle=document.getElementById("merchant-title"),merchantStatus=document.getElementById("merchant-status"),merchantCoins=document.getElementById("merchant-coins"),merchantItems=document.getElementById("merchant-items"),walletUI=document.getElementById("wallet-coins");
+const merchantPanel=document.getElementById("merchant-panel"),merchantClose=document.getElementById("merchant-close"),merchantTitle=document.getElementById("merchant-title"),merchantStatus=document.getElementById("merchant-status"),merchantCoins=document.getElementById("merchant-coins"),merchantItems=document.getElementById("merchant-items"),merchantContracts=document.getElementById("merchant-contracts"),merchantRank=document.getElementById("merchant-rank"),walletUI=document.getElementById("wallet-coins");
 const gameClockUI = document.getElementById("game-clock");
 const interactionType = document.getElementById("interaction-type");
 const interactionVerb = document.getElementById("interaction-verb");
@@ -1094,6 +1094,8 @@ function startGame(THREE) {
     energy: saved?.energy ?? 100, warmth: saved?.warmth ?? 100
   };
   let coins = Number.isSafeInteger(saved?.coins) ? Math.max(0,Math.min(999999,saved.coins)) : 30;
+  let tradeReputation=Number.isSafeInteger(saved?.tradeReputation)?Math.max(0,Math.min(9999,saved.tradeReputation)):0;
+  const completedTradeContracts=new Set(Array.isArray(saved?.completedTradeContracts)?saved.completedTradeContracts.filter(id=>typeof id==="string"):[]);
   const inventory = {
     branches: saved?.inventory?.branches ?? 0,
     stones: saved?.inventory?.stones ?? 0,
@@ -1338,6 +1340,8 @@ function startGame(THREE) {
         yaw: Number.isFinite(saved.yaw) ? saved.yaw : 0,
         pitch: Number.isFinite(saved.pitch) ? THREE.MathUtils.clamp(saved.pitch, -1.15, 1.15) : -0.04,
         coins: Number.isSafeInteger(saved.coins)?THREE.MathUtils.clamp(saved.coins,0,999999):30,
+        tradeReputation:Number.isSafeInteger(saved.tradeReputation)?THREE.MathUtils.clamp(saved.tradeReputation,0,9999):0,
+        completedTradeContracts:Array.isArray(saved.completedTradeContracts)?saved.completedTradeContracts.filter(id=>typeof id==="string"&&id.length<80).slice(-100):[],
         health: safeStat(saved.health),
         hunger: safeStat(saved.hunger),
         thirst: safeStat(saved.thirst),
@@ -1418,6 +1422,8 @@ function startGame(THREE) {
         x: player.x, z: player.z, yaw: player.yaw, pitch: player.pitch,
         seedStarterPackClaimed: true,
         coins,
+        tradeReputation,
+        completedTradeContracts:[...completedTradeContracts],
         tanneryState:{...tanneryState},
         fishingSpotState:{lastCatch:fishingLastCatch},
         health: survival.health, hunger: survival.hunger, thirst: survival.thirst, energy: survival.energy, warmth: survival.warmth, clothing:{...clothing},
@@ -1598,27 +1604,72 @@ function startGame(THREE) {
     {key:"wool",label:"Lã",icon:"🐑",buy:12,sell:7},{key:"fabric",label:"Tecido",icon:"🧵",buy:18,sell:11},
     {key:"hide",label:"Couro cru",icon:"🟤",buy:13,sell:8},{key:"tannedLeather",label:"Couro curtido",icon:"🟫",buy:24,sell:15},
     {key:"trout",label:"Truta",icon:"🐟",buy:11,sell:7},{key:"carp",label:"Carpa",icon:"🐠",buy:9,sell:5},
-    {key:"minnow",label:"Peixe pequeno",icon:"🐟",buy:5,sell:2}
+    {key:"minnow",label:"Peixe pequeno",icon:"🐟",buy:5,sell:2},
+    {key:"bread",label:"Pão",icon:"🍞",buy:16,sell:10},{key:"omelet",label:"Omelete",icon:"🍳",buy:18,sell:11},
+    {key:"vegetableSoup",label:"Sopa de legumes",icon:"🥣",buy:22,sell:14},{key:"berryPorridge",label:"Mingau de frutas",icon:"🫐",buy:15,sell:9},
+    {key:"roastedMeat",label:"Carne assada",icon:"🍖",buy:25,sell:16},{key:"grilledTrout",label:"Truta grelhada",icon:"🐟",buy:23,sell:15},
+    {key:"grilledCarp",label:"Carpa grelhada",icon:"🐠",buy:20,sell:13},{key:"grilledMinnow",label:"Peixe grelhado",icon:"🐟",buy:13,sell:8},
+    {key:"tunic",label:"Túnica",icon:"🥋",buy:55,sell:34,unlock:5},{key:"trousers",label:"Calças forradas",icon:"👖",buy:48,sell:30,unlock:5},
+    {key:"boots",label:"Botas de lã",icon:"🥾",buy:42,sell:26,unlock:5}
   ];
-  function renderMerchantPanel(){
-    merchantCoins.textContent="Sua bolsa: "+coins+" moedas";
-    merchantItems.innerHTML=tradeGoods.map(item=>'<article class="merchant-item"><div class="merchant-item-copy"><strong>'+item.icon+' '+item.label+'</strong><small>Comprar: '+item.buy+' moedas · Vender: '+item.sell+' moedas · Você tem: '+inventory[item.key]+'</small></div><div class="merchant-item-actions"><button type="button" data-trade="buy" data-item="'+item.key+'" '+(coins<item.buy||inventoryLoad()>=carryCapacity()?"disabled":"")+'>COMPRAR</button><button type="button" data-trade="sell" data-item="'+item.key+'" '+(inventory[item.key]<1?"disabled":"")+'>VENDER</button></div></article>').join("");
+  const contractPool=tradeGoods.filter(item=>!["branches","stones","berries","wheat","carrots","cabbages"].includes(item.key));
+  function marketPrice(item,action){
+    const wave=((gameTime.day*7+tradeGoods.indexOf(item)*3)%7)-3;
+    const reputationDiscount=Math.min(0.12,tradeReputation*0.004);
+    const base=action==="buy"?item.buy:item.sell;
+    const adjusted=action==="buy"?base*(1+wave*0.035-reputationDiscount):base*(1+wave*0.035+reputationDiscount);
+    return Math.max(1,Math.round(adjusted));
   }
-  function openMerchantPanel(){if(!canUseMerchant)return;merchantTitle.textContent="MERCADOR DO VALE";merchantStatus.textContent="Negocie recursos e produtos. Cada operação compra ou vende uma unidade.";renderMerchantPanel();merchantPanel.classList.remove("hidden");}
+  function tradeRank(){return tradeReputation>=20?"Mestre comerciante":tradeReputation>=10?"Mercador respeitado":tradeReputation>=5?"Negociante": "Aprendiz";}
+  function dailyTradeContracts(){
+    const available=contractPool.filter(item=>(item.unlock||0)<=tradeReputation);
+    const start=(gameTime.day*5)%available.length;
+    return [0,1,2].map((offset)=>{
+      const item=available[(start+offset*3)%available.length];
+      const quantity=2+(gameTime.day+offset)%3;
+      return {id:"day-"+gameTime.day+"-"+item.key+"-"+offset,key:item.key,label:item.label,icon:item.icon,quantity,reward:Math.round(item.sell*quantity*1.9+8),rep:2+(offset===0?1:0)};
+    });
+  }
+  function renderMerchantPanel(){
+    merchantCoins.textContent="Sua bolsa: "+coins+" moedas · Reputação: "+tradeReputation+" · "+tradeRank();
+    merchantItems.innerHTML=tradeGoods.filter(item=>(item.unlock||0)<=tradeReputation).map(item=>{
+      const buy=marketPrice(item,"buy"),sell=marketPrice(item,"sell");
+      return '<article class="merchant-item"><div class="merchant-item-copy"><strong>'+item.icon+' '+item.label+'</strong><small>Comprar: '+buy+' moedas · Vender: '+sell+' moedas · Você tem: '+(inventory[item.key]||0)+'</small></div><div class="merchant-item-actions"><button type="button" data-trade="buy" data-item="'+item.key+'" '+(coins<buy||inventoryLoad()>=carryCapacity()?"disabled":"")+'>COMPRAR</button><button type="button" data-trade="sell" data-item="'+item.key+'" '+((inventory[item.key]||0)<1?"disabled":"")+'>VENDER</button></div></article>';
+    }).join("");
+    merchantContracts.innerHTML='<h3 class="merchant-section-title">ENCOMENDAS DO VALE</h3>'+dailyTradeContracts().map(contract=>{
+      const done=completedTradeContracts.has(contract.id),enough=(inventory[contract.key]||0)>=contract.quantity;
+      return '<article class="merchant-contract"><div><strong>'+contract.icon+' '+contract.quantity+' × '+contract.label+'</strong><small>Recompensa: '+contract.reward+' moedas · +'+contract.rep+' reputação</small></div><button type="button" data-contract="'+contract.id+'" '+(done||!enough?"disabled":"")+'>'+(done?"CONCLUÍDA":enough?"ENTREGAR":"FALTAM "+Math.max(0,contract.quantity-(inventory[contract.key]||0)))+'</button></article>';
+    }).join("");
+    merchantRank.textContent="Categoria: "+tradeRank()+" · Próximo nível: "+(tradeReputation<5?5:tradeReputation<10?10:tradeReputation<20?20:"máximo")+" de reputação";
+  }
+  function openMerchantPanel(){if(!canUseMerchant)return;merchantTitle.textContent="MERCADOR DO VALE";merchantStatus.textContent="Os preços mudam diariamente. Complete encomendas para ganhar reputação e desbloquear mercadorias especiais.";renderMerchantPanel();merchantPanel.classList.remove("hidden");}
   function closeMerchantPanel(){merchantPanel.classList.add("hidden");}
   function tradeWithMerchant(action,key){
-    const item=tradeGoods.find(entry=>entry.key===key);if(!item||!canUseMerchant)return;
+    const item=tradeGoods.find(entry=>entry.key===key);if(!item||!canUseMerchant||(item.unlock||0)>tradeReputation)return;
+    const price=marketPrice(item,action);
     if(action==="buy"){
-      if(coins<item.buy){showToast("Moedas insuficientes para comprar "+item.label.toLowerCase()+".");return;}
+      if(coins<price){showToast("Moedas insuficientes para comprar "+item.label.toLowerCase()+".");return;}
       if(inventoryLoad()>=carryCapacity()){showToast("Mochila cheia. Guarde itens antes de comprar.");return;}
-      coins-=item.buy;inventory[key]=Math.min(9999,inventory[key]+1);showToast("Compra realizada · 1 "+item.label.toLowerCase()+".");
+      coins-=price;inventory[key]=Math.min(9999,(inventory[key]||0)+1);showToast("Compra realizada · 1 "+item.label.toLowerCase()+".");
     }else if(action==="sell"){
-      if(inventory[key]<1){showToast("Você não tem "+item.label.toLowerCase()+" para vender.");return;}
-      inventory[key]--;coins=Math.min(999999,coins+item.sell);showToast("Venda realizada · +"+item.sell+" moedas.");
+      if((inventory[key]||0)<1){showToast("Você não tem "+item.label.toLowerCase()+" para vender.");return;}
+      inventory[key]--;coins=Math.min(999999,coins+price);showToast("Venda realizada · +"+price+" moedas.");
     }else return;
     updateInventoryUI();renderMerchantPanel();saveProgress(true);
   }
+  function deliverTradeContract(id){
+    if(!canUseMerchant)return;
+    const contract=dailyTradeContracts().find(item=>item.id===id);
+    if(!contract||completedTradeContracts.has(id))return;
+    if((inventory[contract.key]||0)<contract.quantity){showToast("Você ainda não tem todos os produtos da encomenda.");return;}
+    inventory[contract.key]-=contract.quantity;coins=Math.min(999999,coins+contract.reward);
+    tradeReputation=Math.min(9999,tradeReputation+contract.rep);completedTradeContracts.add(id);
+    const newlyUnlocked=tradeReputation>=5&&tradeReputation-contract.rep<5;
+    showToast("Encomenda entregue! +"+contract.reward+" moedas e +"+contract.rep+" reputação."+ (newlyUnlocked?" Novos produtos desbloqueados!":""));
+    updateInventoryUI();renderMerchantPanel();saveProgress(true);
+  }
   merchantItems.addEventListener("click",event=>{const button=event.target.closest("button[data-trade]");if(button)tradeWithMerchant(button.dataset.trade,button.dataset.item);});
+  merchantContracts.addEventListener("click",event=>{const button=event.target.closest("button[data-contract]");if(button)deliverTradeContract(button.dataset.contract);});
   merchantClose.addEventListener("click",closeMerchantPanel);
 
   function updateResourceTarget() {

@@ -523,3 +523,7 @@ kbd { min-width: 17px; padding: 4px 5px; border: 1px solid rgba(241,232,210,.28)
 .building-option small{display:block;margin-top:3px;color:var(--muted);font-size:8px;font-weight:600}
 .building-option.selected{border-color:rgba(212,177,107,.85);background:rgba(111,82,42,.48);color:#ffe5b4}
 @media(max-width:420px){.building-options{grid-template-columns:1fr}}
+
+
+/* Reputação e encomendas do comércio */
+.merchant-rank{margin:0 13px 8px;padding:8px 10px;border:1px solid rgba(212,177,107,.28);border-radius:6px;color:#e9c98d;background:rgba(212,177,107,.07);font-size:9px;font-weight:800}.merchant-contracts{display:grid;gap:7px;max-height:190px;overflow-y:auto;margin:0 13px 8px;padding:9px;border:1px solid rgba(212,177,107,.24);border-radius:7px;background:rgba(255,255,255,.025)}.merchant-section-title{margin:0;color:#e9c98d;font-size:9px;letter-spacing:.1em}.merchant-contract{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px;align-items:center;padding:8px;border:1px solid rgba(241,232,210,.12);border-radius:6px;background:rgba(255,255,255,.04)}.merchant-contract>div{display:grid;gap:4px;min-width:0}.merchant-contract strong{font-family:Georgia,serif;font-size:11px}.merchant-contract small{color:var(--muted);font-size:8px}.merchant-contract button{min-height:32px;padding:0 8px;border:1px solid rgba(212,177,107,.55);border-radius:5px;color:#fff1ce;background:rgba(111,82,42,.66);font:inherit;font-size:7px;font-weight:900;cursor:pointer}.merchant-contract button:disabled{opacity:.42;cursor:not-allowed}
