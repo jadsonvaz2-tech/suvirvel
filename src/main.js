@@ -402,6 +402,7 @@ function startGame(THREE) {
     setBuildPreviewAppearance(buildPreviewValid);
     buildingStatus.textContent=buildPreviewValid?"Local adequado · confirme a construção":buildPreviewReason;
     buildingStatus.classList.toggle("invalid",!buildPreviewValid);
+    buildingConfirm.disabled=!buildPreviewValid || inventory.wood<12 || inventory.branches<8 || Boolean(builtCabin);
   }
   function startBuilding() {
     if (builtCabin) { showToast("Você já construiu sua primeira cabana."); return; }
