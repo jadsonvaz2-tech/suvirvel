@@ -491,3 +491,11 @@ kbd { min-width: 17px; padding: 4px 5px; border: 1px solid rgba(241,232,210,.28)
 .tannery-action button { min-height:34px; padding:0 8px; border:1px solid rgba(212,177,107,.6); border-radius:6px; color:#fff1ce; background:rgba(111,82,42,.68); font:inherit; font-size:8px; font-weight:900; letter-spacing:.04em; cursor:pointer; }
 .tannery-action button:disabled { opacity:.38; cursor:not-allowed; }
 @media (max-width:420px) { .tannery-action { grid-template-columns:minmax(0,1fr) auto; } .tannery-action button:last-child { grid-column:2; } }
+
+
+/* Pesca artesanal no rio */
+.fishing-panel { position:absolute; z-index:22; top:50%; left:50%; width:min(390px,calc(100vw - 30px)); padding:17px; border:1px solid rgba(212,177,107,.72); border-radius:11px; color:var(--cream); background:rgba(25,34,25,.98); box-shadow:0 16px 42px rgba(0,0,0,.46); transform:translate(-50%,-50%); }
+.fishing-panel.hidden { display:none !important; }
+.fishing-panel .building-primary { width:100%; min-height:42px; margin:8px 0; }
+#craft-fishing-rod-button { width:100%; margin-top:7px; }
+#craft-fishing-rod-button:disabled { opacity:.42; }

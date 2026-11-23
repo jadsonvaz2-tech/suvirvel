@@ -92,6 +92,9 @@
             <div class="inventory-item inventory-item-food"><span class="item-icon item-food">🥣</span><span class="item-name">Sopa de legumes</span><strong id="vegetable-soup-count">0</strong><button type="button" data-eat-meal="vegetableSoup" class="eat-berry-button" disabled>COMER 1</button></div>
             <div class="inventory-item inventory-item-food"><span class="item-icon item-food">🫐</span><span class="item-name">Mingau de frutas</span><strong id="berry-porridge-count">0</strong><button type="button" data-eat-meal="berryPorridge" class="eat-berry-button" disabled>COMER 1</button></div>
             <div class="inventory-item inventory-item-food"><span class="item-icon item-food">🍖</span><span class="item-name">Carne assada</span><strong id="roasted-meat-count">0</strong><button type="button" data-eat-meal="roastedMeat" class="eat-berry-button" disabled>COMER 1</button></div>
+            <div class="inventory-item inventory-item-food"><span class="item-icon item-food">🐟</span><span class="item-name">Truta grelhada</span><strong id="grilled-trout-count">0</strong><button type="button" data-eat-meal="grilledTrout" class="eat-berry-button" disabled>COMER 1</button></div>
+            <div class="inventory-item inventory-item-food"><span class="item-icon item-food">🐠</span><span class="item-name">Carpa grelhada</span><strong id="grilled-carp-count">0</strong><button type="button" data-eat-meal="grilledCarp" class="eat-berry-button" disabled>COMER 1</button></div>
+            <div class="inventory-item inventory-item-food"><span class="item-icon item-food">🐟</span><span class="item-name">Peixe pequeno grelhado</span><strong id="grilled-minnow-count">0</strong><button type="button" data-eat-meal="grilledMinnow" class="eat-berry-button" disabled>COMER 1</button></div>
           </div>
         </section>
         <section class="inventory-category">
@@ -101,6 +104,10 @@
             <div class="inventory-item"><span class="item-icon item-wool">🧶</span><span class="item-name">Tecido de lã</span><strong id="fabric-count">0</strong></div>
             <div class="inventory-item"><span class="item-icon">🥩</span><span class="item-name">Carne crua</span><strong id="raw-meat-count">0</strong></div>
             <div class="inventory-item"><span class="item-icon">🦬</span><span class="item-name">Couro cru</span><strong id="hide-count">0</strong></div>
+            <div class="inventory-item"><span class="item-icon">🐟</span><span class="item-name">Truta</span><strong id="trout-count">0</strong></div>
+            <div class="inventory-item"><span class="item-icon">🐠</span><span class="item-name">Carpa</span><strong id="carp-count">0</strong></div>
+            <div class="inventory-item"><span class="item-icon">🐟</span><span class="item-name">Peixe pequeno</span><strong id="minnow-count">0</strong></div>
+            <div class="inventory-item"><span class="item-icon">🎣</span><span class="item-name">Vara de pesca</span><strong id="fishing-rod-count">0</strong></div>
             <div class="inventory-item"><span class="item-icon">🟤</span><span class="item-name">Couro curtido</span><strong id="tanned-leather-count">0</strong></div>
             <div class="inventory-item"><span class="item-icon">🎒</span><span class="item-name">Mochila de couro</span><strong id="leather-backpack-count">0</strong></div>
             <div class="inventory-item"><span class="item-icon">⚖️</span><span class="item-name">Carga / capacidade</span><strong id="carry-load">0 / 120</strong></div>
@@ -146,6 +153,12 @@
       <p id="kitchen-status" class="building-description">Use lenha e ingredientes para preparar refeições.</p>
       <div id="kitchen-recipes" class="kitchen-recipes"></div>
       <small class="building-help">Cada preparo consome 1 madeira como combustível. As refeições ficam na mochila e podem ser consumidas quando precisar recuperar fome.</small>
+    </section>
+    <section id="fishing-panel" class="fishing-panel hidden" aria-label="Pesca no rio">
+      <header class="inventory-header"><div><span class="eyebrow">VIDA À BEIRA DO RIO</span><strong>PESCA ARTESANAL</strong></div><button type="button" id="fishing-close" class="inventory-close" aria-label="Fechar pesca">×</button></header>
+      <p id="fishing-status" class="building-description">Lance a linha e aguarde uma fisgada.</p>
+      <button type="button" id="fishing-action" class="building-primary">LANÇAR A LINHA</button>
+      <small class="building-help">A pesca pode render truta, carpa ou peixe pequeno. Os peixes podem ser preparados na cozinha.</small>
     </section>
     <section id="tannery-panel" class="tannery-panel hidden" aria-label="Curtume e fabricação de mochila de couro">
       <header class="inventory-header"><div><span class="eyebrow">OFÍCIO ARTESANAL</span><strong id="tannery-title">CURTUME E COURO</strong></div><button type="button" id="tannery-close" class="inventory-close" aria-label="Fechar curtume">×</button></header>
@@ -212,6 +225,7 @@
       <button type="button" id="craft-axe-button" class="craft-action-button" disabled>FABRICAR MACHADO</button>
       <button type="button" id="craft-bow-button" class="craft-action-button" disabled>FABRICAR ARCO · 4 GALHOS + 2 TECIDOS</button>
       <button type="button" id="craft-arrows-button" class="craft-action-button" disabled>FABRICAR 5 FLECHAS · 2 GALHOS + 1 PEDRA</button>
+      <button type="button" id="craft-fishing-rod-button" class="craft-action-button" disabled>FABRICAR VARA DE PESCA · 3 GALHOS + 1 TECIDO</button>
     </section>
     <div id="game-toast" class="game-toast hidden" role="status" aria-live="polite"></div>
     <section class="location-card">

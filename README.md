@@ -223,3 +223,15 @@ Esta etapa inclui coleta, mochila, alimentação e hidratação; fabricação e 
 - A mochila pode ser equipada ou retirada no painel do curtume. Equipada, aumenta a capacidade de carga de 120 para 180 itens.
 - A capacidade é verificada ao recolher recursos, madeira, colheitas, produção dos animais e recompensas da caça. Se estiver cheia, guarde materiais no baú ou equipe a mochila ampliada.
 - Curtimento, couro curtido, mochila e equipamento permanecem salvos no dispositivo.
+
+
+## Fase 9 — Pesca e vida aquática
+
+- Quatro pontos de pesca são marcados por juncos nas margens acessíveis do rio.
+- Na bancada, fabrique uma vara de pesca usando 3 galhos e 1 tecido.
+- Aproxime-se de um ponto marcado e pressione E no PC ou use o botão de ação no celular para abrir a pesca.
+- Lance a linha e aguarde alguns segundos pela fisgada. Cada tentativa pode render truta, carpa ou peixe pequeno.
+- Os peixes são guardados na mochila e respeitam a capacidade de carga.
+- Na cozinha, prepare truta grelhada, carpa grelhada ou peixe pequeno grelhado usando 1 peixe da espécie e 1 madeira como combustível.
+- As refeições de peixe recuperam fome e podem ser consumidas pela mochila.
+- Vara, peixes e refeições preparadas são salvos localmente. O sistema funciona em PC e celular.

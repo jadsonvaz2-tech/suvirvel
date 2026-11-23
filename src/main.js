@@ -46,6 +46,7 @@ const kitchenStatus = document.getElementById("kitchen-status");
 const kitchenRecipes = document.getElementById("kitchen-recipes");
 const loomPanel = document.getElementById("loom-panel"), loomClose = document.getElementById("loom-close"), loomTitle = document.getElementById("loom-title"), loomStatus = document.getElementById("loom-status"), loomActions = document.getElementById("loom-actions");
 const tanneryPanel=document.getElementById("tannery-panel"),tanneryClose=document.getElementById("tannery-close"),tanneryTitle=document.getElementById("tannery-title"),tanneryStatus=document.getElementById("tannery-status"),tanneryActions=document.getElementById("tannery-actions");
+const fishingPanel=document.getElementById("fishing-panel"),fishingClose=document.getElementById("fishing-close"),fishingStatus=document.getElementById("fishing-status"),fishingAction=document.getElementById("fishing-action");
 const gameClockUI = document.getElementById("game-clock");
 const interactionType = document.getElementById("interaction-type");
 const interactionVerb = document.getElementById("interaction-verb");
@@ -70,7 +71,7 @@ const inventoryUI = {
   omelet: document.getElementById("omelet-count"),
   vegetableSoup: document.getElementById("vegetable-soup-count"),
   berryPorridge: document.getElementById("berry-porridge-count"),
-  fabric: document.getElementById("fabric-count"), tannedLeather:document.getElementById("tanned-leather-count"), leatherBackpack:document.getElementById("leather-backpack-count"), tunic: document.getElementById("tunic-count"), trousers: document.getElementById("trousers-count"), boots: document.getElementById("boots-count"), rawMeat:document.getElementById("raw-meat-count"), hide:document.getElementById("hide-count"), roastedMeat:document.getElementById("roasted-meat-count"), bow:document.getElementById("bow-count"), arrows:document.getElementById("arrows-count")
+  fabric: document.getElementById("fabric-count"), tannedLeather:document.getElementById("tanned-leather-count"), leatherBackpack:document.getElementById("leather-backpack-count"), tunic: document.getElementById("tunic-count"), trousers: document.getElementById("trousers-count"), boots: document.getElementById("boots-count"), rawMeat:document.getElementById("raw-meat-count"), hide:document.getElementById("hide-count"), roastedMeat:document.getElementById("roasted-meat-count"), bow:document.getElementById("bow-count"), arrows:document.getElementById("arrows-count"), trout:document.getElementById("trout-count"), carp:document.getElementById("carp-count"), minnow:document.getElementById("minnow-count"), grilledTrout:document.getElementById("grilled-trout-count"), grilledCarp:document.getElementById("grilled-carp-count"), grilledMinnow:document.getElementById("grilled-minnow-count")
 };
 let toastTimer = 0;
 const survivalUI = {
@@ -192,6 +193,13 @@ function startGame(THREE) {
   }));
   scene.add(water);
 
+  // Pontos de pesca marcados por juncos nas margens acessíveis do rio.
+  const fishingSpots=[-48,-8,34,78].map((z,index)=>{
+    const x=riverX(z)+11.2,group=new THREE.Group(),reedMat=new THREE.MeshStandardMaterial({color:0x687c3c,roughness:1});
+    for(let i=0;i<4;i++){const reed=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.04,0.95+(i%2)*0.25,5),reedMat);reed.position.set((i-1.5)*0.22,0.48+(i%2)*0.08,(i%2)*0.18);reed.rotation.z=(i-1.5)*0.09;group.add(reed);}
+    group.position.set(x,groundHeight(x,z),z);scene.add(group);return {id:"fishing-spot-"+(index+1),x,z,group};
+  });
+
   // Luz suave e céu aberto; os modelos são provisórios nesta primeira fase.
   const sunDisk = new THREE.Mesh(new THREE.SphereGeometry(3.5, 14, 10), new THREE.MeshBasicMaterial({ color: 0xffe2a0 }));
   sunDisk.position.set(-72, 48, -118);
@@ -209,6 +217,7 @@ function startGame(THREE) {
   // Assim, a primeira área de coleta aparece perto do personagem mesmo em saves antigos.
   const saved = readSave();
   const gameTime = { day:saved?.gameTime?.day??1, hour:saved?.gameTime?.hour??8, minute:saved?.gameTime?.minute??0 };
+  let fishingLastCatch=Number.isSafeInteger(saved?.fishingSpotState?.lastCatch)?Math.max(0,saved.fishingSpotState.lastCatch):0;
   const cropTypes = {
     wheat:{label:"Trigo",seed:"wheatSeeds",produce:"wheat",growth:360,hunger:20},
     carrots:{label:"Cenoura",seed:"carrotSeeds",produce:"carrots",growth:480,hunger:28},
@@ -688,13 +697,16 @@ function startGame(THREE) {
     omelet:{label:"Omelete",icon:"🍳",ingredients:{eggs:2},hunger:52,description:"Ovos preparados na panela."},
     vegetableSoup:{label:"Sopa de legumes",icon:"🥣",ingredients:{carrots:1,cabbages:1},hunger:62,description:"Uma refeição quente e nutritiva."},
     berryPorridge:{label:"Mingau de frutas",icon:"🫐",ingredients:{berries:2,wheat:1},hunger:55,description:"Mingau doce para recuperar as forças."},
-    roastedMeat:{label:"Carne assada",icon:"🍖",ingredients:{rawMeat:1},hunger:70,description:"Carne de caça assada na fogueira."}
+    roastedMeat:{label:"Carne assada",icon:"🍖",ingredients:{rawMeat:1},hunger:70,description:"Carne de caça assada na fogueira."},
+    grilledTrout:{label:"Truta grelhada",icon:"🐟",ingredients:{trout:1},hunger:68,description:"Truta fresca assada na brasa."},
+    grilledCarp:{label:"Carpa grelhada",icon:"🐠",ingredients:{carp:1},hunger:60,description:"Carpa do rio preparada na panela."},
+    grilledMinnow:{label:"Peixe pequeno grelhado",icon:"🐟",ingredients:{minnow:1},hunger:45,description:"Pequeno peixe assado na fogueira."}
   };
   function renderKitchenPanel(){
     kitchenStatus.textContent="Lenha disponível: "+inventory.wood+" · Cada preparo consome 1 madeira como combustível.";
     kitchenRecipes.innerHTML=Object.entries(cookingRecipes).map(([key,recipe])=>{
       const enough=inventory.wood>=1&&Object.entries(recipe.ingredients).every(([item,amount])=>inventory[item]>=amount);
-      const costs=Object.entries(recipe.ingredients).map(([item,amount])=>amount+" "+({wheat:"trigo",eggs:"ovos",carrots:"cenouras",cabbages:"repolhos",berries:"frutas"}[item])).join(" + ");
+      const costs=Object.entries(recipe.ingredients).map(([item,amount])=>amount+" "+({wheat:"trigo",eggs:"ovos",carrots:"cenouras",cabbages:"repolhos",berries:"frutas",trout:"trutas",carp:"carpas",minnow:"peixes pequenos"}[item])).join(" + ");
       return '<article class="kitchen-recipe"><div class="kitchen-recipe-icon">'+recipe.icon+'</div><div class="kitchen-recipe-copy"><strong>'+recipe.label+'</strong><small>'+recipe.description+'</small><small>Ingredientes: '+costs+' · Lenha: 1 · Fome +'+recipe.hunger+'</small></div><button type="button" data-cook="'+key+'" '+(enough?"":"disabled")+'>PREPARAR</button></article>';
     }).join("");
   }
@@ -746,6 +758,12 @@ function startGame(THREE) {
     const backpack='<div class="tannery-action"><div><strong>🎒 Mochila de couro</strong><small>Receita: 3 couros curtidos + 2 tecidos · capacidade +60 espaços</small><small>'+(tools.leatherBackpack?"Equipada · +60 espaços":owned?"Guardada":"Ainda não fabricada")+'</small></div><button type="button" data-backpack-craft="1" '+(owned||inventory.tannedLeather<3||inventory.fabric<2?"disabled":"")+' >FABRICAR</button><button type="button" data-backpack-equip="1" '+(!owned?"disabled":"")+'>'+(tools.leatherBackpack?"RETIRAR":"EQUIPAR")+'</button></div>';
     tanneryActions.innerHTML=process+backpack;
   }
+  function renderFishingPanel(){if(fishingActive){const left=Math.max(0,(fishingFinishAt-performance.now())/1000);fishingStatus.textContent="A linha está na água... "+left.toFixed(1)+"s";fishingAction.disabled=true;fishingAction.textContent="AGUARDE";}else{fishingStatus.textContent="Pesque na margem do rio. Cada tentativa leva alguns segundos e pode render truta, carpa ou peixe pequeno.";fishingAction.disabled=!tools.fishingRod;fishingAction.textContent="LANÇAR A LINHA";}}
+  function openFishingPanel(){if(!canUseFishingSpot)return;renderFishingPanel();fishingPanel.classList.remove("hidden");}
+  function closeFishingPanel(){fishingActive=false;fishingFinishAt=0;fishingAnimation=0;fishingRodModel.visible=false;fishingPanel.classList.add("hidden");}
+  function startFishing(){if(!canUseFishingSpot||!tools.fishingRod||fishingActive)return;fishingActive=true;fishingFinishAt=performance.now()+(3200+Math.random()*2600);fishingAnimation=0;fishingRodModel.visible=true;renderFishingPanel();showToast("Você lançou a linha. Aguarde a fisgada!");}
+  function updateFishingProgress(delta){if(!fishingActive)return;fishingAnimation+=delta;fishingRodModel.rotation.x=-0.12+Math.sin(fishingAnimation*5)*0.035;if(performance.now()<fishingFinishAt){if(!fishingPanel.classList.contains("hidden"))renderFishingPanel();return;}fishingActive=false;fishingRodModel.visible=false;const roll=Math.random(),fish=roll<0.32?"trout":roll<0.72?"carp":"minnow",labels={trout:"truta",carp:"carpa",minnow:"peixe pequeno"};if(canCarry(1)){inventory[fish]=Math.min(9999,inventory[fish]+1);fishingLastCatch=totalGameMinutes();updateInventoryUI();saveProgress(true);showToast("Boa pescaria! Você conseguiu 1 "+labels[fish]+".");}else showToast("A mochila está cheia. O peixe escapou!");if(!fishingPanel.classList.contains("hidden"))renderFishingPanel();updateResourceTarget();}
+  fishingAction.addEventListener("click",startFishing);fishingClose.addEventListener("click",closeFishingPanel);
   function openTanneryPanel(){if(!canUseTannery)return;tanneryTitle.textContent="CURTUME E COURO";renderTanneryPanel();tanneryPanel.classList.remove("hidden");}
   function closeTanneryPanel(){tanneryPanel.classList.add("hidden");}
   function handleTanneryAction(event){
@@ -1003,7 +1021,7 @@ function startGame(THREE) {
     fabric: saved?.inventory?.fabric ?? 0,
     tunic: saved?.inventory?.tunic ?? 0,
     trousers: saved?.inventory?.trousers ?? 0,
-    boots: saved?.inventory?.boots ?? 0, rawMeat:saved?.inventory?.rawMeat??0, hide:saved?.inventory?.hide??0, tannedLeather:saved?.inventory?.tannedLeather??0, leatherBackpack:saved?.inventory?.leatherBackpack??0, roastedMeat:saved?.inventory?.roastedMeat??0, arrows:saved?.inventory?.arrows??0
+    boots: saved?.inventory?.boots ?? 0, rawMeat:saved?.inventory?.rawMeat??0, hide:saved?.inventory?.hide??0, tannedLeather:saved?.inventory?.tannedLeather??0, leatherBackpack:saved?.inventory?.leatherBackpack??0, roastedMeat:saved?.inventory?.roastedMeat??0, arrows:saved?.inventory?.arrows??0, trout:saved?.inventory?.trout??0, carp:saved?.inventory?.carp??0, minnow:saved?.inventory?.minnow??0, grilledTrout:saved?.inventory?.grilledTrout??0, grilledCarp:saved?.inventory?.grilledCarp??0, grilledMinnow:saved?.inventory?.grilledMinnow??0
   };
   // Pacote único para quem já tinha uma fazenda salva: sementes para retomar o cultivo.
   let seedStarterPackClaimed = saved?.seedStarterPackClaimed === true;
@@ -1014,9 +1032,10 @@ function startGame(THREE) {
     seedStarterPackClaimed = true;
   }
   const clothing = {tunic:saved?.clothing?.tunic===true,trousers:saved?.clothing?.trousers===true,boots:saved?.clothing?.boots===true};
-  const tools = { axe: saved?.tools?.axe === true, bow:saved?.tools?.bow===true, leatherBackpack:saved?.tools?.leatherBackpack===true };
+  const tools = { axe: saved?.tools?.axe === true, bow:saved?.tools?.bow===true, fishingRod:saved?.tools?.fishingRod===true, leatherBackpack:saved?.tools?.leatherBackpack===true };
   const storage = { branches:saved?.storage?.branches??0, stones:saved?.storage?.stones??0, berries:saved?.storage?.berries??0, wood:saved?.storage?.wood??0 };
   let canUseCabinDoor=false, canUseStorageChest=false, canUseBed=false;
+  let canUseFishingSpot=false,currentFishingSpot=null,fishingActive=false,fishingFinishAt=0,fishingAnimation=0;
   let currentResourceTarget = null;
   let canDrinkWater = false;
   let canUseWorkbench = false;
@@ -1074,7 +1093,9 @@ function startGame(THREE) {
     const bowButton=document.getElementById("craft-bow-button"),arrowButton=document.getElementById("craft-arrows-button");
     if(bowButton){bowButton.disabled=tools.bow||inventory.branches<4||inventory.fabric<2;bowButton.textContent=tools.bow?"ARCO FABRICADO":"FABRICAR ARCO";}
     if(arrowButton)arrowButton.disabled=inventory.branches<2||inventory.stones<1;
+    const rodButton=document.getElementById("craft-fishing-rod-button");if(rodButton){rodButton.disabled=tools.fishingRod||inventory.branches<3||inventory.fabric<1;rodButton.textContent=tools.fishingRod?"VARA FABRICADA":"FABRICAR VARA DE PESCA";}
     document.getElementById("bow-count").textContent=tools.bow?"1":"0";
+    const rodCount=document.getElementById("fishing-rod-count");if(rodCount)rodCount.textContent=tools.fishingRod?"1":"0";
     eatBerryButton.setAttribute(
       "aria-label",
       canEatBerry ? "Comer uma fruta para recuperar fome" :
@@ -1128,6 +1149,8 @@ function startGame(THREE) {
     craftingPanel.classList.remove("hidden");
     updateInventoryUI();
   }
+  function craftFishingRod(){if(tools.fishingRod){showToast("Você já possui uma vara de pesca.");return;}if(inventory.branches<3||inventory.fabric<1){showToast("Para fabricar a vara: 3 galhos e 1 tecido.");return;}inventory.branches-=3;inventory.fabric--;tools.fishingRod=true;updateInventoryUI();saveProgress(true);showToast("Vara de pesca fabricada! Procure os juncos nas margens do rio.");}
+  document.getElementById("craft-fishing-rod-button").addEventListener("click",craftFishingRod);
   function craftBow(){if(tools.bow){showToast("Você já possui um arco.");return;}if(inventory.branches<4||inventory.fabric<2){showToast("Para fabricar o arco: 4 galhos e 2 tecidos.");return;}inventory.branches-=4;inventory.fabric-=2;tools.bow=true;updateInventoryUI();saveProgress(true);showToast("Arco fabricado! Mire em um animal e pressione E.");}
   function craftArrows(){if(inventory.branches<2||inventory.stones<1){showToast("Para fabricar flechas: 2 galhos e 1 pedra.");return;}inventory.branches-=2;inventory.stones--;inventory.arrows=Math.min(9999,inventory.arrows+5);updateInventoryUI();saveProgress(true);showToast("Você fabricou 5 flechas.");}
   document.getElementById("craft-bow-button").addEventListener("click",craftBow);
@@ -1181,6 +1204,9 @@ function startGame(THREE) {
   rightHand.position.x = 0.37;
   armGroup.add(leftSleeve, rightSleeve, leftHand, rightHand);
   const axeModel = new THREE.Group();
+  const fishingRodModel=new THREE.Group();
+  const rodStick=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.045,2.15,7),new THREE.MeshStandardMaterial({color:0x80542e,roughness:1}));rodStick.rotation.z=-0.18;rodStick.position.set(0.46,0.42,-0.72);fishingRodModel.add(rodStick);
+  const rodLine=new THREE.Mesh(new THREE.CylinderGeometry(0.006,0.006,1.15,4),new THREE.MeshBasicMaterial({color:0xd9d1b3}));rodLine.position.set(0.68,-0.2,-1.35);rodLine.rotation.z=-0.3;fishingRodModel.add(rodLine);fishingRodModel.visible=false;armGroup.add(fishingRodModel);
   const axeHandle = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.065, 0.78, 7), new THREE.MeshStandardMaterial({ color: 0x8a5b32, roughness: 1 }));
   axeHandle.rotation.z = -0.18;
   axeHandle.position.set(0.47, -0.14, -0.76);
@@ -1243,14 +1269,15 @@ function startGame(THREE) {
           fabric: safeCount(saved.inventory?.fabric),
           tunic: safeCount(saved.inventory?.tunic),
           trousers: safeCount(saved.inventory?.trousers),
-          boots: safeCount(saved.inventory?.boots), rawMeat:safeCount(saved.inventory?.rawMeat), hide:safeCount(saved.inventory?.hide), tannedLeather:safeCount(saved.inventory?.tannedLeather), leatherBackpack:safeCount(saved.inventory?.leatherBackpack), roastedMeat:safeCount(saved.inventory?.roastedMeat), arrows:safeCount(saved.inventory?.arrows)
+          boots: safeCount(saved.inventory?.boots), rawMeat:safeCount(saved.inventory?.rawMeat), hide:safeCount(saved.inventory?.hide), tannedLeather:safeCount(saved.inventory?.tannedLeather), leatherBackpack:safeCount(saved.inventory?.leatherBackpack), roastedMeat:safeCount(saved.inventory?.roastedMeat), arrows:safeCount(saved.inventory?.arrows), trout:safeCount(saved.inventory?.trout), carp:safeCount(saved.inventory?.carp), minnow:safeCount(saved.inventory?.minnow), grilledTrout:safeCount(saved.inventory?.grilledTrout), grilledCarp:safeCount(saved.inventory?.grilledCarp), grilledMinnow:safeCount(saved.inventory?.grilledMinnow)
         },
         animalCare:{
           chickens:{fedUntil:Number.isSafeInteger(saved.animalCare?.chickens?.fedUntil)?Math.max(0,saved.animalCare.chickens.fedUntil):0,nextAt:Number.isSafeInteger(saved.animalCare?.chickens?.nextAt)?Math.max(0,saved.animalCare.chickens.nextAt):0,ready:safeCount(saved.animalCare?.chickens?.ready)},
           sheep:{fedUntil:Number.isSafeInteger(saved.animalCare?.sheep?.fedUntil)?Math.max(0,saved.animalCare.sheep.fedUntil):0,nextAt:Number.isSafeInteger(saved.animalCare?.sheep?.nextAt)?Math.max(0,saved.animalCare.sheep.nextAt):0,ready:safeCount(saved.animalCare?.sheep?.ready)}
         },
         farmPlots: Array.isArray(saved.farmPlots) ? saved.farmPlots.filter(item=>item&&["farm-plot-1","farm-plot-2","farm-plot-3"].includes(item.id)&&Object.hasOwn({wheat:1,carrots:1,cabbages:1},item.crop)&&Number.isSafeInteger(item.plantedAt)&&item.plantedAt>=0).map(item=>({id:item.id,crop:item.crop,plantedAt:item.plantedAt})) : [],
-        tools: { axe: saved.tools?.axe === true, bow:saved.tools?.bow===true, leatherBackpack:saved.tools?.leatherBackpack===true },
+        tools: { axe: saved.tools?.axe === true, bow:saved.tools?.bow===true, fishingRod:saved.tools?.fishingRod===true, leatherBackpack:saved.tools?.leatherBackpack===true },
+        fishingSpotState:{lastCatch:Number.isSafeInteger(saved.fishingSpotState?.lastCatch)?Math.max(0,saved.fishingSpotState.lastCatch):0},
         tanneryState:{readyAt:Number.isSafeInteger(saved.tanneryState?.readyAt)?Math.max(0,saved.tanneryState.readyAt):0,ready:saved.tanneryState?.ready===true},
         huntedWildlife:Array.isArray(saved.huntedWildlife)?saved.huntedWildlife.filter(id=>/^wild-(deer|boar)-[0-9]+$/).slice(0,30):[],
         storage: { branches:safeCount(saved.storage?.branches), stones:safeCount(saved.storage?.stones), berries:safeCount(saved.storage?.berries), wood:safeCount(saved.storage?.wood) },
@@ -1295,6 +1322,7 @@ function startGame(THREE) {
         x: player.x, z: player.z, yaw: player.yaw, pitch: player.pitch,
         seedStarterPackClaimed: true,
         tanneryState:{...tanneryState},
+        fishingSpotState:{lastCatch:fishingLastCatch},
         health: survival.health, hunger: survival.hunger, thirst: survival.thirst, energy: survival.energy, warmth: survival.warmth, clothing:{...clothing},
         inventory: { ...inventory },
         farmPlots: farmPlots.map(({id,crop,plantedAt})=>({id,crop,plantedAt})),
@@ -1410,6 +1438,7 @@ function startGame(THREE) {
     if (!event.repeat && key === "escape") {
       if(buildMode)stopBuilding();
       else if(!tanneryPanel.classList.contains("hidden"))closeTanneryPanel();
+      else if(!fishingPanel.classList.contains("hidden"))closeFishingPanel();
       else if(!loomPanel.classList.contains("hidden"))closeLoomPanel();
       else if(!kitchenPanel.classList.contains("hidden"))closeKitchenPanel();
       else if(!animalPanel.classList.contains("hidden"))closeAnimalPanel();
@@ -1481,14 +1510,17 @@ function startGame(THREE) {
       bestDistance = distance;
     }
 
+    let nearestFishing=null,nearestFishingDistance=Infinity;
+    for(const spot of fishingSpots){const d=Math.hypot(spot.x-player.x,spot.z-player.z);if(d<5.2&&d<nearestFishingDistance){nearestFishing=spot;nearestFishingDistance=d;}}
+    currentFishingSpot=nearestFishing;canUseFishingSpot=Boolean(nearestFishing&&!match&&tools.fishingRod);
     const tanneryDistance=tanneryPosition?Math.hypot(tanneryPosition.x-player.x,tanneryPosition.z-player.z):Infinity;
     canUseTannery=Boolean(builtCabin&&!match&&tanneryDistance<=4.4);
     const loomDistance=loomPosition?Math.hypot(loomPosition.x-player.x,loomPosition.z-player.z):Infinity;
     canUseLoom=Boolean(builtCabin&&!match&&!canUseTannery&&loomDistance<=4.2);
     const bankDistance = riverDistance(player.x, player.z);
-    canDrinkWater = !match && !canUseLoom && bankDistance >= 8.2 && bankDistance <= 12.4 && survival.thirst < 99.5;
+    canDrinkWater = !match && !canUseLoom && !canUseFishingSpot && bankDistance >= 8.2 && bankDistance <= 12.4 && survival.thirst < 99.5;
     const benchDistance = Math.hypot(workbenchPosition.x - player.x, workbenchPosition.z - player.z);
-    canUseWorkbench = !match && !canUseLoom && !canDrinkWater && benchDistance <= 5.2;
+    canUseWorkbench = !match && !canUseLoom && !canDrinkWater && !canUseFishingSpot && benchDistance <= 5.2;
     canUseCabinDoor=false; canUseStorageChest=false; canUseBed=false;canUseFarmPlot=false;currentFarmPlot=null;canUseAnimalPen=false;currentAnimalType=null;canUseKitchen=false;
     if(builtCabin && !match && !canUseLoom && !canDrinkWater && !canUseWorkbench){
       const dx=player.x-builtCabin.x,dz=player.z-builtCabin.z;
@@ -1532,7 +1564,7 @@ function startGame(THREE) {
     currentTreeTarget = !match && !canUseLoom && !canDrinkWater && !canUseWorkbench && !canUseFarmPlot && !canUseAnimalPen && !canUseKitchen && !canUseLoom ? treeMatch : null;
     canChopTree = Boolean(currentTreeTarget && tools.axe);
     currentResourceTarget = match;
-    const hasInteraction = Boolean(match) || canUseTannery || canDrinkWater || canUseWorkbench || canUseFarmPlot || canUseAnimalPen || canUseKitchen || canUseLoom || canUseCabinDoor || canUseBed || canUseStorageChest || Boolean(currentTreeTarget) || Boolean(currentWildlifeTarget);
+    const hasInteraction = Boolean(match) || canUseTannery || canUseFishingSpot || canDrinkWater || canUseWorkbench || canUseFarmPlot || canUseAnimalPen || canUseKitchen || canUseLoom || canUseCabinDoor || canUseBed || canUseStorageChest || Boolean(currentTreeTarget) || Boolean(currentWildlifeTarget);
     interactionPrompt.classList.toggle("hidden", !hasInteraction);
     collectButton.classList.toggle("hidden", !hasInteraction || !isMobile);
 
@@ -1541,6 +1573,8 @@ function startGame(THREE) {
       interactionName.textContent = match.label + " · " + match.amount;
       interactionVerb.textContent = "recolher";
       collectButton.textContent = "RECOLHER";
+    } else if (canUseFishingSpot) {
+      interactionType.textContent="PESCA";interactionName.textContent="Margem de pesca";interactionVerb.textContent="lançar a linha e pescar";collectButton.textContent="PESCAR";
     } else if (canUseTannery) {
       interactionType.textContent="CURTUME";interactionName.textContent="Bancada de curtimento";interactionVerb.textContent="curtir couro e fabricar mochila";collectButton.textContent="USAR CURTUME";
     } else if (canUseLoom) {
@@ -1807,10 +1841,11 @@ function startGame(THREE) {
   sleepPanel.addEventListener("click",event=>{const button=event.target.closest("button[data-sleep-hours]");if(button)sleepFor(Number(button.dataset.sleepHours));});
   sleepClose.addEventListener("click",closeSleepPanel);
   function performCurrentInteraction(){
-    if(!chestPanel.classList.contains("hidden")||!sleepPanel.classList.contains("hidden")||!farmPanel.classList.contains("hidden")||!animalPanel.classList.contains("hidden")||!kitchenPanel.classList.contains("hidden")||!loomPanel.classList.contains("hidden")||!tanneryPanel.classList.contains("hidden"))return;
+    if(!chestPanel.classList.contains("hidden")||!sleepPanel.classList.contains("hidden")||!farmPanel.classList.contains("hidden")||!animalPanel.classList.contains("hidden")||!kitchenPanel.classList.contains("hidden")||!loomPanel.classList.contains("hidden")||!tanneryPanel.classList.contains("hidden")||!fishingPanel.classList.contains("hidden"))return;
     if(buildMode){confirmBuilding();return;}
     if(currentResourceTarget)collectCurrentResource();
     else if(canUseTannery)openTanneryPanel();
+    else if(canUseFishingSpot)openFishingPanel();
     else if(canUseLoom)openLoomPanel();
     else if(canDrinkWater)drinkWater();
     else if(canUseWorkbench)openCrafting();
@@ -1831,6 +1866,7 @@ function startGame(THREE) {
   function animate() {
     requestAnimationFrame(animate);
     const delta = Math.min(clock.getDelta(), 0.05);
+    updateFishingProgress(delta);
     if(kitchenFire){kitchenFire.time+=delta;const flicker=1+Math.sin(kitchenFire.time*13)*0.12+Math.sin(kitchenFire.time*21)*0.06;kitchenFire.flame.scale.set(1, flicker, 1);kitchenFire.flame.rotation.y=kitchenFire.time*1.8;kitchenFire.flameCore.scale.y=0.9+Math.sin(kitchenFire.time*17)*0.12;kitchenFire.light.intensity=1.25+Math.sin(kitchenFire.time*15)*0.22;}
     gameTimeAccumulator+=delta;
     while(gameTimeAccumulator>=5){gameTimeAccumulator-=5;advanceGameMinutes(1);}
@@ -1851,7 +1887,7 @@ function startGame(THREE) {
     const cos = Math.cos(player.yaw);
     const moveX = (-sin * forward + cos * strafe) * speed * delta;
     const moveZ = (-cos * forward - sin * strafe) * speed * delta;
-    if (sleepPanel.classList.contains("hidden") && farmPanel.classList.contains("hidden") && animalPanel.classList.contains("hidden") && kitchenPanel.classList.contains("hidden") && loomPanel.classList.contains("hidden") && tanneryPanel.classList.contains("hidden") && (moveX || moveZ)) {
+    if (sleepPanel.classList.contains("hidden") && farmPanel.classList.contains("hidden") && animalPanel.classList.contains("hidden") && kitchenPanel.classList.contains("hidden") && loomPanel.classList.contains("hidden") && tanneryPanel.classList.contains("hidden") && fishingPanel.classList.contains("hidden") && (moveX || moveZ)) {
       const nextX = player.x + moveX;
       const nextZ = player.z + moveZ;
       if (!isBlocked(nextX, player.z)) player.x = nextX;
