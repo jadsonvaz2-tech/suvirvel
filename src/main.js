@@ -492,7 +492,7 @@ function startGame(THREE) {
     {id:"bruna",name:"Bruna",role:"Cozinheira",body:0x9a7048,accent:0xd8b36b},
     {id:"martim",name:"Martim",role:"Ferreiro",body:0x59616b,accent:0xb7a078}
   ];
-  function createVillager(def,house,slot=0){
+  function createVillager(def,house,slot=0,assignedProfession=null){
     const root=new THREE.Group();
     const robe=new THREE.Mesh(new THREE.CylinderGeometry(.28,.38,1.12,7),new THREE.MeshStandardMaterial({color:def.body,roughness:1}));
     robe.position.y=.78;root.add(robe);
@@ -510,26 +510,20 @@ function startGame(THREE) {
     const start={x:house.x+side*Math.cos(yaw)+forward*Math.sin(yaw),z:house.z-side*Math.sin(yaw)+forward*Math.cos(yaw)};
     root.position.set(start.x,groundHeight(start.x,start.z),start.z);
     scene.add(root);
-    const label=makeResourceLabel(def.name+" · "+def.role.toUpperCase(),"#f0c76f");label.position.set(0,2.9,0);label.scale.set(3.7,.9,1);root.add(label);
+    const profession=assignedProfession||def.role;\n    const label=makeResourceLabel(def.name+" · "+profession.toUpperCase(),"#f0c76f");label.position.set(0,2.9,0);label.scale.set(3.7,.9,1);root.add(label);
     const marker=new THREE.Mesh(new THREE.TorusGeometry(.62,.055,7,20),new THREE.MeshBasicMaterial({color:def.accent,transparent:true,opacity:.9}));
     marker.rotation.x=Math.PI/2;marker.position.y=.08;root.add(marker);
-    return {...def,group:root,x:start.x,z:start.z,homeX:start.x,homeZ:start.z,targetX:start.x,targetZ:start.z,wait:1+Math.random()*3,walk:0,arms:root.children.filter((child,index)=>index>=4&&index<=5),houseId:house.id};
+    const professionIndex=Math.max(0,villagerDefinitions.findIndex(item=>item.role===profession));\n    const workOffsets=[[-5,-4],[5,-4],[-5,4],[5,4],[-7,0],[7,0],[0,-7],[0,7]];\n    const offset=workOffsets[professionIndex%workOffsets.length];\n    return {...def,role:profession,profession,labelMesh:label,group:root,x:start.x,z:start.z,homeX:start.x,homeZ:start.z,workX:THREE.MathUtils.clamp(start.x+offset[0],-90,90),workZ:THREE.MathUtils.clamp(start.z+offset[1],-90,90),targetX:start.x,targetZ:start.z,wait:1+Math.random()*3,walk:0,arms:root.children.filter((child,index)=>index>=4&&index<=5),houseId:house.id,atWork:false};
   }
   function updateVillagers(delta){
     const hour=gameTime.hour+gameTime.minute/60;
-    const working=hour>=6&&hour<20;
+    const working=hour>=7&&hour<19;
     for(const villager of villagers){
-      if(!working)continue;
-      villager.wait-=delta;
-      const dx=villager.targetX-villager.x,dz=villager.targetZ-villager.z,distance=Math.hypot(dx,dz);
-      if(distance<.35||villager.wait<=0){
-        const angle=Math.random()*Math.PI*2,radius=0.8+Math.random()*1.8;
-        villager.targetX=villager.homeX+Math.cos(angle)*radius;
-        villager.targetZ=villager.homeZ+Math.sin(angle)*radius;
-        villager.targetX=THREE.MathUtils.clamp(villager.targetX,-92,92);
-        villager.targetZ=THREE.MathUtils.clamp(villager.targetZ,-92,92);
-        villager.wait=distance<.35?1+Math.random()*2:0;
-      }else{
+      const destinationX=working?villager.workX:villager.homeX;
+      const destinationZ=working?villager.workZ:villager.homeZ;
+      villager.atWork=working;
+      const dx=destinationX-villager.x,dz=destinationZ-villager.z,distance=Math.hypot(dx,dz);
+      if(distance>.28){
         const step=Math.min(distance,1.05*delta);
         villager.x+=dx/distance*step;villager.z+=dz/distance*step;
         villager.group.position.x=villager.x;villager.group.position.z=villager.z;
@@ -537,6 +531,11 @@ function startGame(THREE) {
         villager.group.rotation.y=Math.atan2(dx,dz);
         villager.walk+=delta*8;
         villager.arms.forEach((arm,index)=>{arm.rotation.x=Math.sin(villager.walk+index*Math.PI)*.22;});
+      }else{
+        villager.x=destinationX;villager.z=destinationZ;
+        villager.group.position.x=destinationX;villager.group.position.z=destinationZ;
+        villager.group.position.y=groundHeight(destinationX,destinationZ);
+        villager.arms.forEach(arm=>{arm.rotation.x=0;});
       }
     }
   }
@@ -545,7 +544,7 @@ function startGame(THREE) {
     currentVillager=villager;
     villagerTitle.textContent=villager.name+" · "+villager.role.toUpperCase();
     villagerDialogue.textContent="Olá! Obrigado por me convidar para viver no seu vilarejo. Esta é minha nova casa, e vou contribuir com meu ofício para o crescimento do assentamento.";
-    villagerTask.innerHTML='<div class="villager-task-note">Morador do vilarejo · Casa: '+villager.houseId.replace("house-","")+' · Profissão: '+villager.role+'</div>';
+    villagerTask.innerHTML='<div class="villager-task-note">Morador do vilarejo · Casa: '+villager.houseId.replace("house-","")+' · Profissão: '+villager.role+' · '+(villager.atWork?"No local de trabalho":"Em casa ou a caminho") +'</div>';
     villagerPanel.classList.remove("hidden");
   }
   function closeVillagerPanel(){villagerPanel.classList.add("hidden");currentVillager=null;}
@@ -566,7 +565,7 @@ function startGame(THREE) {
     villagersSummary.textContent=villagers.length+" moradores · "+villageHouses.length+" casas · "+free+" vagas disponíveis";
     villagersList.innerHTML=villagers.length?villagers.map(v=>{
       const distance=Math.hypot(v.x-player.x,v.z-player.z),direction=villagerDirection(v);
-      return '<article class="villager-directory-item"><div><strong>'+v.name+'</strong><span>'+v.role+'</span><small>'+direction+' · '+distance.toFixed(0)+' m · Casa '+v.houseId.replace("house-","")+'</small></div><button type="button" data-face-villager="'+v.id+'">LOCALIZAR</button></article>';
+      return '<article class="villager-directory-item"><div><strong>'+v.name+'</strong><span>'+v.role+'</span><small>'+(v.atWork?"Trabalhando":"Em casa / deslocando-se")+' · '+direction+' · '+distance.toFixed(0)+' m · Casa '+v.houseId.replace("house-","")+'</small><label class="villager-profession-label">PROFISSÃO <select data-villager-profession="'+v.id+'">'+villagerDefinitions.map(def=>'<option value="'+def.role+'" '+(def.role===v.role?"selected":"")+' >'+def.role+'</option>').join("")+'</select></label></div><button type="button" data-face-villager="'+v.id+'">LOCALIZAR</button></article>';
     }).join(""):'<p class="inventory-note">O vilarejo ainda não tem moradores. Construa uma casa e convide os primeiros habitantes.</p>';
     const invited=new Set(recruitedVillagers.map(item=>item.id));
     const vacancy=Boolean(availableHouse());
@@ -580,7 +579,7 @@ function startGame(THREE) {
     if(!house){showToast("Não há vagas. Construa outra casa para convidar mais moradores.");return;}
     const slot=house.occupants.length;
     const resident=createVillager(def,house,slot);
-    house.occupants.push(id);villagers.push(resident);recruitedVillagers.push({id,houseId:house.id});
+    house.occupants.push(id);villagers.push(resident);recruitedVillagers.push({id,houseId:house.id,profession:def.role});
     saveProgress(true);renderVillagersDirectory();updateResourceTarget();
     showToast(def.name+" aceitou o convite e chegou ao vilarejo!");
   }
@@ -588,7 +587,7 @@ function startGame(THREE) {
   function closeVillagersDirectory(){villagersDirectory.classList.add("hidden");}
   villagersToggle.addEventListener("click",openVillagersDirectory);
   villagersDirectoryClose.addEventListener("click",closeVillagersDirectory);
-  villagersList.addEventListener("click",event=>{
+  villagersList.addEventListener("change",event=>{\n    const select=event.target.closest("select[data-villager-profession]");\n    if(!select)return;\n    const villager=villagers.find(v=>v.id===select.dataset.villagerProfession);\n    const definition=villagerDefinitions.find(def=>def.role===select.value);\n    if(!villager||!definition)return;\n    villager.role=definition.role;villager.profession=definition.role;\n    const offsets=[[-5,-4],[5,-4],[-5,4],[5,4],[-7,0],[7,0],[0,-7],[0,7]];\n    const index=villagerDefinitions.findIndex(def=>def.role===definition.role),offset=offsets[index%offsets.length];\n    villager.workX=THREE.MathUtils.clamp(villager.homeX+offset[0],-90,90);villager.workZ=THREE.MathUtils.clamp(villager.homeZ+offset[1],-90,90);\n    villager.labelMesh.material.color.set(0xf0c76f);\n    villager.labelMesh.userData.text= villager.name+" · "+villager.role.toUpperCase();\n    saveProgress(true);renderVillagersDirectory();showToast(villager.name+" agora trabalha como "+villager.role+".");\n  });\n  villagersList.addEventListener("click",event=>{
     const button=event.target.closest("[data-face-villager]");
     if(!button)return;
     const villager=villagers.find(v=>v.id===button.dataset.faceVillager);
@@ -1146,7 +1145,7 @@ function startGame(THREE) {
     for(const residentData of recruitedVillagers){
       const def=villagerDefinitions.find(item=>item.id===residentData.id),house=villageHouses.find(item=>item.id===residentData.houseId);
       if(!def||!house||house.occupants.length>=2)continue;
-      house.occupants.push(def.id);villagers.push(createVillager(def,house,house.occupants.length-1));
+      house.occupants.push(def.id);villagers.push(createVillager(def,house,house.occupants.length-1,residentData.profession||def.role));
     }
     const validIds=new Set(villagers.map(v=>v.id));
     for(let i=recruitedVillagers.length-1;i>=0;i--)if(!validIds.has(recruitedVillagers[i].id))recruitedVillagers.splice(i,1);
@@ -1550,7 +1549,7 @@ function startGame(THREE) {
         },
         completedVillagerTasks:[],
         villageHouses:Array.isArray(saved.villageHouses)?saved.villageHouses.filter(house=>house&&typeof house.id==="string"&&Number.isFinite(house.x)&&Number.isFinite(house.z)&&Math.abs(house.x)<=96&&Math.abs(house.z)<=96).slice(0,40).map(house=>({id:house.id,x:house.x,z:house.z,yaw:Number.isFinite(house.yaw)?house.yaw:0})):[],
-        recruitedVillagers:Array.isArray(saved.recruitedVillagers)?saved.recruitedVillagers.filter(item=>item&&typeof item.id==="string"&&typeof item.houseId==="string").slice(0,40).map(item=>({id:item.id,houseId:item.houseId})):[],
+        recruitedVillagers:Array.isArray(saved.recruitedVillagers)?saved.recruitedVillagers.filter(item=>item&&typeof item.id==="string"&&typeof item.houseId==="string").slice(0,40).map(item=>({id:item.id,houseId:item.houseId,profession:typeof item.profession==="string"&&item.profession.length<40?item.profession:null})):[],
         structurePositions:saved.structurePositions&&typeof saved.structurePositions==="object"?Object.fromEntries(Object.entries(saved.structurePositions).filter(([id,pos])=>/^(workbench|merchant|kitchen|loom|tannery|chickens-pen|sheep-pen|farm-plot-[1-3])$/.test(id)&&pos&&Number.isFinite(pos.x)&&Number.isFinite(pos.z)&&Math.abs(pos.x)<=96&&Math.abs(pos.z)<=96).map(([id,pos])=>[id,{x:pos.x,z:pos.z,yaw:Number.isFinite(pos.yaw)?pos.yaw:0}])):{},
         builtCabin: saved.builtCabin && Number.isFinite(saved.builtCabin.x) && Number.isFinite(saved.builtCabin.z) && Math.abs(saved.builtCabin.x)<=96 && Math.abs(saved.builtCabin.z)<=96 ? { x:saved.builtCabin.x, z:saved.builtCabin.z, yaw:Number.isFinite(saved.builtCabin.yaw)?saved.builtCabin.yaw:0 } : null,
         resourceBase: saved.resourceBase &&
@@ -1608,7 +1607,7 @@ function startGame(THREE) {
         treeHits: Object.fromEntries(treeHitCounts),
         builtCabin: builtCabin ? { ...builtCabin } : null,
         villageHouses:villageHouses.map(({id,x,z,yaw})=>({id,x,z,yaw})),
-        recruitedVillagers:recruitedVillagers.map(({id,houseId})=>({id,houseId})),
+        recruitedVillagers:recruitedVillagers.map(({id,houseId,profession})=>({id,houseId,profession:profession||villagers.find(v=>v.id===id)?.role||null})),
         structurePositions:structurePositionsForSave()
       }));
     } catch { /* O jogo continua mesmo sem armazenamento disponível. */ }
