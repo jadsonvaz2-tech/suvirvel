@@ -143,3 +143,11 @@ Esta etapa inclui coleta, mochila, alimentação e hidratação; fabricação e 
 - Cada alimentação mantém o grupo alimentado por 12 horas de jogo. A produção fica disponível para recolher no painel do respectivo cercado.
 - Os ovos podem ser consumidos para recuperar 22 pontos de fome; a lã fica guardada na mochila para futuras receitas.
 - Animais, alimentação, produção pendente, ovos e lã são salvos automaticamente.
+
+
+## Interface da mochila
+
+- A mochila organiza os itens em recursos e ferramentas, sementes, alimentos e materiais especiais.
+- O cabeçalho e o rodapé permanecem visíveis; somente a lista interna rola quando há muitos itens.
+- A grade se adapta à largura e à altura disponíveis em computadores e celulares, mantendo nomes, quantidades e ações dentro do painel.
+- A reorganização é somente visual: itens, quantidades, consumo e salvamento continuam usando o mesmo inventário existente.

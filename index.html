@@ -55,20 +55,40 @@
         <div><span class="eyebrow">PERTENCES</span><strong>MOCHILA</strong></div>
         <button type="button" id="inventory-close" class="inventory-close" aria-label="Fechar mochila">×</button>
       </header>
-      <div class="inventory-items">
-        <div class="inventory-item"><span class="item-icon item-branch">⌁</span><span class="item-name">Galhos</span><strong id="branches-count">0</strong></div>
-        <div class="inventory-item"><span class="item-icon item-stone">◆</span><span class="item-name">Pedras</span><strong id="stones-count">0</strong></div>
-        <div class="inventory-item inventory-item-food"><span class="item-icon item-berry">●</span><span class="item-name">Frutas silvestres</span><strong id="berries-count">0</strong><button type="button" id="eat-berry-button" class="eat-berry-button" disabled>COMER 1</button></div>
-        <div class="inventory-item"><span class="item-icon item-axe">🪓</span><span class="item-name">Machado simples</span><strong id="axe-count">0</strong></div>
-        <div class="inventory-item"><span class="item-icon item-wood">▰</span><span class="item-name">Madeira</span><strong id="wood-count">0</strong></div>
-        <div class="inventory-item"><span class="item-icon item-seed">✦</span><span class="item-name">Sementes de trigo</span><strong id="wheat-seeds-count">3</strong></div>
-        <div class="inventory-item"><span class="item-icon item-seed">✦</span><span class="item-name">Sementes de cenoura</span><strong id="carrot-seeds-count">3</strong></div>
-        <div class="inventory-item"><span class="item-icon item-seed">✦</span><span class="item-name">Sementes de repolho</span><strong id="cabbage-seeds-count">3</strong></div>
-        <div class="inventory-item inventory-item-food"><span class="item-icon item-food">🌾</span><span class="item-name">Trigo colhido</span><strong id="wheat-count">0</strong><button type="button" data-eat-crop="wheat" class="eat-berry-button" disabled>COMER 1</button></div>
-        <div class="inventory-item inventory-item-food"><span class="item-icon item-food">🥕</span><span class="item-name">Cenouras</span><strong id="carrots-count">0</strong><button type="button" data-eat-crop="carrots" class="eat-berry-button" disabled>COMER 1</button></div>
-        <div class="inventory-item inventory-item-food"><span class="item-icon item-food">🥬</span><span class="item-name">Repolhos</span><strong id="cabbages-count">0</strong><button type="button" data-eat-crop="cabbages" class="eat-berry-button" disabled>COMER 1</button></div>
-        <div class="inventory-item inventory-item-food"><span class="item-icon item-food">🥚</span><span class="item-name">Ovos</span><strong id="eggs-count">0</strong><button type="button" data-eat-animal-food="eggs" class="eat-berry-button" disabled>COMER 1</button></div>
-        <div class="inventory-item"><span class="item-icon item-wool">✧</span><span class="item-name">Lã</span><strong id="wool-count">0</strong></div>
+      <div class="inventory-scroll">
+        <section class="inventory-category">
+          <h3 class="inventory-category-title">Recursos e ferramentas</h3>
+          <div class="inventory-items">
+            <div class="inventory-item"><span class="item-icon item-branch">⌁</span><span class="item-name">Galhos</span><strong id="branches-count">0</strong></div>
+            <div class="inventory-item"><span class="item-icon item-stone">◆</span><span class="item-name">Pedras</span><strong id="stones-count">0</strong></div>
+            <div class="inventory-item inventory-item-food"><span class="item-icon item-berry">●</span><span class="item-name">Frutas silvestres</span><strong id="berries-count">0</strong><button type="button" id="eat-berry-button" class="eat-berry-button" disabled>COMER 1</button></div>
+            <div class="inventory-item"><span class="item-icon item-axe">🪓</span><span class="item-name">Machado simples</span><strong id="axe-count">0</strong></div>
+            <div class="inventory-item"><span class="item-icon item-wood">▰</span><span class="item-name">Madeira</span><strong id="wood-count">0</strong></div>
+          </div>
+        </section>
+        <section class="inventory-category">
+          <h3 class="inventory-category-title">Sementes</h3>
+          <div class="inventory-items">
+            <div class="inventory-item"><span class="item-icon item-seed">✦</span><span class="item-name">Sementes de trigo</span><strong id="wheat-seeds-count">3</strong></div>
+            <div class="inventory-item"><span class="item-icon item-seed">✦</span><span class="item-name">Sementes de cenoura</span><strong id="carrot-seeds-count">3</strong></div>
+            <div class="inventory-item"><span class="item-icon item-seed">✦</span><span class="item-name">Sementes de repolho</span><strong id="cabbage-seeds-count">3</strong></div>
+          </div>
+        </section>
+        <section class="inventory-category">
+          <h3 class="inventory-category-title">Alimentos</h3>
+          <div class="inventory-items">
+            <div class="inventory-item inventory-item-food"><span class="item-icon item-food">🌾</span><span class="item-name">Trigo colhido</span><strong id="wheat-count">0</strong><button type="button" data-eat-crop="wheat" class="eat-berry-button" disabled>COMER 1</button></div>
+            <div class="inventory-item inventory-item-food"><span class="item-icon item-food">🥕</span><span class="item-name">Cenouras</span><strong id="carrots-count">0</strong><button type="button" data-eat-crop="carrots" class="eat-berry-button" disabled>COMER 1</button></div>
+            <div class="inventory-item inventory-item-food"><span class="item-icon item-food">🥬</span><span class="item-name">Repolhos</span><strong id="cabbages-count">0</strong><button type="button" data-eat-crop="cabbages" class="eat-berry-button" disabled>COMER 1</button></div>
+            <div class="inventory-item inventory-item-food"><span class="item-icon item-food">🥚</span><span class="item-name">Ovos</span><strong id="eggs-count">0</strong><button type="button" data-eat-animal-food="eggs" class="eat-berry-button" disabled>COMER 1</button></div>
+          </div>
+        </section>
+        <section class="inventory-category">
+          <h3 class="inventory-category-title">Materiais especiais</h3>
+          <div class="inventory-items">
+            <div class="inventory-item"><span class="item-icon item-wool">✧</span><span class="item-name">Lã</span><strong id="wool-count">0</strong></div>
+          </div>
+        </section>
       </div>
       <p class="inventory-note">Os recursos recolhidos ficam guardados neste dispositivo.</p>
     </section>

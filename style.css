@@ -376,3 +376,76 @@ kbd { min-width: 17px; padding: 4px 5px; border: 1px solid rgba(241,232,210,.28)
 .animal-actions button strong { font:inherit; font-size:10px; font-weight:900; letter-spacing:.06em; }
 .animal-actions button small { color:var(--muted); font-size:9px; }
 .animal-actions button:disabled { opacity:.42; cursor:not-allowed; }
+
+
+/* Mochila responsiva: cabeçalho fixo e rolagem somente na lista */
+.inventory-panel {
+  display: flex;
+  flex-direction: column;
+  width: min(340px, calc(100vw - 40px));
+  max-height: min(72vh, 650px);
+  overflow: hidden;
+  padding: 0;
+}
+.inventory-header {
+  flex: 0 0 auto;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0;
+  padding: 15px 15px 12px;
+  border-bottom: 1px solid rgba(212,177,107,.22);
+  background: rgba(22,34,25,.99);
+}
+.inventory-scroll {
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(212,177,107,.55) rgba(255,255,255,.06);
+  padding: 10px 13px 13px;
+}
+.inventory-category { display: grid; gap: 7px; }
+.inventory-category + .inventory-category { margin-top: 13px; }
+.inventory-category-title {
+  margin: 0;
+  padding: 0 2px 5px;
+  border-bottom: 1px solid rgba(212,177,107,.2);
+  color: #e7c98f;
+  font-size: 8px;
+  font-weight: 900;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+.inventory-items { display: grid; gap: 6px; min-width: 0; }
+.inventory-item {
+  min-width: 0;
+  grid-template-columns: 26px minmax(0,1fr) auto;
+  gap: 7px;
+  padding: 6px 7px;
+}
+.inventory-item-food {
+  grid-template-columns: 24px minmax(0,1fr) auto auto;
+}
+.inventory-item .item-name { min-width: 0; overflow-wrap: anywhere; font-size: 10px; }
+.inventory-item strong { min-width: 18px; text-align: right; }
+.inventory-note { flex: 0 0 auto; margin: 0; padding: 9px 15px 12px; border-top: 1px solid rgba(212,177,107,.18); background: rgba(22,34,25,.99); }
+@media (max-width: 700px), (pointer: coarse) {
+  .inventory-panel {
+    top: 50%;
+    left: 50%;
+    right: auto;
+    width: min(390px, calc(100vw - 24px));
+    max-height: min(76dvh, 680px);
+    transform: translate(-50%,-50%);
+  }
+  .inventory-header { padding: 12px 13px 10px; }
+  .inventory-scroll { padding: 9px 10px 11px; }
+  .inventory-item { gap: 6px; padding: 6px; }
+  .inventory-item-food { grid-template-columns: 23px minmax(0,1fr) auto auto; }
+  .inventory-item .item-name { font-size: 9px; }
+  .eat-berry-button { min-width: 52px; min-height: 27px; padding: 0 5px; font-size: 7px; white-space: nowrap; }
+}
+@media (max-height: 560px) {
+  .inventory-panel { max-height: 84vh; }
+}
