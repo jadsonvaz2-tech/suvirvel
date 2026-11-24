@@ -578,3 +578,21 @@ kbd { min-width: 17px; padding: 4px 5px; border: 1px solid rgba(241,232,210,.28)
 
 /* Capítulo 2 — exploração, mapa de descobertas e diário */
 .chapter-two{border-color:rgba(229,184,99,.55)}.chapter-two-actions{display:flex;flex-wrap:wrap;gap:8px;margin:10px 0}.chapter-two-actions button{min-height:38px;padding:8px 12px;border:1px solid rgba(212,177,107,.65);border-radius:6px;color:#f5e7c9;background:rgba(93,69,37,.86);font:inherit;font-size:9px;font-weight:900;letter-spacing:.07em;cursor:pointer}.chapter-two-journal{max-height:145px;overflow:auto;padding:7px 9px;border:1px solid rgba(212,177,107,.22);border-radius:6px;background:rgba(0,0,0,.18)}.chapter-two-journal p{margin:5px 0;color:var(--cream);font-size:9px;line-height:1.5}.chapter2-dialogue{position:fixed;z-index:60;left:50%;top:50%;width:min(440px,calc(100vw - 28px));max-height:80vh;overflow:auto;padding:16px;border:1px solid rgba(226,188,119,.7);border-radius:12px;background:rgba(24,35,27,.97);box-shadow:0 18px 60px rgba(0,0,0,.55);color:var(--cream);transform:translate(-50%,-45%);opacity:0;pointer-events:none;transition:opacity .16s,transform .16s}.chapter2-dialogue.is-open{opacity:1;pointer-events:auto;transform:translate(-50%,-50%)}.chapter2-dialogue header{display:flex;align-items:center;justify-content:space-between;color:#e6c58a;font-size:9px;font-weight:900;letter-spacing:.12em}.chapter2-dialogue header button{border:0;background:none;color:var(--cream);font-size:24px}.chapter2-dialogue h3{font-family:Georgia,serif;color:#f3d69a}.chapter2-dialogue p{font-size:13px;line-height:1.65;color:#f0e7d5}
+
+
+/* Prólogo — despertar do sobrevivente */
+.awakening-screen{position:absolute;inset:0;z-index:80;display:grid;place-items:center;padding:22px;background:linear-gradient(180deg,rgba(8,15,11,.52),rgba(8,15,11,.84));backdrop-filter:blur(2px)}
+.awakening-screen.hidden{display:none!important}
+.awakening-card{width:min(540px,100%);max-height:min(88vh,760px);overflow:auto;padding:clamp(22px,5vw,38px);border:1px solid rgba(222,190,128,.62);border-radius:13px;color:#f4ead7;background:linear-gradient(145deg,rgba(32,43,33,.97),rgba(19,29,23,.98));box-shadow:0 22px 70px rgba(0,0,0,.55)}
+.awakening-eyebrow{color:#d9b875;font-size:10px;font-weight:900;letter-spacing:.2em}
+.awakening-card h1{margin:12px 0 18px;color:#f3d49a;font-family:Georgia,serif;font-size:clamp(30px,7vw,44px);font-weight:600}
+.awakening-card p{margin:0 0 13px;color:#e8e0d0;font-size:clamp(13px,2.8vw,15px);line-height:1.7}
+.awakening-card .awakening-last-line{margin-top:17px;color:#f2d59d;font-weight:700}
+.awakening-card button{width:100%;min-height:48px;margin-top:14px;border:1px solid rgba(240,202,133,.8);border-radius:7px;color:#211b12;background:linear-gradient(180deg,#e6c78d,#c49a59);font:inherit;font-size:11px;font-weight:950;letter-spacing:.12em;cursor:pointer;box-shadow:0 5px 18px rgba(0,0,0,.24)}
+.awakening-card button:active{transform:translateY(1px);filter:brightness(.95)}
+.story-objective{position:absolute;z-index:7;top:88px;left:20px;width:min(350px,calc(100vw - 40px));padding:12px 14px;border:1px solid rgba(218,184,119,.55);border-left:3px solid #d9b875;border-radius:7px;color:#f1e7d4;background:rgba(22,33,25,.9);box-shadow:0 6px 22px rgba(0,0,0,.24);pointer-events:none;backdrop-filter:blur(8px)}
+.story-objective.hidden{display:none!important}
+.story-objective>span{display:block;margin-bottom:5px;color:#d9b875;font-size:8px;font-weight:900;letter-spacing:.16em}
+.story-objective>strong{display:block;color:#f4d59b;font-family:Georgia,serif;font-size:14px;letter-spacing:.04em}
+.story-objective>p{margin:6px 0 0;color:#e7e0d1;font-size:10px;line-height:1.5}
+@media(max-width:700px),(pointer:coarse){.awakening-screen{padding:14px}.awakening-card{padding:22px 19px;border-radius:11px}.awakening-card h1{margin:9px 0 13px}.awakening-card p{font-size:13px;line-height:1.58}.awakening-card button{min-height:46px}.story-objective{top:72px;left:10px;width:min(300px,calc(100vw - 20px));padding:9px 11px}.story-objective>strong{font-size:12px}.story-objective>p{font-size:9px}}
