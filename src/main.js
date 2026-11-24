@@ -2809,7 +2809,7 @@ function startGame(THREE) {
     currentFishingSpot=nearestFishing;canUseFishingSpot=Boolean(nearestFishing&&!match&&tools.fishingRod);
     const merchantDistance=merchantPosition?Math.hypot(merchantPosition.x-player.x,merchantPosition.z-player.z):Infinity;
     canUseMerchant=Boolean(!match&&merchantDistance<=5.0);
-    canTalkToElder=!match&&Math.hypot(player.x-34,player.z+82)<=6.4;
+    canTalkToElder=Math.hypot(player.x-34,player.z+82)<=7.2;
     let nearestVillager=null,nearestVillagerDistance=Infinity;
     for(const villager of villagers){const distance=Math.hypot(villager.x-player.x,villager.z-player.z);if(distance<=6.2&&distance<nearestVillagerDistance){nearestVillager=villager;nearestVillagerDistance=distance;}}
     currentVillager=(!match&&!canUseMerchant&&!canUseFishingSpot&&!canTalkToElder)?nearestVillager:null;
@@ -2865,7 +2865,7 @@ function startGame(THREE) {
     currentTreeTarget = !match && !canTalkToElder && !canUseLoom && !canDrinkWater && !canUseWorkbench && !canUseFarmPlot && !canUseAnimalPen && !canUseKitchen && !canUseLoom ? treeMatch : null;
     canChopTree = Boolean(currentTreeTarget && tools.axe);
     currentResourceTarget = match;
-    if(canTalkToElder){currentVillager=null;canUseMerchant=false;canUseTannery=false;canUseLoom=false;canUseFishingSpot=false;canDrinkWater=false;canUseWorkbench=false;canUseFarmPlot=false;canUseAnimalPen=false;canUseKitchen=false;canUseCabinDoor=false;canUseBed=false;canUseStorageChest=false;currentTreeTarget=null;canChopTree=false;currentWildlifeTarget=null;}
+    if(canTalkToElder){match=null;currentResourceTarget=null;currentVillager=null;canUseMerchant=false;canUseTannery=false;canUseLoom=false;canUseFishingSpot=false;canDrinkWater=false;canUseWorkbench=false;canUseFarmPlot=false;canUseAnimalPen=false;canUseKitchen=false;canUseCabinDoor=false;canUseBed=false;canUseStorageChest=false;currentTreeTarget=null;canChopTree=false;currentWildlifeTarget=null;}
     const hasInteraction = Boolean(match) || canTalkToElder || Boolean(currentVillager) || canUseMerchant || canUseTannery || canUseFishingSpot || canDrinkWater || canUseWorkbench || canUseFarmPlot || canUseAnimalPen || canUseKitchen || canUseLoom || canUseCabinDoor || canUseBed || canUseStorageChest || Boolean(currentTreeTarget) || Boolean(currentWildlifeTarget);
     interactionPrompt.classList.toggle("hidden", !hasInteraction);
     collectButton.classList.toggle("hidden", !hasInteraction || !isMobile);
