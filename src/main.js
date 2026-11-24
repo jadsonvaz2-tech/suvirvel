@@ -2205,7 +2205,7 @@ function startGame(THREE) {
     const pickaxeButton=document.getElementById("craft-pickaxe-button"),torchButton=document.getElementById("craft-torch-button"),campfireButton=document.getElementById("craft-campfire-button");
     if(pickaxeButton){pickaxeButton.disabled=tools.pickaxe||inventory.branches<3||inventory.stones<3;pickaxeButton.textContent=tools.pickaxe?"PICARETA FABRICADA":"FABRICAR PICARETA · 3 GALHOS + 3 PEDRAS";}
     if(torchButton){torchButton.disabled=tools.torch||inventory.branches<2||inventory.wood<1;torchButton.textContent=tools.torch?"TOCHA FABRICADA":"FABRICAR TOCHA · 2 GALHOS + 1 MADEIRA";}
-    if(campfireButton){campfireButton.disabled=inventory.branches<5||inventory.stones<3;campfireButton.textContent="MONTAR FOGUEIRA · 5 GALHOS + 3 PEDRAS";}
+    if(campfireButton){campfireButton.disabled=inventory.wood<1||inventory.branches<5||inventory.stones<3;campfireButton.textContent="MONTAR FOGUEIRA · 1 MADEIRA + 5 GALHOS + 3 PEDRAS";}
     buildingConfirm.disabled = !buildMode || !buildPreviewValid || Boolean(builtCabin) || inventory.wood < 12 || inventory.branches < 8;
     craftAxeButton.disabled = tools.axe || inventory.branches < 3 || inventory.stones < 2;
     craftAxeButton.textContent = tools.axe ? "MACHADO FABRICADO" : "FABRICAR MACHADO";
