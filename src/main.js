@@ -2061,7 +2061,7 @@ function startGame(THREE) {
   const crownMesh = new THREE.InstancedMesh(crownGeometry, crownMaterial, treeSpots.length);
   const crownTopMesh = new THREE.InstancedMesh(crownTopGeometry, crownMaterial, treeSpots.length);
   const dummy = new THREE.Object3D();
-remove remain functions  treeSpots.forEach((tree, index) => {
+  treeSpots.forEach((tree, index) => {
     const y = groundHeight(tree.x, tree.z);
     const s = tree.scale;
     const tint = new THREE.Color().setHSL(0.29 + random() * 0.035, 0.32, 0.22 + random() * 0.12);
