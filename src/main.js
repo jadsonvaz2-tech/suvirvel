@@ -219,21 +219,22 @@ function startPlacement(kind){
  if(activeShelterPreview){scene.remove(activeShelterPreview);activeShelterPreview=null;}
  if(kind==="shelter"){
   activeShelterPreview=buildShelter(0,0,0,true);activeShelterPreview.visible=false;root.classList.add("placing-shelter");
-  // Encontra o ponto válido mais próximo do jogador dentro do lote.
+  // Procura um ponto válido a pelo menos 8 m do jogador, priorizando a direção para a qual ele olha.
   const plot=state.selectedPlot,forwardX=-Math.sin(player.yaw),forwardZ=-Math.cos(player.yaw);
-  const preferred={x:clamp(player.x+forwardX*3.8,plot.x-5.4,plot.x+5.4),z:clamp(player.z+forwardZ*3.8,plot.z-5.4,plot.z+5.4)};
-  let candidate=null,bestDistance=Infinity;
+  let candidate=null,bestScore=Infinity,bestDistance=0,farthest=null,farthestDistance=-1;
   const consider=(point)=>{
    if(placementError(point.x,point.z,"shelter"))return;
-   const distance=Math.hypot(point.x-player.x,point.z-player.z);
-   if(distance<bestDistance){candidate=point;bestDistance=distance;}
+   const dx=point.x-player.x,dz=point.z-player.z,distance=Math.hypot(dx,dz);
+   if(distance>farthestDistance){farthest={...point};farthestDistance=distance;}
+   if(distance<8)return;
+   const forwardDot=distance>0?(dx*forwardX+dz*forwardZ)/distance:0;
+   const score=Math.abs(distance-9)+Math.max(0,.15-forwardDot)*12;
+   if(score<bestScore){candidate={...point};bestScore=score;bestDistance=distance;}
   };
-  consider(preferred);
-  if(!candidate){
-   for(let ix=-4;ix<=4;ix++)for(let iz=-4;iz<=4;iz++){
-    consider({x:plot.x+ix*1.25,z:plot.z+iz*1.25});
-   }
+  for(let ix=-10;ix<=10;ix++)for(let iz=-10;iz<=10;iz++){
+   consider({x:plot.x+ix*.54,z:plot.z+iz*.54});
   }
+  if(!candidate&&farthest){candidate=farthest;bestDistance=farthestDistance;}
   if(candidate){
    pendingPlacement={x:Math.round(candidate.x*10)/10,z:Math.round(candidate.z*10)/10};
    activeShelterPreview.position.set(pendingPlacement.x,groundHeight(pendingPlacement.x,pendingPlacement.z),pendingPlacement.z);
@@ -241,7 +242,7 @@ function startPlacement(kind){
   }
  }
  craftVisible=false;craftPanel.hidden=true;placementPrompt.hidden=false;root.classList.add("placing-structure");
- placementHint.textContent=kind==="shelter"?(pendingPlacement?(bestDistance>8?"A prévia está no terreno escolhido, a "+Math.round(bestDistance)+" m. Use o joystick ou WASD para se aproximar; toque no chão para reposicionar.":"Prévia visível! Use o joystick ou WASD para ajustar sua posição, toque no chão para reposicionar e gire a casa."):"Não há ponto válido visível agora. Use o joystick ou WASD para chegar ao terreno escolhido."):"Toque no terreno para pré-visualizar a fogueira."
+ placementHint.textContent=kind==="shelter"?(pendingPlacement?(bestDistance>8?"A prévia está no terreno escolhido, a "+Math.round(bestDistance)+" m. Use o joystick ou WASD para se aproximar; toque no chão para reposicionar.":"Prévia afastada do personagem. Use o joystick ou WASD para se mover; toque no chão para reposicionar e gire a casa."):"Não há ponto válido visível agora. Use o joystick ou WASD para chegar ao terreno escolhido."):"Toque no terreno para pré-visualizar a fogueira."
  placementConfirm.disabled=!pendingPlacement;document.exitPointerLock?.();keys.clear();resetStick();
 }
 function cancelPlacement(){placementMode=false;pendingPlacement=null;selectedPlacementKind=null;placementPreview.visible=false;if(activeShelterPreview){scene.remove(activeShelterPreview);activeShelterPreview=null;}placementPrompt.hidden=true;root.classList.remove("placing-structure","placing-shelter");}
