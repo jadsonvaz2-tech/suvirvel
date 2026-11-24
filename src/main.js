@@ -42,7 +42,7 @@ function createWorld(THREE){
   if(Math.abs(x)>96||Math.abs(z)>96)continue;
   treeSpots.push({x,z,scale:.72+Math.random()*.76,turn:Math.random()*Math.PI*2});
  }
- if(Array.isArray(state.treeLayout)&&state.treeLayout.length===treeSpots.length){treeSpots.splice(0,treeSpots.length,...state.treeLayout);}else{state.treeLayout=treeSpots.map(tree=>({...tree}));saveState();}
+ if(Array.isArray(state.treeLayout)&&state.treeLayout.length>0){treeSpots.splice(0,treeSpots.length,...state.treeLayout);}else{state.treeLayout=treeSpots.map(tree=>({...tree}));saveState();}
  const trunkGeometry=new THREE.CylinderGeometry(.28,.48,4.2,6);
  const crownGeometry=new THREE.ConeGeometry(3.05,7,7);
  const crownTopGeometry=new THREE.ConeGeometry(2.35,6,7);
