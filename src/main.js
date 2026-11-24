@@ -198,6 +198,7 @@ const placementPreview=new THREE.Group(),previewRing=new THREE.Mesh(new THREE.Ri
  function advanceDialogue(){if(!dialogueOpen)return;dialogueIndex++;if(dialogueIndex>=activeDialogueLines.length){closeDialogue();return;}dialogueText.textContent=activeDialogueLines[dialogueIndex];dialogueNext.textContent=dialogueIndex===activeDialogueLines.length-1?"ENCERRAR CONVERSA":"CONTINUAR";}
  talkButton.addEventListener("click",()=>openDialogue(currentInteractable));dialogueNext.addEventListener("click",advanceDialogue);
 let currentGatherable=null,craftVisible=false,placementMode=false,pendingPlacement=null,selectedPlacementKind=null,placementRotation=0,activeShelterPreview=null;
+let placementDistance=0;
 const placementRaycaster=new THREE.Raycaster(),placementPointer=new THREE.Vector2();
 function placementError(x,z,kind){
  if(kind==="campfire"){if(Math.abs(x)>98||Math.abs(z)>98)return"Escolha um ponto dentro do vale.";if(riverDistance(x,z)<9)return"Não é seguro colocar a fogueira tão perto do rio.";if(placedCampfires.some(f=>Math.hypot(f.position.x-x,f.position.z-z)<3.5))return"Escolha um local mais distante de outra fogueira.";}
@@ -221,7 +222,7 @@ function startPlacement(kind){
   activeShelterPreview=buildShelter(0,0,0,true);activeShelterPreview.visible=false;root.classList.add("placing-shelter");
   // Procura um ponto válido a pelo menos 8 m do jogador, priorizando a direção para a qual ele olha.
   const plot=state.selectedPlot,forwardX=-Math.sin(player.yaw),forwardZ=-Math.cos(player.yaw);
-  let candidate=null,bestScore=Infinity,bestDistance=0,farthest=null,farthestDistance=-1;
+  let candidate=null,bestScore=Infinity,farthest=null,farthestDistance=-1;placementDistance=0;
   const consider=(point)=>{
    if(placementError(point.x,point.z,"shelter"))return;
    const dx=point.x-player.x,dz=point.z-player.z,distance=Math.hypot(dx,dz);
@@ -229,12 +230,12 @@ function startPlacement(kind){
    if(distance<8)return;
    const forwardDot=distance>0?(dx*forwardX+dz*forwardZ)/distance:0;
    const score=Math.abs(distance-9)+Math.max(0,.15-forwardDot)*12;
-   if(score<bestScore){candidate={...point};bestScore=score;bestDistance=distance;}
+   if(score<bestScore){candidate={...point};bestScore=score;placementDistance=distance;}
   };
   for(let ix=-10;ix<=10;ix++)for(let iz=-10;iz<=10;iz++){
    consider({x:plot.x+ix*.54,z:plot.z+iz*.54});
   }
-  if(!candidate&&farthest){candidate=farthest;bestDistance=farthestDistance;}
+  if(!candidate&&farthest){candidate=farthest;placementDistance=farthestDistance;}
   if(candidate){
    pendingPlacement={x:Math.round(candidate.x*10)/10,z:Math.round(candidate.z*10)/10};
    activeShelterPreview.position.set(pendingPlacement.x,groundHeight(pendingPlacement.x,pendingPlacement.z),pendingPlacement.z);
@@ -242,7 +243,7 @@ function startPlacement(kind){
   }
  }
  craftVisible=false;craftPanel.hidden=true;placementPrompt.hidden=false;root.classList.add("placing-structure");
- placementHint.textContent=kind==="shelter"?(pendingPlacement?(bestDistance>8?"A prévia está no terreno escolhido, a "+Math.round(bestDistance)+" m. Use o joystick ou WASD para se aproximar; toque no chão para reposicionar.":"Prévia afastada do personagem. Use o joystick ou WASD para se mover; toque no chão para reposicionar e gire a casa."):"Não há ponto válido visível agora. Use o joystick ou WASD para chegar ao terreno escolhido."):"Toque no terreno para pré-visualizar a fogueira."
+ placementHint.textContent=kind==="shelter"?(pendingPlacement?(placementDistance>8?"A prévia está no terreno escolhido, a "+Math.round(bestDistance)+" m. Use o joystick ou WASD para se aproximar; toque no chão para reposicionar.":"Prévia afastada do personagem. Use o joystick ou WASD para se mover; toque no chão para reposicionar e gire a casa."):"Não há ponto válido visível agora. Use o joystick ou WASD para chegar ao terreno escolhido."):"Toque no terreno para pré-visualizar a fogueira."
  placementConfirm.disabled=!pendingPlacement;document.exitPointerLock?.();keys.clear();resetStick();
 }
 function cancelPlacement(){placementMode=false;pendingPlacement=null;selectedPlacementKind=null;placementPreview.visible=false;if(activeShelterPreview){scene.remove(activeShelterPreview);activeShelterPreview=null;}placementPrompt.hidden=true;root.classList.remove("placing-structure","placing-shelter");}
