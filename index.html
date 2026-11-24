@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#243b2b">
   <meta name="description" content="Legado do Vale 3D — protótipo medieval de exploração em primeira pessoa para PC e celular.">
   <title>Legado do Vale 3D</title>
-  <link rel="stylesheet" href="./style.css?v=20261124-cap13">
+  <link rel="stylesheet" href="./style.css?v=20261124-awakening-v1">
 </head>
 <body>
   <main id="game">
@@ -16,6 +16,21 @@
       <span>Preparando o vale medieval...</span>
     </div>
     <div id="error" class="error hidden"></div>
+    <section id="awakening-screen" class="awakening-screen" role="dialog" aria-modal="true" aria-labelledby="awakening-title">
+      <div class="awakening-card">
+        <span class="awakening-eyebrow">LEGADO DO VALE · PRÓLOGO</span>
+        <h1 id="awakening-title">O despertar</h1>
+        <p>O silêncio da floresta é interrompido pelo som distante de pássaros. Seu corpo dói. Você mal consegue se lembrar do que aconteceu.</p>
+        <p>Ontem, sua aldeia foi atacada por bárbaros. O fogo tomou as casas, as pessoas correram e tudo se perdeu. Você conseguiu escapar, mas não sabe se alguém sobreviveu.</p>
+        <p class="awakening-last-line">Você está sozinho, ferido e sem nada. Precisa encontrar ajuda.</p>
+        <button type="button" id="wake-button">TENTAR SE LEVANTAR</button>
+      </div>
+    </section>
+    <section id="story-objective" class="story-objective hidden" aria-live="polite">
+      <span>MISSÃO PRINCIPAL</span>
+      <strong id="story-objective-title">ENCONTRE AJUDA</strong>
+      <p id="story-objective-text">Atravesse o rio pela ponte de madeira e siga até a Vila Vizinha. Procure a anciã Alina.</p>
+    </section>
     <header class="topbar">
       <div class="brand">
         <span class="brand-mark">LV</span>
@@ -276,6 +291,6 @@
     <div class="look-label">OLHAR</div>
     <footer class="footer-note"><span>PROTÓTIPO DE DESENVOLVIMENTO</span><span>UM MUNDO EM CONSTRUÇÃO</span></footer>
   </main>
-  <script type="module" src="./src/main.js?v=20261124-clean-start-v2"></script>
+  <script type="module" src="./src/main.js?v=20261124-awakening-v1"></script>
 </body>
 </html>
