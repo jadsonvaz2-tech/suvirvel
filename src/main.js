@@ -622,7 +622,7 @@ function startGame(THREE) {
   const merchantBody=new THREE.Mesh(new THREE.CylinderGeometry(0.34,0.42,1.12,8),new THREE.MeshStandardMaterial({color:0x526b4c,roughness:1}));merchantBody.position.set(0,1.72,-0.92);merchantStall.add(merchantBody);
   const merchantHead=new THREE.Mesh(new THREE.SphereGeometry(0.29,10,8),new THREE.MeshStandardMaterial({color:0xd5a77c,roughness:1}));merchantHead.position.set(0,2.48,-0.92);merchantStall.add(merchantHead);
   const merchantHat=new THREE.Mesh(new THREE.CylinderGeometry(0.38,0.3,0.16,8),stallCloth);merchantHat.position.set(0,2.72,-0.92);merchantStall.add(merchantHat);
-  merchantStall.position.set(merchantPosition.x,groundHeight(merchantPosition.x,merchantPosition.z),merchantPosition.z);// A banca do mercador antiga foi retirada do cenário inicial.
+  merchantStall.position.set(merchantPosition.x,groundHeight(merchantPosition.x,merchantPosition.z),merchantPosition.z);void merchantStall;
   const merchantLabel=makeResourceLabel("MERCADOR · E","#d4b16b");merchantLabel.position.set(0,3.35,0);merchantLabel.scale.set(4.0,1,1);merchantStall.add(merchantLabel);
 
   // Candidatos aguardam convite. Só moradores convidados e alojados aparecem no mundo.
@@ -3217,7 +3217,7 @@ function startGame(THREE) {
     chapter12CastleGroup.position.set(0,groundHeight(0,-72),-72);chapter12CastleGroup.visible=missionState.chapter12CastleBuilt;scene.add(chapter12CastleGroup);
   }
   chapter12ThreatMarker=new THREE.Group();
-  {const post=new THREE.Mesh(new THREE.CylinderGeometry(.16,.23,1.7,7),new THREE.MeshStandardMaterial({color:0x806b4e}));post.position.y=.85;chapter12ThreatMarker.add(post);const beacon=new THREE.Mesh(new THREE.OctahedronGeometry(.58,0),new THREE.MeshStandardMaterial({color:0xe5bd6c,emissive:0x98651e,emissiveIntensity:1.1}));beacon.position.y=1.95;chapter12ThreatMarker.add(beacon);const label=makeResourceLabel("CARTAS SECRETAS","#f0d39a");label.position.set(0,2.65,0);label.scale.set(3.8,.8,1);chapter12ThreatMarker.add(label);chapter12ThreatMarker.position.set(23,groundHeight(23,-72),-72);chapter12ThreatMarker.visible=missionState.chapter12PeopleSupport&&!missionState.chapter12ThreatInvestigated;// Marco de missão antigo removido do mundo inicial.}
+  {const post=new THREE.Mesh(new THREE.CylinderGeometry(.16,.23,1.7,7),new THREE.MeshStandardMaterial({color:0x806b4e}));post.position.y=.85;chapter12ThreatMarker.add(post);const beacon=new THREE.Mesh(new THREE.OctahedronGeometry(.58,0),new THREE.MeshStandardMaterial({color:0xe5bd6c,emissive:0x98651e,emissiveIntensity:1.1}));beacon.position.y=1.95;chapter12ThreatMarker.add(beacon);const label=makeResourceLabel("CARTAS SECRETAS","#f0d39a");label.position.set(0,2.65,0);label.scale.set(3.8,.8,1);chapter12ThreatMarker.add(label);chapter12ThreatMarker.position.set(23,groundHeight(23,-72),-72);chapter12ThreatMarker.visible=missionState.chapter12PeopleSupport&&!missionState.chapter12ThreatInvestigated;/* Marco de missão antigo removido do mundo inicial. */}
   chapter11WorkshopsGroup=new THREE.Group();
   {
     const workshopWood=new THREE.MeshStandardMaterial({color:0x795236,roughness:1}),workshopRoof=new THREE.MeshStandardMaterial({color:0x514237,roughness:1}),workshopStone=new THREE.MeshStandardMaterial({color:0x77766b,roughness:1}),workshopCloth=new THREE.MeshStandardMaterial({color:0x9a6245,roughness:1});
@@ -3246,7 +3246,7 @@ function startGame(THREE) {
     chapter9FrontierMarker.position.set(75,groundHeight(75,-94),-94);
   }
   chapter9FrontierMarker.visible=missionState.chapter9Accepted&&!missionState.chapter9FrontierFound;
-  // Marco de exploração antigo removido do mundo inicial.
+  /* Marco de exploração antigo removido do mundo inicial. */
   chapter9OutpostGroup=new THREE.Group();
   {
     const outpostWood=new THREE.MeshStandardMaterial({color:0x805b39,roughness:1});
