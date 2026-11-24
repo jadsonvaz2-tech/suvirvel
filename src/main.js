@@ -3027,7 +3027,8 @@ function startGame(THREE) {
   function collectCurrentResource() {
     const node = currentResourceTarget;
     if (!node || collectedResources.has(node.id) || !canCarry(node.amount)) return;
-    inventory[node.itemKey] = Math.min(9999, inventory[node.itemKey] + node.amount);
+    const gatheredAmount=node.amount+(node.itemKey==="stones"&&tools.pickaxe?2:0);
+    inventory[node.itemKey] = Math.min(9999, inventory[node.itemKey] + gatheredAmount);
     collectedResources.add(node.id);
     resourceRespawnAt.set(node.id, totalGameMinutes() + 360);
     scene.remove(node.root);
@@ -3041,7 +3042,7 @@ function startGame(THREE) {
     collectButton.classList.add("hidden");
     updateInventoryUI();
     saveProgress(true);
-    showToast("+" + node.amount + " · " + node.label + " recolhidos");
+    showToast("+" + gatheredAmount + " · " + node.label + " recolhidos"+(tools.pickaxe&&node.itemKey==="stones"?" com a picareta":""));
   }
   function hideTreeInstance(index) {
     const hidden = new THREE.Object3D();
