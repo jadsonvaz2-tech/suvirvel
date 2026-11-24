@@ -428,8 +428,9 @@ function startGame(THREE) {
     const protection=(clothing.tunic?0.28:0)+(clothing.trousers?0.18:0)+(clothing.boots?0.14:0);
     let sheltered=false;
     if(builtCabin){const dx=player.x-builtCabin.x,dz=player.z-builtCabin.z,lx=dx*Math.cos(builtCabin.yaw)-dz*Math.sin(builtCabin.yaw),lz=dx*Math.sin(builtCabin.yaw)+dz*Math.cos(builtCabin.yaw);sheltered=Math.abs(lx)<1.9&&Math.abs(lz)<2.1;}
+    const warmedByCampfire=placedCampfires.some(fire=>Math.hypot(player.x-fire.x,player.z-fire.z)<=7.5);
     for(let i=0;i<minutes;i++){const minuteOfDay=(gameTime.hour*60+gameTime.minute+i)%1440,hour=Math.floor(minuteOfDay/60),cold=hour>=18||hour<7;
-      if(sheltered)survival.warmth=Math.min(100,survival.warmth+0.3);else if(cold)survival.warmth=Math.max(0,survival.warmth-0.18*(1-protection));else survival.warmth=Math.min(100,survival.warmth+0.2);
+      if(sheltered)survival.warmth=Math.min(100,survival.warmth+0.3);else if(warmedByCampfire)survival.warmth=Math.min(100,survival.warmth+0.48);else if(cold)survival.warmth=Math.max(0,survival.warmth-0.18*(1-protection));else survival.warmth=Math.min(100,survival.warmth+0.2);
       if(survival.warmth<=0)survival.health=Math.max(0,survival.health-0.035);}
     updateSurvivalUI(true);
   }
@@ -2985,6 +2986,9 @@ function startGame(THREE) {
     if(builtCabin&&!match&&!canUseLoom&&!canDrinkWater&&!canUseWorkbench&&!canUseFarmPlot&&!canUseAnimalPen&&!canUseCabinDoor&&!canUseBed&&!canUseStorageChest&&kitchenPosition){
       canUseKitchen=Math.hypot(player.x-kitchenPosition.x,player.z-kitchenPosition.z)<=4.6;
     }
+    if(!canUseKitchen&&!match&&!canUseTannery&&!canUseLoom&&!canDrinkWater&&!canUseWorkbench&&!canUseFarmPlot&&!canUseAnimalPen&&!canUseCabinDoor&&!canUseBed&&!canUseStorageChest){
+      canUseKitchen=placedCampfires.some(fire=>Math.hypot(player.x-fire.x,player.z-fire.z)<=4.8);
+    }
 
     if(canUseTannery||canUseLoom||canDrinkWater||canUseWorkbench||canUseFarmPlot||canUseAnimalPen||canUseKitchen||canUseCabinDoor||canUseBed||canUseStorageChest||canUseMerchant||canUseFishingSpot)currentVillager=null;
     let wildlifeMatch=null,bestWildlifeDistance=Infinity;
@@ -3050,10 +3054,10 @@ function startGame(THREE) {
       interactionVerb.textContent = "alimentar ou recolher produção";
       collectButton.textContent = "CUIDAR DOS ANIMAIS";
     } else if (canUseKitchen) {
-      interactionType.textContent = "COZINHA";
-      interactionName.textContent = "Fogueira e panela";
-      interactionVerb.textContent = "preparar alimentos";
-      collectButton.textContent = "USAR COZINHA";
+      interactionType.textContent = "FOGUEIRA";
+      interactionName.textContent = "Fogueira artesanal";
+      interactionVerb.textContent = "cozinhar alimentos e recuperar calor";
+      collectButton.textContent = "COZINHAR";
     } else if (canUseLoom) {
       interactionType.textContent = "OFÍCIO ARTESANAL";interactionName.textContent = "Tear de lã";interactionVerb.textContent = "tecer e fabricar roupas";collectButton.textContent = "USAR TEAR";
     } else if (canUseCabinDoor) {
@@ -3075,7 +3079,7 @@ function startGame(THREE) {
     } else if (currentTreeTarget) {
       interactionType.textContent = "ÁRVORE";
       interactionName.textContent = canChopTree ? "Madeira · " + (3 - (treeHitCounts.get(currentTreeTarget.index) ?? 0)) + " golpes" : "Machado necessário";
-      interactionVerb.textContent = canChopTree ? "cortar árvore" : "fabricar um machado na bancada";
+      interactionVerb.textContent = canChopTree ? "cortar árvore" : "fabricar um machado na fabricação manual";
       collectButton.textContent = canChopTree ? "CORTAR ÁRVORE" : "PRECISA DE MACHADO";
     }
   }
