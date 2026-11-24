@@ -318,7 +318,7 @@ function startGame(THREE) {
   let nextChildName=typeof saved?.nextChildName==="string"?saved.nextChildName.slice(0,24):"";
   function readMissionProgress(){
     try{
-      const raw=localStorage.getItem("legado-do-vale-missoes-v1");
+      const raw=localStorage.getItem("legado-do-vale-missoes-v2");
       const data=raw?JSON.parse(raw):{};
       return data&&typeof data==="object"?data:{};
     }catch{return {};}
@@ -608,7 +608,7 @@ function startGame(THREE) {
   benchLabel.position.set(0, 2.45, 0);
   benchLabel.scale.set(4.1, 1.02, 1);
   workbench.add(benchLabel);
-  scene.add(workbench);
+  // A bancada antiga foi retirada; será construída pelo jogador na nova progressão.
 
   // Pequena banca de comércio na clareira inicial, próxima à oficina.
   merchantPosition=resourcePosition(-4.8,2.7);
@@ -622,7 +622,7 @@ function startGame(THREE) {
   const merchantBody=new THREE.Mesh(new THREE.CylinderGeometry(0.34,0.42,1.12,8),new THREE.MeshStandardMaterial({color:0x526b4c,roughness:1}));merchantBody.position.set(0,1.72,-0.92);merchantStall.add(merchantBody);
   const merchantHead=new THREE.Mesh(new THREE.SphereGeometry(0.29,10,8),new THREE.MeshStandardMaterial({color:0xd5a77c,roughness:1}));merchantHead.position.set(0,2.48,-0.92);merchantStall.add(merchantHead);
   const merchantHat=new THREE.Mesh(new THREE.CylinderGeometry(0.38,0.3,0.16,8),stallCloth);merchantHat.position.set(0,2.72,-0.92);merchantStall.add(merchantHat);
-  merchantStall.position.set(merchantPosition.x,groundHeight(merchantPosition.x,merchantPosition.z),merchantPosition.z);scene.add(merchantStall);
+  merchantStall.position.set(merchantPosition.x,groundHeight(merchantPosition.x,merchantPosition.z),merchantPosition.z);// A banca do mercador antiga foi retirada do cenário inicial.
   const merchantLabel=makeResourceLabel("MERCADOR · E","#d4b16b");merchantLabel.position.set(0,3.35,0);merchantLabel.scale.set(4.0,1,1);merchantStall.add(merchantLabel);
 
   // Candidatos aguardam convite. Só moradores convidados e alojados aparecem no mundo.
@@ -1395,7 +1395,7 @@ function startGame(THREE) {
       if(missionState.chapter1RewardClaimed){showToast("A recompensa deste capítulo já foi recebida.");return;}
       if(!ready){showToast("Ainda faltam objetivos para concluir o capítulo.");return;}
       missionState.chapter1RewardClaimed=true;
-      try{localStorage.setItem("legado-do-vale-missoes-v1",JSON.stringify(missionState));}catch{}
+      try{localStorage.setItem("legado-do-vale-missoes-v2",JSON.stringify(missionState));}catch{}
       coins=Math.min(999999,coins+25);
       tradeReputation=Math.min(9999,tradeReputation+2);
       settlementReputation.vale=Math.min(9999,(settlementReputation.vale||0)+2);
@@ -2296,7 +2296,7 @@ function startGame(THREE) {
 
   function readSave() {
     try {
-      const value = localStorage.getItem("legado-do-vale-prototipo");
+      const value = localStorage.getItem("legado-do-vale-prototipo-v2");
       if (!value) return null;
       const saved = JSON.parse(value);
       if (!saved || !Number.isFinite(saved.x) || !Number.isFinite(saved.z)) return null;
@@ -2400,7 +2400,7 @@ function startGame(THREE) {
     if (!force && now - lastSave < 1500) return;
     lastSave = now;
     try {
-      localStorage.setItem("legado-do-vale-prototipo", JSON.stringify({
+      localStorage.setItem("legado-do-vale-prototipo-v2", JSON.stringify({
         x: player.x, z: player.z, yaw: player.yaw, pitch: player.pitch,
         seedStarterPackClaimed: true,
         coins,
@@ -2439,7 +2439,7 @@ function startGame(THREE) {
         nextChildName,
         structurePositions:structurePositionsForSave()
       }));
-      try{localStorage.setItem("legado-do-vale-missoes-v1",JSON.stringify(missionState));}catch{}
+      try{localStorage.setItem("legado-do-vale-missoes-v2",JSON.stringify(missionState));}catch{}
     } catch { /* O jogo continua mesmo sem armazenamento disponível. */ }
   }
 
@@ -3198,7 +3198,7 @@ function startGame(THREE) {
   chapter10CampGroup=new THREE.Group();
   {const woodMat=new THREE.MeshStandardMaterial({color:0x60432f,roughness:1}),clothMat=new THREE.MeshStandardMaterial({color:0x493b34,roughness:1});for(let i=0;i<7;i++){const stake=new THREE.Mesh(new THREE.ConeGeometry(.42,2.4,5),woodMat),a=i/7*Math.PI*2;stake.position.set(Math.cos(a)*5,1.2,Math.sin(a)*4);chapter10CampGroup.add(stake);}const tent=new THREE.Mesh(new THREE.ConeGeometry(3.2,3.5,4),clothMat);tent.position.y=1.75;tent.rotation.y=Math.PI/4;chapter10CampGroup.add(tent);const fire=new THREE.Mesh(new THREE.SphereGeometry(.65,8,6),new THREE.MeshStandardMaterial({color:0xe28b35,emissive:0x9c3c10,emissiveIntensity:.8}));fire.position.set(4,.5,1);chapter10CampGroup.add(fire);for(let i=0;i<3;i++){const crate=new THREE.Mesh(new THREE.BoxGeometry(1.1,.8,.9),woodMat);crate.position.set(-3+i*1.1,.4,2.5);chapter10CampGroup.add(crate);}chapter10CampGroup.position.set(-88,groundHeight(-88,-94),-94);chapter10CampGroup.visible=missionState.chapter10CampFound;scene.add(chapter10CampGroup);}
   chapter10Marker=new THREE.Group();
-  {const post=new THREE.Mesh(new THREE.CylinderGeometry(.16,.23,1.7,7),new THREE.MeshStandardMaterial({color:0x806b4e}));post.position.y=.85;chapter10Marker.add(post);const beacon=new THREE.Mesh(new THREE.OctahedronGeometry(.58,0),new THREE.MeshStandardMaterial({color:0xd58a72,emissive:0x7e281c,emissiveIntensity:1.1}));beacon.position.y=1.95;chapter10Marker.add(beacon);const label=makeResourceLabel("TRILHA DOS SAQUEADORES","#f0c28a");label.position.set(0,2.65,0);label.scale.set(3.7,.8,1);chapter10Marker.add(label);chapter10Marker.position.set(-74,groundHeight(-74,-78),-78);chapter10Marker.visible=missionState.chapter10Accepted;scene.add(chapter10Marker);}
+  {const post=new THREE.Mesh(new THREE.CylinderGeometry(.16,.23,1.7,7),new THREE.MeshStandardMaterial({color:0x806b4e}));post.position.y=.85;chapter10Marker.add(post);const beacon=new THREE.Mesh(new THREE.OctahedronGeometry(.58,0),new THREE.MeshStandardMaterial({color:0xd58a72,emissive:0x7e281c,emissiveIntensity:1.1}));beacon.position.y=1.95;chapter10Marker.add(beacon);const label=makeResourceLabel("TRILHA DOS SAQUEADORES","#f0c28a");label.position.set(0,2.65,0);label.scale.set(3.7,.8,1);chapter10Marker.add(label);chapter10Marker.position.set(-74,groundHeight(-74,-78),-78);chapter10Marker.visible=false;}
   chapter10DefenseGroup=new THREE.Group();
   {const timber=new THREE.MeshStandardMaterial({color:0x806044,roughness:1}),stone=new THREE.MeshStandardMaterial({color:0x77766b,roughness:1});for(const x of [-5,5]){const tower=new THREE.Mesh(new THREE.BoxGeometry(2.4,5,2.4),timber);tower.position.set(x,2.5,0);chapter10DefenseGroup.add(tower);const roof=new THREE.Mesh(new THREE.ConeGeometry(2,1.5,4),stone);roof.position.set(x,5.7,0);roof.rotation.y=Math.PI/4;chapter10DefenseGroup.add(roof);}for(let i=0;i<9;i++){const palisade=new THREE.Mesh(new THREE.BoxGeometry(.65,2.6,.55),timber);palisade.position.set(-4+i,1.3,3);chapter10DefenseGroup.add(palisade);}chapter10DefenseGroup.position.set(-56,groundHeight(-56,-76),-76);chapter10DefenseGroup.visible=missionState.chapter10DefensesBuilt;scene.add(chapter10DefenseGroup);}
   chapter12CastleGroup=new THREE.Group();
@@ -3217,7 +3217,7 @@ function startGame(THREE) {
     chapter12CastleGroup.position.set(0,groundHeight(0,-72),-72);chapter12CastleGroup.visible=missionState.chapter12CastleBuilt;scene.add(chapter12CastleGroup);
   }
   chapter12ThreatMarker=new THREE.Group();
-  {const post=new THREE.Mesh(new THREE.CylinderGeometry(.16,.23,1.7,7),new THREE.MeshStandardMaterial({color:0x806b4e}));post.position.y=.85;chapter12ThreatMarker.add(post);const beacon=new THREE.Mesh(new THREE.OctahedronGeometry(.58,0),new THREE.MeshStandardMaterial({color:0xe5bd6c,emissive:0x98651e,emissiveIntensity:1.1}));beacon.position.y=1.95;chapter12ThreatMarker.add(beacon);const label=makeResourceLabel("CARTAS SECRETAS","#f0d39a");label.position.set(0,2.65,0);label.scale.set(3.8,.8,1);chapter12ThreatMarker.add(label);chapter12ThreatMarker.position.set(23,groundHeight(23,-72),-72);chapter12ThreatMarker.visible=missionState.chapter12PeopleSupport&&!missionState.chapter12ThreatInvestigated;scene.add(chapter12ThreatMarker);}
+  {const post=new THREE.Mesh(new THREE.CylinderGeometry(.16,.23,1.7,7),new THREE.MeshStandardMaterial({color:0x806b4e}));post.position.y=.85;chapter12ThreatMarker.add(post);const beacon=new THREE.Mesh(new THREE.OctahedronGeometry(.58,0),new THREE.MeshStandardMaterial({color:0xe5bd6c,emissive:0x98651e,emissiveIntensity:1.1}));beacon.position.y=1.95;chapter12ThreatMarker.add(beacon);const label=makeResourceLabel("CARTAS SECRETAS","#f0d39a");label.position.set(0,2.65,0);label.scale.set(3.8,.8,1);chapter12ThreatMarker.add(label);chapter12ThreatMarker.position.set(23,groundHeight(23,-72),-72);chapter12ThreatMarker.visible=missionState.chapter12PeopleSupport&&!missionState.chapter12ThreatInvestigated;// Marco de missão antigo removido do mundo inicial.}
   chapter11WorkshopsGroup=new THREE.Group();
   {
     const workshopWood=new THREE.MeshStandardMaterial({color:0x795236,roughness:1}),workshopRoof=new THREE.MeshStandardMaterial({color:0x514237,roughness:1}),workshopStone=new THREE.MeshStandardMaterial({color:0x77766b,roughness:1}),workshopCloth=new THREE.MeshStandardMaterial({color:0x9a6245,roughness:1});
@@ -3237,7 +3237,7 @@ function startGame(THREE) {
     chapter11WorkshopsGroup.visible=missionState.chapter11WorkshopsBuilt;scene.add(chapter11WorkshopsGroup);
   }
   chapter11ArtisanMarker=new THREE.Group();
-  {const post=new THREE.Mesh(new THREE.CylinderGeometry(.16,.23,1.7,7),new THREE.MeshStandardMaterial({color:0x806b4e}));post.position.y=.85;chapter11ArtisanMarker.add(post);const beacon=new THREE.Mesh(new THREE.OctahedronGeometry(.58,0),new THREE.MeshStandardMaterial({color:0xe5bd6c,emissive:0x98651e,emissiveIntensity:1.1}));beacon.position.y=1.95;chapter11ArtisanMarker.add(beacon);const label=makeResourceLabel("MESTRES ARTESÃOS","#f0d39a");label.position.set(0,2.65,0);label.scale.set(3.8,.8,1);chapter11ArtisanMarker.add(label);chapter11ArtisanMarker.position.set(12,groundHeight(12,-100),-100);chapter11ArtisanMarker.visible=missionState.chapter11Accepted&&!missionState.chapter11ArtisansMet;scene.add(chapter11ArtisanMarker);}
+  {const post=new THREE.Mesh(new THREE.CylinderGeometry(.16,.23,1.7,7),new THREE.MeshStandardMaterial({color:0x806b4e}));post.position.y=.85;chapter11ArtisanMarker.add(post);const beacon=new THREE.Mesh(new THREE.OctahedronGeometry(.58,0),new THREE.MeshStandardMaterial({color:0xe5bd6c,emissive:0x98651e,emissiveIntensity:1.1}));beacon.position.y=1.95;chapter11ArtisanMarker.add(beacon);const label=makeResourceLabel("MESTRES ARTESÃOS","#f0d39a");label.position.set(0,2.65,0);label.scale.set(3.8,.8,1);chapter11ArtisanMarker.add(label);chapter11ArtisanMarker.position.set(12,groundHeight(12,-100),-100);chapter11ArtisanMarker.visible=false;}
   chapter9FrontierMarker=new THREE.Group();
   {
     const post=new THREE.Mesh(new THREE.CylinderGeometry(.17,.24,1.8,7),new THREE.MeshStandardMaterial({color:0x806b4e,roughness:1}));post.position.y=.9;chapter9FrontierMarker.add(post);
@@ -3246,7 +3246,7 @@ function startGame(THREE) {
     chapter9FrontierMarker.position.set(75,groundHeight(75,-94),-94);
   }
   chapter9FrontierMarker.visible=missionState.chapter9Accepted&&!missionState.chapter9FrontierFound;
-  scene.add(chapter9FrontierMarker);
+  // Marco de exploração antigo removido do mundo inicial.
   chapter9OutpostGroup=new THREE.Group();
   {
     const outpostWood=new THREE.MeshStandardMaterial({color:0x805b39,roughness:1});
@@ -3317,7 +3317,7 @@ function startGame(THREE) {
   trailMarker7=new THREE.Group();
   const trailStem7=new THREE.Mesh(new THREE.CylinderGeometry(.16,.23,1.7,7),new THREE.MeshStandardMaterial({color:0x77634a,roughness:1}));trailStem7.position.y=.85;trailMarker7.add(trailStem7);
   const trailBeacon7=new THREE.Mesh(new THREE.OctahedronGeometry(.55,0),new THREE.MeshStandardMaterial({color:0xf0c66d,emissive:0x9b6422,emissiveIntensity:1.2,roughness:.35}));trailBeacon7.position.y=2;trailMarker7.add(trailBeacon7);
-  trailMarker7.position.set(58,groundHeight(58,25),25);trailMarker7.visible=missionState.chapter7Accepted;scene.add(trailMarker7);
+  trailMarker7.position.set(58,groundHeight(58,25),25);trailMarker7.visible=false;
   road7=new THREE.Group();
   const roadStone7=new THREE.MeshStandardMaterial({color:0x8b806c,roughness:1});
   for(let i=0;i<13;i++){const stone=new THREE.Mesh(new THREE.BoxGeometry(3.8,.16,1.05),roadStone7);stone.position.set(61+i*.95,groundHeight(61+i*.95,31+i*2.1)+.12,31+i*2.1);stone.rotation.y=.42;road7.add(stone);}
@@ -3333,13 +3333,13 @@ function startGame(THREE) {
   thirdVillageGroup.visible=missionState.chapter7Accepted;scene.add(thirdVillageGroup);
   chapter3DiscoveryDefs=[{id:"market-square",name:"Praça do Mercado",x:52,z:-76},{id:"village-well",name:"Poço Comunitário",x:47,z:-82},{id:"council-hall",name:"Casa do Conselho",x:61,z:-82}];
   chapter3Markers=[];
-  chapter3DiscoveryDefs.forEach(place=>{const marker=new THREE.Group();const stem=new THREE.Mesh(new THREE.CylinderGeometry(.12,.18,1.5,7),new THREE.MeshStandardMaterial({color:0x806332,roughness:1}));stem.position.y=.75;marker.add(stem);const beacon=new THREE.Mesh(new THREE.OctahedronGeometry(.48,0),new THREE.MeshStandardMaterial({color:0x9bd18c,emissive:0x3d7b39,emissiveIntensity:1,roughness:.35}));beacon.position.y=1.8;marker.add(beacon);marker.position.set(place.x,groundHeight(place.x,place.z),place.z);marker.userData.placeId=place.id;neighborVillageGroup.add(marker);chapter3Markers.push(marker);});
+  chapter3DiscoveryDefs.forEach(place=>{const marker=new THREE.Group();const stem=new THREE.Mesh(new THREE.CylinderGeometry(.12,.18,1.5,7),new THREE.MeshStandardMaterial({color:0x806332,roughness:1}));stem.position.y=.75;marker.add(stem);const beacon=new THREE.Mesh(new THREE.OctahedronGeometry(.48,0),new THREE.MeshStandardMaterial({color:0x9bd18c,emissive:0x3d7b39,emissiveIntensity:1,roughness:.35}));beacon.position.y=1.8;marker.add(beacon);marker.position.set(place.x,groundHeight(place.x,place.z),place.z);marker.userData.placeId=place.id;chapter3Markers.push(marker);});
   }
   const chapter2DiscoveryDefs=[{id:"lookout",name:"Mirante das Colinas",x:28,z:12},{id:"river-crossing",name:"Travessia do Rio",x:-20,z:-12},{id:"old-oak",name:"Carvalho Antigo",x:58,z:-38},{id:"old-road",name:"Estrada Antiga",x:-62,z:-58},{id:"village-trail",name:"Trilha da Vila Distante",x:28,z:-82}];
   const chapter2Markers=[];
   const chapter2Messenger=new THREE.Group();
-  {const robe=new THREE.Mesh(new THREE.CylinderGeometry(.32,.42,1.2,8),new THREE.MeshStandardMaterial({color:0x52677a,roughness:1}));robe.position.y=.82;chapter2Messenger.add(robe);const head=new THREE.Mesh(new THREE.SphereGeometry(.24,10,8),new THREE.MeshStandardMaterial({color:0xd6ad86}));head.position.y=1.62;chapter2Messenger.add(head);const hood=new THREE.Mesh(new THREE.ConeGeometry(.3,.38,8),new THREE.MeshStandardMaterial({color:0x9a7848}));hood.position.y=1.88;chapter2Messenger.add(hood);chapter2Messenger.position.set(7,groundHeight(7,29),29);scene.add(chapter2Messenger);}
-  chapter2DiscoveryDefs.forEach((place,index)=>{const group=new THREE.Group();const stem=new THREE.Mesh(new THREE.CylinderGeometry(.12,.18,1.5,7),new THREE.MeshStandardMaterial({color:0x806332,roughness:1}));stem.position.y=.75;group.add(stem);const beacon=new THREE.Mesh(new THREE.OctahedronGeometry(.48,0),new THREE.MeshStandardMaterial({color:0xf3c66e,emissive:0x9b6422,emissiveIntensity:1.1,roughness:.35}));beacon.position.y=1.8;group.add(beacon);group.position.set(place.x,groundHeight(place.x,place.z),place.z);group.userData.placeId=place.id;scene.add(group);chapter2Markers.push(group);});
+  {const robe=new THREE.Mesh(new THREE.CylinderGeometry(.32,.42,1.2,8),new THREE.MeshStandardMaterial({color:0x52677a,roughness:1}));robe.position.y=.82;chapter2Messenger.add(robe);const head=new THREE.Mesh(new THREE.SphereGeometry(.24,10,8),new THREE.MeshStandardMaterial({color:0xd6ad86}));head.position.y=1.62;chapter2Messenger.add(head);const hood=new THREE.Mesh(new THREE.ConeGeometry(.3,.38,8),new THREE.MeshStandardMaterial({color:0x9a7848}));hood.position.y=1.88;chapter2Messenger.add(hood);chapter2Messenger.position.set(7,groundHeight(7,29),29);}
+  chapter2DiscoveryDefs.forEach((place,index)=>{const group=new THREE.Group();const stem=new THREE.Mesh(new THREE.CylinderGeometry(.12,.18,1.5,7),new THREE.MeshStandardMaterial({color:0x806332,roughness:1}));stem.position.y=.75;group.add(stem);const beacon=new THREE.Mesh(new THREE.OctahedronGeometry(.48,0),new THREE.MeshStandardMaterial({color:0xf3c66e,emissive:0x9b6422,emissiveIntensity:1.1,roughness:.35}));beacon.position.y=1.8;group.add(beacon);group.position.set(place.x,groundHeight(place.x,place.z),place.z);group.userData.placeId=place.id;chapter2Markers.push(group);});
   function updateChapter7Exploration(){
     if(!missionState.chapter7Accepted||missionState.chapter7TrailFound)return;
     if(Math.hypot(player.x-58,player.z-25)<=6.2){
