@@ -2293,6 +2293,7 @@ function startGame(THREE) {
   armGroup.add(axeModel);
   function updateAxeVisual() { axeModel.visible = tools.axe; }
   camera.add(armGroup);
+  armGroup.visible = !isAwakening;
   scene.add(camera);
 
   let proneSurvivor = null;
@@ -2331,6 +2332,7 @@ function startGame(THREE) {
       camera.quaternion.slerpQuaternions(wakeStartQuaternion,targetQuaternion,wakeTransition);
       return;
     }
+    armGroup.visible = true;
     camera.position.copy(targetPosition);
     camera.rotation.order = "YXZ";
     camera.rotation.y = player.yaw;
@@ -2361,7 +2363,6 @@ function startGame(THREE) {
     saveProgress(true);
   });
   applyCamera();
-  createWildlife();
   createWildlife();
 
   function readSave() {
