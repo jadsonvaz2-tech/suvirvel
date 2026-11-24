@@ -10,7 +10,7 @@ state.inventory=Object.assign({branches:0,stones:0,fiber:0,wood:0},state.invento
 state.tools=Object.assign({axe:false,pickaxe:false},state.tools||{});
 state.items=Object.assign({torches:0,campfires:0},state.items||{});
 if(!state.campfireReset05){state.campfires=[];state.campfireReset05=true;saveState();}
-state.harvestedNodes=state.harvestedNodes||{};state.felledTrees=Array.isArray(state.felledTrees)?state.felledTrees:[];
+state.harvestedNodes=state.harvestedNodes||{};state.felledTrees=Array.isArray(state.felledTrees)?state.felledTrees:[];state.shelters=Array.isArray(state.shelters)?state.shelters:[];
 let toastTimer=0;
 function notify(message){toast.textContent=message;toast.classList.add("visible");clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.classList.remove("visible"),2400);}
 function saveState(){try{localStorage.setItem(STORE_KEY,JSON.stringify(state));}catch{notify("Não foi possível salvar neste dispositivo.");}}
@@ -155,6 +155,28 @@ addResourceNode("fiber-a","fiber",6,32,2);addResourceNode("fiber-b","fiber",-8,3
 addResourceNode("ore-a","ore",16,12,3);addResourceNode("ore-b","ore",-16,9,3);
 function buildCampfire(x,z){const fire=new THREE.Group(),wood=new THREE.MeshStandardMaterial({color:0x68462d,roughness:1}),ember=new THREE.MeshStandardMaterial({color:0xe47a32,emissive:0x9e3c10,emissiveIntensity:1.4});for(let i=0;i<3;i++){const log=new THREE.Mesh(new THREE.CylinderGeometry(.13,.16,1.35,7),wood);log.rotation.z=Math.PI/2;log.rotation.y=i*Math.PI/3;log.position.y=.18+i*.025;fire.add(log);}const flame=new THREE.Mesh(new THREE.ConeGeometry(.34,.85,7),ember);flame.position.y=.65;fire.add(flame);fire.position.set(x,groundHeight(x,z),z);scene.add(fire);return fire;}
 const placedCampfires=[];for(const pos of(state.campfires||[])){if(Number.isFinite(pos.x)&&Number.isFinite(pos.z))placedCampfires.push(buildCampfire(pos.x,pos.z));}
+function buildShelter(x,z,rotation=0,ghost=false){
+ const group=new THREE.Group(),opacity=ghost?.48:1,transparent=ghost;
+ const wood=new THREE.MeshStandardMaterial({color:0x795334,roughness:1,transparent,opacity,depthWrite:!ghost});
+ const darkWood=new THREE.MeshStandardMaterial({color:0x503923,roughness:1,transparent,opacity,depthWrite:!ghost});
+ const wall=new THREE.MeshStandardMaterial({color:0x9b805d,roughness:1,transparent,opacity,depthWrite:!ghost});
+ const roof=new THREE.MeshStandardMaterial({color:0x554438,roughness:1,transparent,opacity,depthWrite:!ghost});
+ function part(geo,mat,px,py,pz,rz=0){const mesh=new THREE.Mesh(geo,mat);mesh.position.set(px,py,pz);mesh.rotation.z=rz;group.add(mesh);}
+ part(new THREE.BoxGeometry(6.1,.22,5.2),darkWood,0,.14,0);
+ for(let i=0;i<7;i++)part(new THREE.BoxGeometry(.82,.1,5.05),wood,-2.46+i*.82,.29,0);
+ for(const x0 of[-2.85,2.85])for(const z0 of[-2.4,2.4])part(new THREE.BoxGeometry(.22,3.35,.22),darkWood,x0,1.9,z0);
+ part(new THREE.BoxGeometry(5.7,2.55,.18),wall,0,1.75,-2.4);
+ part(new THREE.BoxGeometry(.18,2.55,4.8),wall,-2.85,1.75,0);
+ part(new THREE.BoxGeometry(.18,2.55,4.8),wall,2.85,1.75,0);
+ part(new THREE.BoxGeometry(1.95,2.55,.18),wall,-1.88,1.75,2.4);
+ part(new THREE.BoxGeometry(1.95,2.55,.18),wall,1.88,1.75,2.4);
+ part(new THREE.BoxGeometry(2,.3,.2),darkWood,0,3.05,2.4);
+ const leftRoof=new THREE.Mesh(new THREE.BoxGeometry(3.65,.2,6.1),roof);leftRoof.position.set(-1.52,4.0,0);leftRoof.rotation.z=-.48;group.add(leftRoof);
+ const rightRoof=new THREE.Mesh(new THREE.BoxGeometry(3.65,.2,6.1),roof);rightRoof.position.set(1.52,4.0,0);rightRoof.rotation.z=.48;group.add(rightRoof);
+ part(new THREE.BoxGeometry(.18,.28,6.2),darkWood,0,4.83,0);
+ group.position.set(x,groundHeight(x,z),z);group.rotation.y=rotation;scene.add(group);return group;
+}
+const placedShelters=[];for(const item of state.shelters){if(Number.isFinite(item.x)&&Number.isFinite(item.z))placedShelters.push(buildShelter(item.x,item.z,item.rotation||0,false));}
 const placementPreview=new THREE.Group(),previewRing=new THREE.Mesh(new THREE.RingGeometry(.75,1.05,32),new THREE.MeshBasicMaterial({color:0x8fe0a0,side:THREE.DoubleSide,transparent:true,opacity:.9}));previewRing.rotation.x=-Math.PI/2;placementPreview.add(previewRing);placementPreview.visible=false;scene.add(placementPreview);
  // Delimitação visual da área escolhida pelo jogador; não modifica o terreno natural.
  const plotMarker=new THREE.Group(),plotPostMat=new THREE.MeshStandardMaterial({color:0xd7b36e,roughness:.85}),plotRopeMat=new THREE.LineBasicMaterial({color:0xe4c98e,transparent:true,opacity:.9});
@@ -168,21 +190,51 @@ const placementPreview=new THREE.Group(),previewRing=new THREE.Mesh(new THREE.Ri
  function openDialogue(npc){if(dialogueOpen||!npc)return;activeNpc=npc;activeDialogueLines=dialogueScripts[npc.id]||[];if(!activeDialogueLines.length)return;dialogueOpen=true;dialogueIndex=0;dialogue.hidden=false;talkPrompt.hidden=true;dialogueSpeaker.textContent=npc.name;dialogueText.textContent=activeDialogueLines[dialogueIndex];dialogueNext.textContent="CONTINUAR";}
  function advanceDialogue(){if(!dialogueOpen)return;dialogueIndex++;if(dialogueIndex>=activeDialogueLines.length){closeDialogue();return;}dialogueText.textContent=activeDialogueLines[dialogueIndex];dialogueNext.textContent=dialogueIndex===activeDialogueLines.length-1?"ENCERRAR CONVERSA":"CONTINUAR";}
  talkButton.addEventListener("click",()=>openDialogue(currentInteractable));dialogueNext.addEventListener("click",advanceDialogue);
-let currentGatherable=null,craftVisible=false,placementMode=false,pendingPlacement=null;
+let currentGatherable=null,craftVisible=false,placementMode=false,pendingPlacement=null,selectedPlacementKind=null,placementRotation=0,activeShelterPreview=null;
 const placementRaycaster=new THREE.Raycaster(),placementPointer=new THREE.Vector2();
-function campfirePlacementError(x,z){if(Math.abs(x)>98||Math.abs(z)>98)return"Escolha um ponto dentro do vale.";if(riverDistance(x,z)<9)return"Não é seguro colocar a fogueira tão perto do rio.";if(placedCampfires.some(f=>Math.hypot(f.position.x-x,f.position.z-z)<3.5))return"Escolha um local mais distante de outra fogueira.";for(const [dx,dz] of [[-1.2,0],[1.2,0],[0,-1.2],[0,1.2]])if(Math.abs(groundHeight(x+dx,z+dz)-groundHeight(x,z))>.8)return"Este ponto é muito inclinado. Escolha um terreno mais plano.";return"";}
-function startPlacement(kind){if(kind!=="campfire"||state.items.campfires<1)return;placementMode=true;pendingPlacement=null;placementPreview.visible=false;craftVisible=false;craftPanel.hidden=true;placementPrompt.hidden=false;placementHint.textContent="Toque ou clique no chão para escolher onde colocar a fogueira.";placementConfirm.disabled=true;document.exitPointerLock?.();keys.clear();resetStick();}
-function cancelPlacement(){placementMode=false;pendingPlacement=null;placementPreview.visible=false;placementPrompt.hidden=true;}
-function selectPlacementPoint(clientX,clientY){if(!placementMode)return;const rect=renderer.domElement.getBoundingClientRect();placementPointer.set((clientX-rect.left)/rect.width*2-1,-((clientY-rect.top)/rect.height)*2+1);placementRaycaster.setFromCamera(placementPointer,camera);const hit=placementRaycaster.intersectObject(terrainMesh,false)[0];if(!hit){placementHint.textContent="Toque em uma parte visível do chão do vale.";placementConfirm.disabled=true;return;}const x=hit.point.x,z=hit.point.z,reason=campfirePlacementError(x,z);if(reason){pendingPlacement=null;placementPreview.visible=false;placementConfirm.disabled=true;placementHint.textContent=reason;return;}pendingPlacement={x:Math.round(x*10)/10,z:Math.round(z*10)/10};placementPreview.position.set(pendingPlacement.x,groundHeight(pendingPlacement.x,pendingPlacement.z)+.05,pendingPlacement.z);placementPreview.visible=true;placementConfirm.disabled=false;placementHint.textContent="Local escolhido. Confirme para colocar a fogueira aqui.";}
-function confirmPlacement(){if(!placementMode||!pendingPlacement||state.items.campfires<1)return;const reason=campfirePlacementError(pendingPlacement.x,pendingPlacement.z);if(reason){placementHint.textContent=reason;return;}const pos={...pendingPlacement};placedCampfires.push(buildCampfire(pos.x,pos.z));state.campfires=state.campfires||[];state.campfires.push(pos);state.items.campfires--;saveState();cancelPlacement();renderCrafting();craftStatus.textContent="Fogueira colocada no local escolhido.";notify("Fogueira colocada no local escolhido.");}
+function placementError(x,z,kind){
+ if(kind==="campfire"){if(Math.abs(x)>98||Math.abs(z)>98)return"Escolha um ponto dentro do vale.";if(riverDistance(x,z)<9)return"Não é seguro colocar a fogueira tão perto do rio.";if(placedCampfires.some(f=>Math.hypot(f.position.x-x,f.position.z-z)<3.5))return"Escolha um local mais distante de outra fogueira.";}
+ else{
+  if(!state.selectedPlot)return"Primeiro escolha o terreno da sua vila.";
+  if(Math.abs(x-state.selectedPlot.x)>5.4||Math.abs(z-state.selectedPlot.z)>5.4)return"Coloque o abrigo dentro da área de terreno que você escolheu.";
+  if(riverDistance(x,z)<9)return"Este ponto fica muito perto do rio.";
+  if(placedShelters.some(h=>Math.hypot(h.position.x-x,h.position.z-z)<7))return"Afaste o abrigo de outra construção.";
+  if(placedCampfires.some(f=>Math.hypot(f.position.x-x,f.position.z-z)<4))return"Afaste o abrigo da fogueira.";
+ }
+ for(const [dx,dz] of [[-2.8,0],[2.8,0],[0,-2.5],[0,2.5],[-2,-2],[2,-2],[-2,2],[2,2]])if(Math.abs(groundHeight(x+dx,z+dz)-groundHeight(x,z))>.8)return"Este ponto é muito inclinado. Escolha um terreno mais plano.";
+ return"";
+}
+function canBuildShelter(){return !!state.selectedPlot&&state.inventory.wood>=12&&state.inventory.branches>=8&&state.inventory.fiber>=6;}
+function startPlacement(kind){
+ if(kind==="campfire"&&state.items.campfires<1)return;
+ if(kind==="shelter"&&!canBuildShelter()){craftStatus.textContent=!state.selectedPlot?"Escolha primeiro o terreno da sua vila.":"Materiais necessários: 12 madeiras, 8 galhos e 6 fibras.";return;}
+ selectedPlacementKind=kind;placementRotation=0;placementMode=true;pendingPlacement=null;placementPreview.visible=false;
+ if(activeShelterPreview){scene.remove(activeShelterPreview);activeShelterPreview=null;}
+ if(kind==="shelter")activeShelterPreview=buildShelter(0,0,0,true);
+ craftVisible=false;craftPanel.hidden=true;placementPrompt.hidden=false;root.classList.add("placing-structure");
+ placementHint.textContent=kind==="shelter"?"Toque no terreno para pré-visualizar o abrigo.":"Toque no terreno para pré-visualizar a fogueira.";
+ placementConfirm.disabled=true;document.exitPointerLock?.();keys.clear();resetStick();
+}
+function cancelPlacement(){placementMode=false;pendingPlacement=null;selectedPlacementKind=null;placementPreview.visible=false;if(activeShelterPreview){scene.remove(activeShelterPreview);activeShelterPreview=null;}placementPrompt.hidden=true;root.classList.remove("placing-structure");}
+function selectPlacementPoint(clientX,clientY){if(!placementMode)return;const rect=renderer.domElement.getBoundingClientRect();placementPointer.set((clientX-rect.left)/rect.width*2-1,-((clientY-rect.top)/rect.height)*2+1);placementRaycaster.setFromCamera(placementPointer,camera);const hit=placementRaycaster.intersectObject(terrainMesh,false)[0];if(!hit){placementHint.textContent="Toque em uma parte visível do chão do vale.";placementConfirm.disabled=true;return;}const x=hit.point.x,z=hit.point.z,reason=placementError(x,z,selectedPlacementKind);if(reason){pendingPlacement=null;placementPreview.visible=false;if(activeShelterPreview)activeShelterPreview.visible=false;placementConfirm.disabled=true;placementHint.textContent=reason;return;}pendingPlacement={x:Math.round(x*10)/10,z:Math.round(z*10)/10};if(selectedPlacementKind==="campfire"){placementPreview.position.set(pendingPlacement.x,groundHeight(pendingPlacement.x,pendingPlacement.z)+.05,pendingPlacement.z);placementPreview.visible=true;}else if(activeShelterPreview){activeShelterPreview.position.set(pendingPlacement.x,groundHeight(pendingPlacement.x,pendingPlacement.z),pendingPlacement.z);activeShelterPreview.rotation.y=placementRotation;activeShelterPreview.visible=true;}placementConfirm.disabled=false;placementHint.textContent="Prévia posicionada. Confirme para construir ou gire para ajustar.";}
+function confirmPlacement(){
+ if(!placementMode||!pendingPlacement)return;
+ const reason=placementError(pendingPlacement.x,pendingPlacement.z,selectedPlacementKind);if(reason){placementHint.textContent=reason;return;}
+ const pos={...pendingPlacement};
+ if(selectedPlacementKind==="campfire"){if(state.items.campfires<1)return;placedCampfires.push(buildCampfire(pos.x,pos.z));state.campfires=state.campfires||[];state.campfires.push(pos);state.items.campfires--;notify("Fogueira colocada no local escolhido.");}
+ else{if(!canBuildShelter())return;state.inventory.wood-=12;state.inventory.branches-=8;state.inventory.fiber-=6;const built={x:pos.x,z:pos.z,rotation:placementRotation};state.shelters.push(built);placedShelters.push(buildShelter(built.x,built.z,built.rotation,false));notify("Seu primeiro abrigo foi construído!");objective.querySelector("strong").textContent="Primeiro abrigo construído";objective.querySelector("p").textContent="Você ergueu seu primeiro abrigo com os materiais que reuniu. Sua vila começou a tomar forma.";}
+ saveState();cancelPlacement();renderCrafting();craftStatus.textContent=selectedPlacementKind==="shelter"?"Abrigo construído no local escolhido.":"Fogueira colocada no local escolhido.";
+}
 const recipes={axe:{label:"Machado rudimentar",cost:{branches:3,stones:2,fiber:2}},pickaxe:{label:"Picareta rudimentar",cost:{branches:3,stones:3,fiber:2}},torch:{label:"Tocha",cost:{branches:1,fiber:2}},campfire:{label:"Fogueira",cost:{branches:5,stones:4}}};
 function canCraft(key){const r=recipes[key];return Object.entries(r.cost).every(([k,v])=>state.inventory[k]>=v)&&(key!=="axe"||!state.tools.axe)&&(key!=="pickaxe"||!state.tools.pickaxe);}
-function renderCrafting(){inventoryText.textContent="Galhos: "+state.inventory.branches+"   Pedras: "+state.inventory.stones+"   Fibras: "+state.inventory.fiber+"   Madeira: "+state.inventory.wood+"\\nMachado: "+(state.tools.axe?"fabricado":"não fabricado")+"   Picareta: "+(state.tools.pickaxe?"fabricada":"não fabricada")+"\\nTochas: "+state.items.torches+"   Fogueiras: "+state.items.campfires;craftPanel.querySelectorAll("[data-craft]").forEach(btn=>{const key=btn.dataset.craft;btn.disabled=!canCraft(key);});campfirePlace.hidden=state.items.campfires<1;}
+function renderCrafting(){const shelterButton=craftPanel.querySelector("[data-build-shelter]");if(shelterButton)shelterButton.disabled=!canBuildShelter();inventoryText.textContent="Galhos: "+state.inventory.branches+"   Pedras: "+state.inventory.stones+"   Fibras: "+state.inventory.fiber+"   Madeira: "+state.inventory.wood+"\\nMachado: "+(state.tools.axe?"fabricado":"não fabricado")+"   Picareta: "+(state.tools.pickaxe?"fabricada":"não fabricada")+"\\nTochas: "+state.items.torches+"   Fogueiras: "+state.items.campfires;craftPanel.querySelectorAll("[data-craft]").forEach(btn=>{const key=btn.dataset.craft;btn.disabled=!canCraft(key);});campfirePlace.hidden=state.items.campfires<1;}
 function openCrafting(){craftVisible=true;craftPanel.hidden=false;gatherPrompt.hidden=true;renderCrafting();}
 function closeCrafting(){craftVisible=false;craftPanel.hidden=true;}
 craftOpen.addEventListener("click",openCrafting);craftClose.addEventListener("click",closeCrafting);
 craftPanel.querySelectorAll("[data-craft]").forEach(btn=>btn.addEventListener("click",()=>{const key=btn.dataset.craft,r=recipes[key];if(!canCraft(key)){craftStatus.textContent="Ainda faltam materiais para esta receita.";return;}for(const [k,v] of Object.entries(r.cost))state.inventory[k]-=v;if(key==="axe")state.tools.axe=true;else if(key==="pickaxe")state.tools.pickaxe=true;else if(key==="torch")state.items.torches++;else state.items.campfires++;saveState();craftStatus.textContent=r.label+" fabricado com sucesso.";notify(r.label+" fabricado.");renderCrafting();}));
-campfirePlace.addEventListener("click",()=>startPlacement("campfire"));placementConfirm.addEventListener("click",confirmPlacement);placementCancel.addEventListener("click",cancelPlacement);
+campfirePlace.addEventListener("click",()=>startPlacement("campfire"));const shelterBuildButton=craftPanel.querySelector("[data-build-shelter]");shelterBuildButton?.addEventListener("click",()=>startPlacement("shelter"));placementConfirm.addEventListener("click",confirmPlacement);placementCancel.addEventListener("click",cancelPlacement);
+document.getElementById("placement-rotate-left").addEventListener("click",()=>rotateShelter(-Math.PI/4));document.getElementById("placement-rotate-right").addEventListener("click",()=>rotateShelter(Math.PI/4));
+function rotateShelter(delta){if(!placementMode||selectedPlacementKind!=="shelter"||!activeShelterPreview)return;placementRotation=(placementRotation+delta+Math.PI*2)%(Math.PI*2);activeShelterPreview.rotation.y=placementRotation;}
 function performGather(target){if(!target)return;if(target.kind==="tree"){const index=target.index;setTreeVisible(index,false);state.felledTrees.push({index,day:state.day});state.inventory.wood+=2;state.inventory.branches+=2;notify("Árvore cortada: +2 madeiras e +2 galhos.");}else{const node=target.node;if(node.type==="ore"&&!state.tools.pickaxe){notify("Você precisa de uma picareta para extrair este veio de pedra.");return;}if(node.type==="branch")state.inventory.branches+=node.amount;else if(node.type==="stone")state.inventory.stones+=node.amount;else if(node.type==="fiber")state.inventory.fiber+=node.amount;else state.inventory.stones+=node.amount;state.harvestedNodes[node.id]=state.day;node.group.visible=false;notify(node.type==="ore"?"Minério extraído: +"+node.amount+" pedras.":"Recursos coletados.");}saveState();renderCrafting();currentGatherable=null;gatherPrompt.hidden=true;}
 gatherButton.addEventListener("click",()=>performGather(currentGatherable));
  let pendingPlot=null;
