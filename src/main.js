@@ -1946,6 +1946,7 @@ function startGame(THREE) {
         tradeReputation:Number.isSafeInteger(saved.tradeReputation)?THREE.MathUtils.clamp(saved.tradeReputation,0,9999):0,
         settlementReputation:{vale:Number.isSafeInteger(saved.settlementReputation?.vale)?THREE.MathUtils.clamp(saved.settlementReputation.vale,0,9999):(Number.isSafeInteger(saved.tradeReputation)?THREE.MathUtils.clamp(saved.tradeReputation,0,9999):0)},
         completedTradeContracts:Array.isArray(saved.completedTradeContracts)?saved.completedTradeContracts.filter(id=>typeof id==="string"&&id.length<80).slice(-100):[],
+        missionState:{chapter1RewardClaimed:saved.missionState?.chapter1RewardClaimed===true,chapter2MessengerMet:saved.missionState?.chapter2MessengerMet===true,chapter2Discoveries:Array.isArray(saved.missionState?.chapter2Discoveries)?[...new Set(saved.missionState.chapter2Discoveries.filter(id=>["lookout","river-crossing","old-oak","old-road","village-trail"].includes(id)))]:[],chapter2RewardClaimed:saved.missionState?.chapter2RewardClaimed===true,chapter2Journal:Array.isArray(saved.missionState?.chapter2Journal)?saved.missionState.chapter2Journal.filter(item=>typeof item==="string").slice(-20):[]},
         health: safeStat(saved.health),
         hunger: safeStat(saved.hunger),
         thirst: safeStat(saved.thirst),
