@@ -2,3 +2,31 @@
 .land-prompt{position:absolute;z-index:18;left:50%;bottom:92px;transform:translateX(-50%);display:flex;align-items:center;gap:12px;padding:10px 13px;border:1px solid rgba(230,202,151,.65);border-radius:8px;background:rgba(20,31,23,.95);box-shadow:0 8px 28px rgba(0,0,0,.35)}.land-prompt[hidden]{display:none!important}.land-prompt span{color:#e5c58a;font-size:9px;font-weight:800;letter-spacing:.08em}.land-prompt button,.plot-actions button{min-height:40px;padding:0 15px;border:1px solid #e5c58a;border-radius:5px;background:linear-gradient(#e6c78d,#c49a59);color:#211b12;font-size:10px;font-weight:900;letter-spacing:.06em}.plot-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.plot-actions button:last-child{background:rgba(80,83,66,.95);color:#f2ead8;border-color:rgba(230,202,151,.45)}@media(max-width:760px),(pointer:coarse){.land-prompt{bottom:175px;width:min(330px,calc(100vw - 22px));flex-direction:column;gap:8px}.land-prompt button{width:100%}.plot-actions{grid-template-columns:1fr}.plot-actions button{width:100%}}
 .craft-open{pointer-events:auto;margin-left:10px;padding:9px 11px;border:1px solid rgba(230,202,151,.55);border-radius:5px;background:rgba(20,32,23,.85);color:#f0dfbd;font-size:9px;font-weight:900;letter-spacing:.06em}.gather-prompt{position:absolute;z-index:19;left:50%;bottom:92px;transform:translateX(-50%);display:flex;align-items:center;gap:12px;padding:10px 13px;border:1px solid rgba(230,202,151,.65);border-radius:8px;background:rgba(20,31,23,.96)}.gather-prompt[hidden]{display:none!important}.gather-prompt span{color:#e5c58a;font-size:9px;font-weight:800;letter-spacing:.07em}.gather-prompt button,.craft-card button{min-height:40px;padding:0 14px;border:1px solid #e5c58a;border-radius:5px;background:linear-gradient(#e6c78d,#c49a59);color:#211b12;font-size:10px;font-weight:900;letter-spacing:.05em}.craft-panel{position:absolute;z-index:60;inset:0;display:grid;place-items:center;padding:14px;background:rgba(5,10,7,.72);backdrop-filter:blur(3px)}.craft-panel[hidden]{display:none!important}.craft-card{width:min(520px,100%);max-height:min(88vh,720px);overflow:auto;padding:20px;border:1px solid rgba(222,190,128,.7);border-radius:11px;background:linear-gradient(145deg,#26382a,#17241b);box-shadow:0 18px 55px rgba(0,0,0,.55)}.craft-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}.craft-heading h2{margin:7px 0 12px;color:#f3d49a;font:600 21px Georgia,serif}.craft-heading button{min-height:34px;background:#46503d;color:#f3ead8}.craft-card>p{white-space:pre-line;color:#eee4d0;font-size:12px;line-height:1.65}.craft-recipes{display:grid;grid-template-columns:1fr 1fr;gap:9px}.craft-recipes button{min-height:62px;text-align:left;line-height:1.5}.craft-recipes button:disabled{opacity:.38;filter:grayscale(.7)}.craft-recipes small{font-size:9px;font-weight:600;letter-spacing:0}.craft-card .campfire-place{width:100%;margin-top:10px}.craft-status{min-height:18px;color:#e2c58f!important;font-size:11px!important}.gather-prompt button{min-width:108px}@media(max-width:760px),(pointer:coarse){.topbar{gap:5px}.craft-open{max-width:112px;margin-left:4px;padding:7px 8px;font-size:7px}.gather-prompt{bottom:175px;width:min(330px,calc(100vw - 22px));flex-direction:column;gap:8px}.gather-prompt button{width:100%}.craft-card{padding:15px}.craft-heading h2{font-size:18px}.craft-recipes{grid-template-columns:1fr}.craft-recipes button{min-height:54px}}
 .craft-note{color:#d8c9aa!important;font-size:10px!important}.placement-prompt{position:absolute;z-index:70;left:50%;bottom:24px;transform:translateX(-50%);width:min(460px,calc(100vw - 24px));padding:12px;border:1px solid rgba(230,202,151,.72);border-radius:9px;background:rgba(20,31,23,.97);box-shadow:0 10px 32px rgba(0,0,0,.45)}.placement-prompt[hidden]{display:none!important}.placement-card>strong{color:#e5c58a;font-size:10px;letter-spacing:.1em}.placement-card p{margin:7px 0 10px;color:#f0e8d8;font-size:12px;line-height:1.45}.placement-card>div{display:grid;grid-template-columns:1fr 1fr;gap:8px}.placement-card button{min-height:42px;border:1px solid #e5c58a;border-radius:5px;background:linear-gradient(#e6c78d,#c49a59);color:#211b12;font-size:10px;font-weight:900}.placement-card button:disabled{opacity:.4}.placement-card button:last-child{background:#46503d;color:#f3ead8;border-color:rgba(230,202,151,.45)}@media(max-width:760px),(pointer:coarse){.placement-prompt{bottom:18px;width:calc(100vw - 20px)}.placement-card>div{grid-template-columns:1fr 1fr}.placement-card button{min-height:46px}}
+/* Modo de posicionamento: visão limpa do mundo, com somente os controles essenciais. */
+#game.placing-structure .topbar,
+#game.placing-structure .objective,
+#game.placing-structure .talk-prompt,
+#game.placing-structure .land-prompt,
+#game.placing-structure .gather-prompt,
+#game.placing-structure .crosshair,
+#game.placing-structure .joystick,
+#game.placing-structure .run-button,
+#game.placing-structure .desktop-help,
+#game.placing-structure .mobile-help,
+#game.placing-structure footer,
+#game.placing-structure .toast{display:none!important}
+#game.placing-structure .placement-prompt{bottom:12px;width:min(390px,calc(100vw - 20px));padding:8px;background:rgba(18,27,20,.78);box-shadow:0 4px 16px rgba(0,0,0,.22);backdrop-filter:blur(2px)}
+#game.placing-structure .placement-card>strong{font-size:9px}
+#game.placing-structure .placement-card p{margin:4px 0 6px;font-size:10px}
+#game.placing-structure .placement-card>div{gap:6px}
+#game.placing-structure .placement-card button{min-height:36px;font-size:9px}
+#game.placing-structure .placement-rotate{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:6px}
+#game.placing-structure .placement-rotate button{min-height:30px;background:rgba(65,76,59,.92);color:#f3ead8;border-color:rgba(230,202,151,.45)}
+#game.placing-structure:not(.placing-shelter) .placement-rotate{display:none}
+.shelter-build{width:100%;margin-top:9px!important;min-height:56px!important;text-align:left!important;line-height:1.45}
+.shelter-build small{font-size:9px;font-weight:600;letter-spacing:0}
+@media(max-width:760px),(pointer:coarse){
+ #game.placing-structure .placement-prompt{bottom:8px;width:calc(100vw - 16px);padding:7px}
+ #game.placing-structure .placement-card p{font-size:9px}
+ #game.placing-structure .placement-card button{min-height:38px}
+}
