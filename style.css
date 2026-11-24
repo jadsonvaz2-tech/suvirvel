@@ -616,3 +616,14 @@ body.land-management-unlocked #inventory-toggle,body.land-management-unlocked #b
     font-size: 10px !important;
   }
 }
+
+/* Posicionamento da fogueira: controles compactos fora da visão do mundo */
+.building-panel.campfire-placement-mode { position:fixed; z-index:30; top:auto; bottom:calc(14px + env(safe-area-inset-bottom)); left:50%; width:min(430px,calc(100vw - 24px)); padding:9px; border-radius:12px; background:rgba(22,34,25,.88); backdrop-filter:blur(8px); transform:translateX(-50%); }
+.building-panel.campfire-placement-mode > header,
+.building-panel.campfire-placement-mode > .building-description,
+.building-panel.campfire-placement-mode > .building-options,
+.building-panel.campfire-placement-mode > .building-costs,
+.building-panel.campfire-placement-mode > .building-status,
+.building-panel.campfire-placement-mode > .building-help { display:none !important; }
+.building-panel.campfire-placement-mode .building-actions { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
+.building-panel.campfire-placement-mode .building-actions button { min-height:48px; font-size:10px; }
