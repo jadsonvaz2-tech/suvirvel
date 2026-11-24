@@ -279,7 +279,8 @@ function startGame(THREE) {
   // os pontos já recolhidos não sejam recriados após atualizar a página.
   // O ponto de recursos é ancorado na posição inicial salva do jogador.
   // Assim, a primeira área de coleta aparece perto do personagem mesmo em saves antigos.
-  const saved = readSave();
+  const loadedSave = readSave();
+  const saved = loadedSave?.saveSchemaVersion===4 ? loadedSave : loadedSave ? {...loadedSave,saveSchemaVersion:4,coins:0,tradeReputation:0,settlementReputation:{vale:0},completedTradeContracts:[],missionState:{},inventory:{},tools:{},storage:{},clothing:{},farmPlots:[],animalCare:{},huntedWildlife:[],collectedResources:[],resourceRespawnAt:{},felledTrees:[],treeHits:{},builtCabin:null,cabinDoorOpen:false,villageHouses:[],recruitedVillagers:[],villageStock:{},villagerRelationships:[],familyPregnancies:[],familyChildren:[],dynastyState:{},nextChildName:"",structurePositions:{},tanneryState:{readyAt:0,ready:false},fishingSpotState:{lastCatch:0}} : null;
   const gameTime = { day:saved?.gameTime?.day??1, hour:saved?.gameTime?.hour??6, minute:saved?.gameTime?.minute??15 };
   let fishingLastCatch=Number.isSafeInteger(saved?.fishingSpotState?.lastCatch)?Math.max(0,saved.fishingSpotState.lastCatch):0;
   const cropTypes = {
@@ -308,6 +309,7 @@ function startGame(THREE) {
   });
   let currentFarmPlot=null,canUseFarmPlot=false;
   let currentVillager=null;
+  let canTalkToElder=false;
   const completedVillagerTasks=new Set();
   const villagers=[];
   const familyActors=[];
@@ -323,7 +325,7 @@ function startGame(THREE) {
   let nextChildName=typeof saved?.nextChildName==="string"?saved.nextChildName.slice(0,24):"";
   function readMissionProgress(){
     try{
-      const raw=localStorage.getItem("legado-do-vale-missoes-v3");
+      const raw=localStorage.getItem("legado-do-vale-missoes-v4");
       const data=raw?JSON.parse(raw):{};
       return data&&typeof data==="object"?data:{};
     }catch{return {};}
@@ -1400,7 +1402,7 @@ function startGame(THREE) {
       if(missionState.chapter1RewardClaimed){showToast("A recompensa deste capítulo já foi recebida.");return;}
       if(!ready){showToast("Ainda faltam objetivos para concluir o capítulo.");return;}
       missionState.chapter1RewardClaimed=true;
-      try{localStorage.setItem("legado-do-vale-missoes-v3",JSON.stringify(missionState));}catch{}
+      try{localStorage.setItem("legado-do-vale-missoes-v4",JSON.stringify(missionState));}catch{}
       coins=Math.min(999999,coins+25);
       tradeReputation=Math.min(9999,tradeReputation+2);
       settlementReputation.vale=Math.min(9999,(settlementReputation.vale||0)+2);
@@ -2065,6 +2067,7 @@ function startGame(THREE) {
   let wakeStartPosition = null;
   let wakeStartQuaternion = null;
   let villageDiscovered = saved?.villageDiscovered === true;
+  let elderReportDelivered = saved?.elderReportDelivered === true;
   const survival = {
     health: saved?.health ?? 58,
     hunger: saved?.hunger ?? 46,
@@ -2340,10 +2343,16 @@ function startGame(THREE) {
   }
   function renderStoryObjective() {
     if (!storyObjectiveTitle || !storyObjectiveText) return;
-    storyObjectiveTitle.textContent = villageDiscovered ? "VOCÊ ENCONTROU A VILA" : "ENCONTRE AJUDA";
-    storyObjectiveText.textContent = villageDiscovered
-      ? "Procure a anciã Alina e conte que sua aldeia foi destruída." 
-      : "Atravesse o rio pela ponte de madeira e siga até a Vila Vizinha. Procure a anciã Alina.";
+    if (!villageDiscovered) { storyObjectiveTitle.textContent="ENCONTRE AJUDA"; storyObjectiveText.textContent="Atravesse o rio pela ponte de madeira e siga até a Vila Vizinha. Procure a anciã Alina."; }
+    else if (!elderReportDelivered) { storyObjectiveTitle.textContent="FALE COM ALINA"; storyObjectiveText.textContent="Aproxime-se da anciã e toque em FALAR para contar sobre o ataque à sua aldeia."; }
+    else { storyObjectiveTitle.textContent="ALINA OUVIU SEU RELATO"; storyObjectiveText.textContent="A anciã prometeu ajudar a procurar sobreviventes. Aguarde novas orientações."; }
+  }
+  function showOpeningElderDialogue() {
+    let panel=document.getElementById("opening-elder-dialogue");
+    if(!panel){panel=document.createElement("section");panel.id="opening-elder-dialogue";panel.className="chapter2-dialogue";panel.setAttribute("role","dialog");panel.setAttribute("aria-modal","true");game.appendChild(panel);}
+    panel.innerHTML=elderReportDelivered?'<header><span>VILA VIZINHA · ALINA, ANCIÃ</span><button type="button" data-elder-close aria-label="Fechar">×</button></header><h3>Estamos com você</h3><p>“Descanse um pouco, viajante. Vou perguntar aos moradores se alguém viu sobreviventes ou reconheceu os símbolos dos invasores. Não está sozinho.”</p><div class="chapter-two-actions"><button type="button" data-elder-close>CONTINUAR</button></div>':'<header><span>VILA VIZINHA · ALINA, ANCIÃ</span><button type="button" data-elder-close aria-label="Fechar">×</button></header><h3>O que aconteceu com você?</h3><p>“Você parece ferido e veio de longe. Meu nome é Alina, sou a anciã desta vila. Sente-se e conte: por que está sozinho na floresta?”</p><div class="chapter-two-actions"><button type="button" data-elder-report>CONTAR SOBRE O ATAQUE</button><button type="button" data-elder-close>PRECISO DE UM MOMENTO</button></div>';
+    panel.classList.add("is-open");
+    panel.onclick=event=>{if(event.target.closest("[data-elder-close]")){panel.classList.remove("is-open");return;}if(event.target.closest("[data-elder-report]")){elderReportDelivered=true;villageDiscovered=true;renderStoryObjective();saveProgress(true);panel.innerHTML='<header><span>VILA VIZINHA · ALINA, ANCIÃ</span><button type="button" data-elder-close aria-label="Fechar">×</button></header><h3>Você não está sozinho</h3><p>“Sinto muito pela sua aldeia. Bárbaros não costumam atacar sem motivo. Vou conversar com os moradores e descobrir se alguém viu para onde foram os sobreviventes. Por enquanto, fique perto da vila.”</p><div class="chapter-two-actions"><button type="button" data-elder-close>AGRADECER</button></div>';showToast("Alina ouviu seu relato. A história da sua aldeia começa a ser investigada.");}};
   }
   renderStoryObjective();
   if (storyObjective) storyObjective.classList.toggle("hidden",isAwakening);
@@ -2367,7 +2376,7 @@ function startGame(THREE) {
 
   function readSave() {
     try {
-      const value = localStorage.getItem("legado-do-vale-prototipo-v3");
+      const value = localStorage.getItem("legado-do-vale-prototipo-v4") || localStorage.getItem("legado-do-vale-prototipo-v3");
       if (!value) return null;
       const saved = JSON.parse(value);
       if (!saved || !Number.isFinite(saved.x) || !Number.isFinite(saved.z)) return null;
@@ -2381,6 +2390,8 @@ function startGame(THREE) {
         pitch: Number.isFinite(saved.pitch) ? THREE.MathUtils.clamp(saved.pitch, -1.15, 1.15) : -0.04,
         awakeningComplete: saved.awakeningComplete === true,
         villageDiscovered: saved.villageDiscovered === true,
+        elderReportDelivered: saved.elderReportDelivered === true,
+        saveSchemaVersion: saved.saveSchemaVersion === 4 ? 4 : 3,
         coins: Number.isSafeInteger(saved.coins)?THREE.MathUtils.clamp(saved.coins,0,999999):30,
         tradeReputation:Number.isSafeInteger(saved.tradeReputation)?THREE.MathUtils.clamp(saved.tradeReputation,0,9999):0,
         settlementReputation:{vale:Number.isSafeInteger(saved.settlementReputation?.vale)?THREE.MathUtils.clamp(saved.settlementReputation.vale,0,9999):(Number.isSafeInteger(saved.tradeReputation)?THREE.MathUtils.clamp(saved.tradeReputation,0,9999):0)},
@@ -2475,8 +2486,10 @@ function startGame(THREE) {
     try {
       localStorage.setItem("legado-do-vale-prototipo-v3", JSON.stringify({
         x: player.x, z: player.z, yaw: player.yaw, pitch: player.pitch,
+        saveSchemaVersion:4,
         awakeningComplete: !isAwakening,
         villageDiscovered,
+        elderReportDelivered,
         seedStarterPackClaimed: true,
         coins,
         tradeReputation,
@@ -2514,7 +2527,7 @@ function startGame(THREE) {
         nextChildName,
         structurePositions:structurePositionsForSave()
       }));
-      try{localStorage.setItem("legado-do-vale-missoes-v3",JSON.stringify(missionState));}catch{}
+      try{localStorage.setItem("legado-do-vale-missoes-v4",JSON.stringify(missionState));}catch{}
     } catch { /* O jogo continua mesmo sem armazenamento disponível. */ }
   }
 
@@ -2796,9 +2809,10 @@ function startGame(THREE) {
     currentFishingSpot=nearestFishing;canUseFishingSpot=Boolean(nearestFishing&&!match&&tools.fishingRod);
     const merchantDistance=merchantPosition?Math.hypot(merchantPosition.x-player.x,merchantPosition.z-player.z):Infinity;
     canUseMerchant=Boolean(!match&&merchantDistance<=5.0);
+    canTalkToElder=!match&&Math.hypot(player.x-34,player.z+82)<=6.4;
     let nearestVillager=null,nearestVillagerDistance=Infinity;
     for(const villager of villagers){const distance=Math.hypot(villager.x-player.x,villager.z-player.z);if(distance<=6.2&&distance<nearestVillagerDistance){nearestVillager=villager;nearestVillagerDistance=distance;}}
-    currentVillager=(!match&&!canUseMerchant&&!canUseFishingSpot)?nearestVillager:null;
+    currentVillager=(!match&&!canUseMerchant&&!canUseFishingSpot&&!canTalkToElder)?nearestVillager:null;
     const tanneryDistance=tanneryPosition?Math.hypot(tanneryPosition.x-player.x,tanneryPosition.z-player.z):Infinity;
     canUseTannery=Boolean(builtCabin&&!match&&tanneryDistance<=4.4);
     const loomDistance=loomPosition?Math.hypot(loomPosition.x-player.x,loomPosition.z-player.z):Infinity;
@@ -2848,10 +2862,11 @@ function startGame(THREE) {
       treeMatch = { tree, index: i };
       bestTreeDistance = distance;
     }
-    currentTreeTarget = !match && !canUseLoom && !canDrinkWater && !canUseWorkbench && !canUseFarmPlot && !canUseAnimalPen && !canUseKitchen && !canUseLoom ? treeMatch : null;
+    currentTreeTarget = !match && !canTalkToElder && !canUseLoom && !canDrinkWater && !canUseWorkbench && !canUseFarmPlot && !canUseAnimalPen && !canUseKitchen && !canUseLoom ? treeMatch : null;
     canChopTree = Boolean(currentTreeTarget && tools.axe);
     currentResourceTarget = match;
-    const hasInteraction = Boolean(match) || Boolean(currentVillager) || canUseMerchant || canUseTannery || canUseFishingSpot || canDrinkWater || canUseWorkbench || canUseFarmPlot || canUseAnimalPen || canUseKitchen || canUseLoom || canUseCabinDoor || canUseBed || canUseStorageChest || Boolean(currentTreeTarget) || Boolean(currentWildlifeTarget);
+    if(canTalkToElder){currentVillager=null;canUseMerchant=false;canUseTannery=false;canUseLoom=false;canUseFishingSpot=false;canDrinkWater=false;canUseWorkbench=false;canUseFarmPlot=false;canUseAnimalPen=false;canUseKitchen=false;canUseCabinDoor=false;canUseBed=false;canUseStorageChest=false;currentTreeTarget=null;canChopTree=false;currentWildlifeTarget=null;}
+    const hasInteraction = Boolean(match) || canTalkToElder || Boolean(currentVillager) || canUseMerchant || canUseTannery || canUseFishingSpot || canDrinkWater || canUseWorkbench || canUseFarmPlot || canUseAnimalPen || canUseKitchen || canUseLoom || canUseCabinDoor || canUseBed || canUseStorageChest || Boolean(currentTreeTarget) || Boolean(currentWildlifeTarget);
     interactionPrompt.classList.toggle("hidden", !hasInteraction);
     collectButton.classList.toggle("hidden", !hasInteraction || !isMobile);
 
@@ -2860,6 +2875,8 @@ function startGame(THREE) {
       interactionName.textContent = match.label + " · " + match.amount;
       interactionVerb.textContent = "recolher";
       collectButton.textContent = "RECOLHER";
+    } else if (canTalkToElder) {
+      interactionType.textContent="VILA VIZINHA";interactionName.textContent="Alina · Anciã";interactionVerb.textContent="contar sobre o ataque à sua aldeia";collectButton.textContent="FALAR";
     } else if (currentVillager) {
       interactionType.textContent="MORADOR DO VALE";
       interactionName.textContent=currentVillager.name+" · "+currentVillager.role;
@@ -3138,6 +3155,7 @@ function startGame(THREE) {
     if(!chestPanel.classList.contains("hidden")||!sleepPanel.classList.contains("hidden")||!farmPanel.classList.contains("hidden")||!animalPanel.classList.contains("hidden")||!kitchenPanel.classList.contains("hidden")||!loomPanel.classList.contains("hidden")||!tanneryPanel.classList.contains("hidden")||!fishingPanel.classList.contains("hidden")||!merchantPanel.classList.contains("hidden")||!villagerPanel.classList.contains("hidden")||!villagersDirectory.classList.contains("hidden"))return;
     if(buildMode){confirmBuilding();return;}
     if(currentResourceTarget)collectCurrentResource();
+    else if(canTalkToElder)showOpeningElderDialogue();
     else if(currentVillager)openVillagerPanel(currentVillager);
     else if(canUseMerchant)openMerchantPanel();
     else if(canUseTannery)openTanneryPanel();
