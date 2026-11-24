@@ -1720,7 +1720,7 @@ function startGame(THREE) {
   const mountainMaterial = new THREE.MeshStandardMaterial({ color: 0x687c70, roughness: 1, flatShading: true });
   const mountainPositions = [
     [-102, -83, 27, 56], [-82, -111, 36, 67], [-28, -112, 28, 48],
-    [42, -110, 33, 62], [96, -88, 34, 58], [111, -15, 29, 49],
+    [96, -88, 34, 58], [111, -15, 29, 49],
     [103, 83, 36, 62], [55, 112, 28, 49], [-35, 112, 33, 58],
     [-105, 78, 31, 52], [-116, 16, 27, 47]
   ];
