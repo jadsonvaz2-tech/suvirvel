@@ -1171,7 +1171,8 @@ function startGame(THREE) {
     saveProgress(true);renderVillagersDirectory();updateResourceTarget();
     showToast(def.name+" aceitou o convite e chegou ao vilarejo!");
   }
-  function openVillagersDirectory(){renderVillagersDirectory();villagersDirectory.classList.remove("hidden");}
+  const openingManagementUnlocked=false;
+  function openVillagersDirectory(){if(!openingManagementUnlocked)return;renderVillagersDirectory();villagersDirectory.classList.remove("hidden");}
   function closeVillagersDirectory(){villagersDirectory.classList.add("hidden");}
   villagersToggle.addEventListener("click",openVillagersDirectory);
   villagersDirectoryClose.addEventListener("click",closeVillagersDirectory);
@@ -1909,6 +1910,7 @@ function startGame(THREE) {
     buildingConfirm.disabled=!buildPreviewValid||(cost[0]>0&&(inventory.wood<cost[0]||inventory.branches<cost[1]))||(buildSelectedId==="cabin"&&Boolean(builtCabin));
   }
   function startBuilding(){
+    if(!openingManagementUnlocked)return;
     buildMode=true;buildingPanel.classList.remove("hidden");renderBuildingOptions();
     if(!builtCabin)selectBuildOption("cabin");
     else{buildSelectedId=null;buildSelectedItem=null;buildingConfirm.disabled=true;buildingMaterials.textContent="Escolha uma estrutura para reposicionar";}
@@ -2255,6 +2257,7 @@ function startGame(THREE) {
   craftAxeButton.addEventListener("click", craftAxe);
   craftingClose.addEventListener("click", closeCrafting);
   function toggleInventory(force) {
+    if(!openingManagementUnlocked)return;
     const open = typeof force === "boolean" ? force : inventoryPanel.classList.contains("hidden");
     inventoryPanel.classList.toggle("hidden", !open);
     inventoryToggle.setAttribute("aria-expanded", String(open));
