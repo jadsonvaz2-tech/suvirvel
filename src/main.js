@@ -2873,6 +2873,7 @@ function startGame(THREE) {
   collectButton.addEventListener("click", performCurrentInteraction);
 
   const neighborVillageObstacles=[{x:40,z:-90,radius:2.4},{x:51,z:-90,radius:2.4},{x:40,z:-76,radius:2.4},{x:52,z:-76,radius:2.4},{x:61,z:-82,radius:2.1},{x:47,z:-82,radius:1.2},{x:70,z:60,radius:2.5},{x:82,z:60,radius:2.5},{x:70,z:74,radius:2.5},{x:84,z:73,radius:3.1}];
+  let thirdVillageGroup=null,trailMarker7=null,road7=null;
   let chapter3DiscoveryDefs=[],chapter3Markers=[];
   {
   const neighborVillageGroup=new THREE.Group();
@@ -2949,7 +2950,7 @@ function startGame(THREE) {
   }
   scene.add(neighborVillageGroup);
   // Terceira vila: povoado serrano revelado quando a expedição é aceita.
-  const thirdVillageGroup=new THREE.Group();
+  thirdVillageGroup=new THREE.Group();
   const thirdWood=new THREE.MeshStandardMaterial({color:0x765036,roughness:1});
   const thirdLightWood=new THREE.MeshStandardMaterial({color:0xb48a56,roughness:1});
   const thirdRoof=new THREE.MeshStandardMaterial({color:0x4d4034,roughness:1});
@@ -2978,11 +2979,11 @@ function startGame(THREE) {
   const messengerHood3=new THREE.Mesh(new THREE.ConeGeometry(.3,.35,8),new THREE.MeshStandardMaterial({color:0x8c7048,roughness:1}));messengerHood3.position.y=1.85;messenger3.add(messengerHood3);
   const messengerLabel3=makeResourceLabel("MENSAGEIRO · TERCEIRA VILA","#f0d28a");messengerLabel3.position.set(0,2.35,0);messengerLabel3.scale.set(3.6,.8,1);messenger3.add(messengerLabel3);
   messenger3.position.set(79,groundHeight(79,67),67);thirdVillageGroup.add(messenger3);
-  const trailMarker7=new THREE.Group();
+  trailMarker7=new THREE.Group();
   const trailStem7=new THREE.Mesh(new THREE.CylinderGeometry(.16,.23,1.7,7),new THREE.MeshStandardMaterial({color:0x77634a,roughness:1}));trailStem7.position.y=.85;trailMarker7.add(trailStem7);
   const trailBeacon7=new THREE.Mesh(new THREE.OctahedronGeometry(.55,0),new THREE.MeshStandardMaterial({color:0xf0c66d,emissive:0x9b6422,emissiveIntensity:1.2,roughness:.35}));trailBeacon7.position.y=2;trailMarker7.add(trailBeacon7);
   trailMarker7.position.set(58,groundHeight(58,25),25);trailMarker7.visible=missionState.chapter7Accepted;scene.add(trailMarker7);
-  const road7=new THREE.Group();
+  road7=new THREE.Group();
   const roadStone7=new THREE.MeshStandardMaterial({color:0x8b806c,roughness:1});
   for(let i=0;i<13;i++){const stone=new THREE.Mesh(new THREE.BoxGeometry(3.8,.16,1.05),roadStone7);stone.position.set(61+i*.95,groundHeight(61+i*.95,31+i*2.1)+.12,31+i*2.1);stone.rotation.y=.42;road7.add(stone);}
   const pathBridge7=new THREE.Group();
