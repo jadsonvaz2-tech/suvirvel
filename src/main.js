@@ -2046,22 +2046,7 @@ function startGame(THREE) {
     scene.add(rock);
   }
 
-  // Morros rochosos no horizonte para dar profundidade ao vale.
-  const mountainGeometry = new THREE.ConeGeometry(1, 1, 7);
-  const mountainMaterial = new THREE.MeshStandardMaterial({ color: 0x687c70, roughness: 1, flatShading: true });
-  const mountainPositions = [
-    [-102, -83, 27, 56], [-82, -111, 36, 67], [-28, -112, 28, 48],
-    [96, -88, 34, 58], [111, -15, 29, 49],
-    [103, 83, 36, 62], [55, 112, 28, 49], [-35, 112, 33, 58],
-    [-105, 78, 31, 52], [-116, 16, 27, 47]
-  ];
-  mountainPositions.forEach(([x, z, radius, height]) => {
-    const mountain = new THREE.Mesh(mountainGeometry, mountainMaterial);
-    mountain.position.set(x, height * 0.43 - 2, z);
-    mountain.scale.set(radius, height, radius * 0.85);
-    mountain.rotation.y = random() * Math.PI;
-    scene.add(mountain);
-  });
+  // As montanhas serão adicionadas somente na etapa final de expansão do mundo.
 
   // Câmera em primeira pessoa e braços provisórios do personagem.
   const player = {
