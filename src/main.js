@@ -524,12 +524,7 @@ function startGame(THREE) {
   function addResourceNode(id, itemKey, label, amount, x, z, accent, build, toolRequired=null) {
     resourceDefinitions.set(id, { id, itemKey, label, amount, x, z, accent, build, toolRequired });
     if (collectibleNodes.some((node) => node.id === id)) return;
-    if (collectedResources.has(id)) {
-      const respawnAt = resourceRespawnAt.get(id);
-      if (!Number.isSafeInteger(respawnAt) || totalGameMinutes() < respawnAt || isNaturalRegrowthBlocked(x,z,2)) return;
-      collectedResources.delete(id);
-      resourceRespawnAt.delete(id);
-    }
+    if (collectedResources.has(id)) return;
     const root = new THREE.Group();
     root.position.set(x, groundHeight(x, z), z);
     build(root);
@@ -549,8 +544,11 @@ function startGame(THREE) {
     for (const [id, respawnAt] of resourceRespawnAt) {
       if (totalGameMinutes() >= respawnAt && !collectibleNodes.some((node) => node.id === id)) {
         const definition = resourceDefinitions.get(id);
-        if (definition && !isNaturalRegrowthBlocked(definition.x,definition.z,2)) addResourceNode(definition.id, definition.itemKey, definition.label, definition.amount,
-          definition.x, definition.z, definition.accent, definition.build, definition.toolRequired);
+        if (definition && !isNaturalRegrowthBlocked(definition.x,definition.z,2)) {
+          collectedResources.delete(id);resourceRespawnAt.delete(id);
+          addResourceNode(definition.id, definition.itemKey, definition.label, definition.amount,
+            definition.x, definition.z, definition.accent, definition.build, definition.toolRequired);
+        }
       }
     }
   }
@@ -2603,7 +2601,7 @@ function startGame(THREE) {
             }
           : null,
         collectedResources: Array.isArray(saved.collectedResources)
-          ? saved.collectedResources.filter((id) => ["branch-pile-01", "branch-pile-02", "branch-pile-03", "branch-pile-04", "branch-pile-05", "branch-pile-06", "stone-cluster-01", "stone-cluster-02", "stone-cluster-03", "berry-bush-01"].includes(id))
+          ? saved.collectedResources.filter((id) => ["branch-pile-01", "branch-pile-02", "branch-pile-03", "branch-pile-04", "branch-pile-05", "branch-pile-06", "stone-cluster-01", "stone-cluster-02", "stone-cluster-03", "rock-outcrop-01", "rock-outcrop-02", "rock-outcrop-03", "fiber-patch-01", "fiber-patch-02", "fiber-patch-03", "fiber-patch-04", "berry-bush-01"].includes(id))
           : [],
         resourceRespawnAt: saved.resourceRespawnAt && typeof saved.resourceRespawnAt === "object"
           ? Object.fromEntries(Object.entries(saved.resourceRespawnAt).filter(([id,value]) =>
