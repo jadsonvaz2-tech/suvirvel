@@ -611,7 +611,7 @@ body.land-management-unlocked #inventory-toggle,body.land-management-unlocked #b
 @media (max-width: 700px), (pointer: coarse) {
   .manual-craft-toggle {
     right: 20px !important;
-    bottom: max(174px, calc(env(safe-area-inset-bottom) + 166px)) !important;
+    bottom: max(232px, calc(env(safe-area-inset-bottom) + 224px)) !important;
     padding: 10px 12px !important;
     font-size: 10px !important;
   }
