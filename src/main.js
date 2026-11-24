@@ -453,6 +453,7 @@ function startGame(THREE) {
     refreshAnimalProduction();
     refreshTanneryProduction();
     refreshResourceRespawns();
+    refreshTreeRegrowth();
     processAnnualLandTax();
     processVillageProduction();
   }
@@ -512,12 +513,20 @@ function startGame(THREE) {
     return sprite;
   }
 
+  function isNaturalRegrowthBlocked(x,z,extraRadius=0) {
+    const near=(px,pz,radius)=>Number.isFinite(px)&&Number.isFinite(pz)&&(px-x)**2+(pz-z)**2<=(radius+extraRadius)**2;
+    if(builtCabin&&near(builtCabin.x,builtCabin.z,8))return true;
+    for(const house of villageHouses)if(near(house.x,house.z,7))return true;
+    for(const item of getBuildableStructures())if(item.group&&near(item.group.position.x,item.group.position.z,item.radius+5))return true;
+    for(const campfire of placedCampfires)if(near(campfire.x,campfire.z,4.5))return true;
+    return false;
+  }
   function addResourceNode(id, itemKey, label, amount, x, z, accent, build, toolRequired=null) {
     resourceDefinitions.set(id, { id, itemKey, label, amount, x, z, accent, build, toolRequired });
     if (collectibleNodes.some((node) => node.id === id)) return;
     if (collectedResources.has(id)) {
       const respawnAt = resourceRespawnAt.get(id);
-      if (Number.isSafeInteger(respawnAt) && totalGameMinutes() < respawnAt) return;
+      if (!Number.isSafeInteger(respawnAt) || totalGameMinutes() < respawnAt || isNaturalRegrowthBlocked(x,z,2)) return;
       collectedResources.delete(id);
       resourceRespawnAt.delete(id);
     }
@@ -540,7 +549,7 @@ function startGame(THREE) {
     for (const [id, respawnAt] of resourceRespawnAt) {
       if (totalGameMinutes() >= respawnAt && !collectibleNodes.some((node) => node.id === id)) {
         const definition = resourceDefinitions.get(id);
-        if (definition) addResourceNode(definition.id, definition.itemKey, definition.label, definition.amount,
+        if (definition && !isNaturalRegrowthBlocked(definition.x,definition.z,2)) addResourceNode(definition.id, definition.itemKey, definition.label, definition.amount,
           definition.x, definition.z, definition.accent, definition.build, definition.toolRequired);
       }
     }
@@ -2020,6 +2029,8 @@ function startGame(THREE) {
   buildingConfirm.addEventListener("click",confirmBuilding);
 
   const felledTrees = new Set(saved?.felledTrees ?? []);
+  const felledTreeRespawnAt = new Map(Object.entries(saved?.felledTreeRespawnAt ?? {}).filter(([key,value])=>/^\d+$/.test(key)&&Number(key)>=0&&Number(key)<470&&Number.isSafeInteger(value)&&value>=0).map(([key,value])=>[Number(key),value]));
+  for(const index of felledTrees)if(!felledTreeRespawnAt.has(index))felledTreeRespawnAt.set(index,totalGameMinutes()+2880);
   const savedTreeHits = saved?.treeHits ?? {};
   const treeHitCounts = new Map(Object.entries(savedTreeHits).map(([key, value]) => [Number(key), value]));
   const treeSpots = [];
@@ -2094,6 +2105,25 @@ function startGame(THREE) {
   trunkMesh.instanceMatrix.needsUpdate = true;
   crownMesh.instanceMatrix.needsUpdate = true;
   crownTopMesh.instanceMatrix.needsUpdate = true;
+  function restoreTreeInstance(index) {
+    const tree=treeSpots[index];if(!tree)return;
+    const y=groundHeight(tree.x,tree.z),scale=tree.scale;
+    dummy.position.set(tree.x,y+2.1*scale,tree.z);dummy.rotation.set(0,tree.turn,0);dummy.scale.set(scale,scale,scale);dummy.updateMatrix();trunkMesh.setMatrixAt(index,dummy.matrix);
+    dummy.position.set(tree.x,y+6.2*scale,tree.z);dummy.updateMatrix();crownMesh.setMatrixAt(index,dummy.matrix);
+    dummy.position.set(tree.x,y+10*scale,tree.z);dummy.scale.set(scale*0.78,scale*0.78,scale*0.78);dummy.updateMatrix();crownTopMesh.setMatrixAt(index,dummy.matrix);
+    const tint=new THREE.Color().setHSL(0.29+(index%7)*0.004,0.32,0.28);
+    crownMesh.setColorAt(index,tint);crownTopMesh.setColorAt(index,tint.clone().multiplyScalar(1.12));
+    trunkMesh.instanceMatrix.needsUpdate=true;crownMesh.instanceMatrix.needsUpdate=true;crownTopMesh.instanceMatrix.needsUpdate=true;
+    if(crownMesh.instanceColor)crownMesh.instanceColor.needsUpdate=true;
+    if(crownTopMesh.instanceColor)crownTopMesh.instanceColor.needsUpdate=true;
+  }
+  function refreshTreeRegrowth() {
+    for(const [index,respawnAt] of felledTreeRespawnAt){
+      const tree=treeSpots[index];
+      if(!tree||totalGameMinutes()<respawnAt||isNaturalRegrowthBlocked(tree.x,tree.z,2))continue;
+      felledTrees.delete(index);felledTreeRespawnAt.delete(index);restoreTreeInstance(index);
+    }
+  }
 
   // Pedras espalhadas nas clareiras e perto das margens.
   const rockGeometry = new THREE.DodecahedronGeometry(1, 0);
@@ -2582,6 +2612,7 @@ function startGame(THREE) {
             ))
           : {},
         felledTrees: Array.isArray(saved.felledTrees) ? saved.felledTrees.filter((index) => Number.isInteger(index) && index >= 0 && index < 470) : [],
+        felledTreeRespawnAt: saved.felledTreeRespawnAt && typeof saved.felledTreeRespawnAt === "object" ? Object.fromEntries(Object.entries(saved.felledTreeRespawnAt).filter(([key,value])=>/^\\d+$/.test(key)&&Number(key)>=0&&Number(key)<470&&Number.isSafeInteger(value)&&value>=0)) : {},
         treeHits: saved.treeHits && typeof saved.treeHits === "object" ? Object.fromEntries(Object.entries(saved.treeHits).filter(([key, value]) => /^\d+$/.test(key) && Number.isInteger(value) && value >= 0 && value < 3)) : {}
       };
     } catch {
@@ -2622,6 +2653,7 @@ function startGame(THREE) {
         collectedResources: [...collectedResources],
         resourceRespawnAt: Object.fromEntries(resourceRespawnAt),
         felledTrees: [...felledTrees],
+        felledTreeRespawnAt: Object.fromEntries(felledTreeRespawnAt),
         treeHits: Object.fromEntries(treeHitCounts),
         builtCabin: builtCabin ? { ...builtCabin } : null,
         villageHouses:villageHouses.map(({id,x,z,yaw})=>({id,x,z,yaw})),
@@ -3068,7 +3100,7 @@ function startGame(THREE) {
     if(!canCarry(gatheredAmount))return;
     inventory[node.itemKey] = Math.min(9999, inventory[node.itemKey] + gatheredAmount);
     collectedResources.add(node.id);
-    resourceRespawnAt.set(node.id, totalGameMinutes() + 360);
+    resourceRespawnAt.set(node.id, totalGameMinutes() + 2880);
     scene.remove(node.root);
     for (let i = collectibleMeshes.length - 1; i >= 0; i--) {
       if (collectibleMeshes[i].userData.resourceNode === node) collectibleMeshes.splice(i, 1);
@@ -3132,6 +3164,7 @@ function startGame(THREE) {
       const branchReward = 2 + Math.floor(Math.random() * 2);
       if(!canCarry(4 + branchReward))return;
       felledTrees.add(target.index);
+      felledTreeRespawnAt.set(target.index,totalGameMinutes()+2880);
       treeHitCounts.delete(target.index);
       inventory.wood = Math.min(9999, inventory.wood + 4);
       inventory.branches = Math.min(9999, inventory.branches + branchReward);
