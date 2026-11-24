@@ -261,6 +261,7 @@ function startGame(THREE) {
     familyHouseId:typeof saved?.dynastyState?.familyHouseId==="string"&&villageHouses.some(house=>house.id===saved.dynastyState.familyHouseId)?saved.dynastyState.familyHouseId:(villageHouses[0]?.id||"")
   };
   let nextChildName=typeof saved?.nextChildName==="string"?saved.nextChildName.slice(0,24):"";
+  const missionState={chapter1RewardClaimed:saved?.missionState?.chapter1RewardClaimed===true};
   const villageStock=Object.fromEntries(["wheat","carrots","cabbages","wood","branches","stones","wool","rawMeat","hide","trout","carp","minnow","roastedMeat","vegetableSoup","bread","omelet","berryPorridge","grilledTrout","grilledCarp","grilledMinnow","fabric","craftedGoods","tools"].map(key=>[key,Number.isSafeInteger(saved?.villageStock?.[key])?Math.max(0,Math.min(999999,saved.villageStock[key])):0]));
   let villageProductionLastMinute=Number.isSafeInteger(saved?.villageProductionLastMinute)?Math.max(0,saved.villageProductionLastMinute):totalGameMinutes();
   let villageFoodLastDay=Number.isSafeInteger(saved?.villageFoodLastDay)?Math.max(1,saved.villageFoodLastDay):gameTime.day;
@@ -873,9 +874,18 @@ function startGame(THREE) {
     const localRep=settlementReputation.vale||0;
     const localRank=localRep>=35?"Grande líder regional":localRep>=20?"Prestigiado":localRep>=10?"Respeitado":localRep>=5?"Conhecido":"Estrangeiro";
     const reputationMarkup='<section class="village-relationships"><h3 class="villager-invite-heading">REPUTAÇÃO · FAMA E INFLUÊNCIA</h3><p>Suas atitudes e compromissos constroem sua confiança perante os moradores.</p><div class="village-couple"><strong>🏘️ Assentamento do Vale</strong><span>'+localRank+' · '+localRep+'/35 pontos para o título máximo</span><div class="villager-needs-track"><i style="width:'+Math.min(100,localRep/35*100)+'%"></i></div><small>'+completedTradeContracts.size+' encomendas concluídas · Reputação comercial geral: '+tradeReputation+'</small></div><div class="village-couple"><strong>Próximos títulos</strong><small>Conhecido: 5 · Respeitado: 10 · Prestigiado: 20 · Grande líder regional: 35</small><small>Os títulos representam confiança crescente e preparam benefícios e missões especiais.</small></div><div class="village-couple"><strong>Outras vilas do reino</strong><small>As reputações de outras localidades serão ativadas quando essas vilas forem adicionadas ao mapa.</small></div></section>';
+    const chapterObjectives=[
+      {label:"Construir sua cabana e estabelecer um abrigo",done:Boolean(builtCabin)},
+      {label:"Preparar uma casa para receber moradores",done:villageHouses.length>0},
+      {label:"Convidar o primeiro morador para o vale",done:recruitedVillagers.length>0},
+      {label:"Concluir sua primeira encomenda comercial",done:completedTradeContracts.size>0}
+    ];
+    const chapterProgress=chapterObjectives.filter(item=>item.done).length;
+    const chapterReady=chapterProgress===chapterObjectives.length;
+    const missionMarkup='<section class="village-relationships"><h3 class="villager-invite-heading">📜 HISTÓRIA PRINCIPAL · CAPÍTULO 1</h3><div class="village-couple"><strong>UM NOVO COMEÇO</strong><span>O vale guarda oportunidades — mas primeiro você precisa construir um lar, conquistar aliados e provar que pode prosperar.</span><small>Mensagem do cronista: “Toda grande dinastia começa com um primeiro passo. Erga seu abrigo e faça deste vale um lugar onde as pessoas queiram viver.”</small><div class="villager-needs-track"><i style="width:'+Math.round(chapterProgress/chapterObjectives.length*100)+'%"></i></div><small>Progresso: '+chapterProgress+'/'+chapterObjectives.length+' objetivos</small></div>'+chapterObjectives.map((item,index)=>'<div class="village-couple"><strong>'+(item.done?'✓ ':'○ ')+(index+1)+'. '+item.label+'</strong><span>'+(item.done?'Concluído':'Pendente')+'</span></div>').join('')+(missionState.chapter1RewardClaimed?'<div class="village-couple"><strong>Capítulo concluído!</strong><span>Recompensa recebida: 25 moedas e 2 pontos de reputação regional.</span></div>':chapterReady?'<button type="button" class="family-name-control" data-claim-chapter-one>CONCLUIR CAPÍTULO E RECEBER RECOMPENSA</button>':'<small>Complete os quatro objetivos para concluir o capítulo e receber sua recompensa.</small>')+'<small>O progresso é salvo automaticamente. Novos capítulos e personagens serão adicionados em etapas futuras.</small></section>';
     const dynastyMarkup='<section class="village-relationships"><h3 class="villager-invite-heading">DINASTIA · HERANÇA E SUCESSÃO</h3><p>Fundador: Personagem principal · '+familyChildren.length+' descendentes registrados · '+villageHouses.length+' propriedades familiares</p><label class="villager-profession-label">HERDEIRO PRINCIPAL <select data-dynasty-heir><option value="">Escolher sucessor</option>'+eligibleHeirs.map(child=>'<option value="'+child.id+'" '+(dynastyState.heirId===child.id?"selected":"")+'>'+child.name+' · '+childDevelopment(child).stage+' · '+childDevelopment(child).ageYears+' ano(s)</option>').join("")+'</select></label><label class="villager-profession-label">RESIDÊNCIA PRINCIPAL DA FAMÍLIA <select data-dynasty-house><option value="">Selecionar propriedade</option>'+villageHouses.map((house,index)=>'<option value="'+house.id+'" '+(dynastyState.familyHouseId===house.id?"selected":"")+'>Casa '+(index+1)+'</option>').join("")+'</select></label><div class="village-couple"><strong>Patrimônio preparado para a sucessão</strong><span>'+coins+' moedas · '+villageHouses.length+' casas · '+storedAssets+' itens em inventário e depósito</span><small>'+(selectedHeir?'Sucessor escolhido: '+selectedHeir.name:'Nenhum sucessor escolhido')+' · '+(dynastyState.familyHouseId?'Residência familiar definida':'Residência familiar não definida')+'</small><small>A herança ficará vinculada ao sucessor e à residência escolhida. Nenhum bem ou moeda será transferido agora; a sucessão por falecimento será uma etapa futura.</small></div></section>';
         const stockMarkup='<section class="village-stock"><h3 class="villager-invite-heading">DEPÓSITO DA VILA</h3><p class="village-food-status">🍲 Provisões: <strong>'+villageFoodCount()+' refeições</strong> · '+villagers.length+' moradores<br><small>'+foodStatus+'</small></p><div class="village-stock-grid">'+Object.entries(villageStockLabels).map(([key,label])=>'<span>'+label+'</span><strong>'+String(villageStock[key]||0)+'</strong>').join("")+'</div><button type="button" data-deposit-village class="village-deposit-button">DEPOSITAR RECURSOS DA MOCHILA</button><small class="village-stock-note">Cada morador consome 1 refeição por dia, retirada automaticamente do depósito. A cozinheira prepara carne assada ou sopa quando há ingredientes.</small></section>';
-    villagersList.innerHTML=reputationMarkup+dynastyMarkup+relationshipMarkup+pregnancyMarkup+familyTreeMarkup+(villagers.length?villagers.map(v=>{
+    villagersList.innerHTML=missionMarkup+reputationMarkup+dynastyMarkup+relationshipMarkup+pregnancyMarkup+familyTreeMarkup+(villagers.length?villagers.map(v=>{
       const distance=Math.hypot(v.x-player.x,v.z-player.z),direction=villagerDirection(v);
       const mood=v.happiness>=75?"Muito feliz":v.happiness>=50?"Satisfeito":v.happiness>=25?"Insatisfeito":"Muito insatisfeito";
       return '<article class="villager-directory-item"><div><strong>'+v.name+'</strong><span>'+v.role+' · '+mood+'</span><small class="villager-romance">'+villagerRelationshipLabel(v)+'</small><small>Felicidade '+Math.round(v.happiness)+'/100 · Fome '+Math.round(v.hunger)+'/100</small><div class="villager-needs-track"><i style="width:'+v.happiness+'%"></i></div><small>'+v.foodStatus+' · '+v.housingStatus+' · '+(v.atWork?"Trabalhando":"Em casa / deslocando-se")+' · '+direction+' · '+distance.toFixed(0)+' m · Casa '+v.houseId.replace("house-","")+'</small><label class="villager-profession-label">PROFISSÃO <select data-villager-profession="'+v.id+'">'+villagerDefinitions.map(def=>'<option value="'+def.role+'" '+(def.role===v.role?"selected":"")+' >'+def.role+'</option>').join("")+'</select></label></div><button type="button" data-face-villager="'+v.id+'">LOCALIZAR</button></article>';
@@ -951,6 +961,19 @@ function startGame(THREE) {
     saveProgress(true);renderVillagersDirectory();showToast(villager.name+" agora trabalha como "+villager.role+".");
   });
   villagersList.addEventListener("click",event=>{
+    const rewardButton=event.target.closest("[data-claim-chapter-one]");
+    if(rewardButton){
+      const ready=Boolean(builtCabin)&&villageHouses.length>0&&recruitedVillagers.length>0&&completedTradeContracts.size>0;
+      if(missionState.chapter1RewardClaimed){showToast("A recompensa deste capítulo já foi recebida.");return;}
+      if(!ready){showToast("Ainda faltam objetivos para concluir o capítulo.");return;}
+      missionState.chapter1RewardClaimed=true;
+      coins=Math.min(999999,coins+25);
+      tradeReputation=Math.min(9999,tradeReputation+2);
+      settlementReputation.vale=Math.min(9999,(settlementReputation.vale||0)+2);
+      updateInventoryUI();saveProgress(true);renderVillagersDirectory();
+      showToast("Capítulo 1 concluído! +25 moedas e +2 reputação regional.");
+      return;
+    }
     const button=event.target.closest("[data-face-villager]");
     if(!button)return;
     const villager=villagers.find(v=>v.id===button.dataset.faceVillager);
@@ -1996,6 +2019,7 @@ function startGame(THREE) {
         familyPregnancies:familyPregnancies.map(item=>({...item})),
         familyChildren:familyChildren.map(item=>({...item})),
         dynastyState:{...dynastyState},
+        missionState:{...missionState},
         nextChildName,
         structurePositions:structurePositionsForSave()
       }));
