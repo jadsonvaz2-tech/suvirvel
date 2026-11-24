@@ -33,11 +33,12 @@
 
 /* Durante a colocação, mantenha os controles de movimento disponíveis sem recuperar a interface completa. */
 @media(max-width:760px),(pointer:coarse){
- #game.placing-structure .joystick,#game.placing-structure .run-button{display:block!important;opacity:.58;}
+ #game.placing-structure .joystick,#game.placing-structure .run-button{display:block!important;opacity:.82;}
  #game.placing-structure .joystick{left:10px;bottom:10px;width:82px;height:82px;}
  #game.placing-structure .stick{width:36px;height:36px;}
  #game.placing-structure .run-button{right:10px;bottom:12px;width:56px;height:56px;font-size:8px;}
- #game.placing-structure .placement-prompt{width:calc(100vw - 150px);max-width:310px;left:50%;bottom:10px;padding:6px;}
+ /* Painel no alto da tela: deixa livres joystick e botão de correr. */
+ #game.placing-structure .placement-prompt{width:calc(100vw - 24px);max-width:360px;left:50%;top:12px;bottom:auto;transform:translateX(-50%);padding:7px;}
  #game.placing-structure .placement-card>strong{font-size:8px;}
  #game.placing-structure .placement-card p{font-size:8px;}
  #game.placing-structure .placement-card button{min-height:32px;font-size:8px;}
