@@ -3172,7 +3172,8 @@ function startGame(THREE) {
       inventory.wood = Math.min(9999, inventory.wood + 4);
       inventory.branches = Math.min(9999, inventory.branches + branchReward);
       updateInventoryUI();
-      createFallingTree(target.index);
+      const fallingTree = createFallingTree(target.index);
+      fallingTrees.push({ index:target.index, group:fallingTree.group, elapsed:0, duration:0.82, groundY:fallingTree.groundY, branchReward });
       currentTreeTarget = null;
       canChopTree = false;
       interactionPrompt.classList.add("hidden");
