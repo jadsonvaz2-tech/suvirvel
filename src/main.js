@@ -166,6 +166,14 @@ function startGame(THREE) {
       const smooth=blend*blend*(3-2*blend);
       h=h*(1-smooth)+0.38*smooth;
     }
+    // Clareira nivelada para o Castelo Real, dentro dos limites do mapa.
+    const royalNX=(x-52)/20,royalNZ=(z+72)/17;
+    const royalRadius=Math.sqrt(royalNX*royalNX+royalNZ*royalNZ);
+    if(royalRadius<1){
+      const blend=THREE.MathUtils.clamp((royalRadius-0.62)/0.38,0,1);
+      const smooth=blend*blend*(3-2*blend);
+      h=h*(1-smooth)+0.4*smooth;
+    }
     return h;
   }
 
@@ -1088,7 +1096,7 @@ function startGame(THREE) {
     if(!missionState.chapter11RewardClaimed){showToast("Conclua o Capítulo 11 para convocar a Coroa dos Quatro Vales.");return;}
     let panel=document.getElementById("chapter12-dialogue");
     if(!panel){panel=document.createElement("section");panel.id="chapter12-dialogue";panel.className="chapter2-dialogue";panel.setAttribute("role","dialog");panel.setAttribute("aria-modal","true");game.appendChild(panel);}
-    const threatDistance=Math.hypot(player.x-62,player.z+145);
+    const threatDistance=Math.hypot(player.x-75,player.z+72);
     const foodKeys=["berries","bread","omelet","vegetableSoup","berryPorridge","roastedMeat","grilledTrout","grilledCarp","grilledMinnow","carrots","cabbages","eggs","wheat"];
     const foodCount=foodKeys.reduce((sum,key)=>sum+Math.max(0,Number(inventory[key])||0),0);
     const stage=missionState.chapter12RewardClaimed?"A Coroa dos Quatro Vales foi fundada":missionState.chapter12ThreatInvestigated?"A conspiração foi desmascarada":missionState.chapter12PeopleSupport?"A ameaça política precisa ser investigada":missionState.chapter12RoyalGuardRecruited?"O povo precisa apoiar a união":missionState.chapter12CastleBuilt?"A Guarda Real deve ser formada":missionState.chapter12LeadersGathered?"Erguendo o Castelo Real":missionState.chapter12Accepted?"Convocando os líderes das quatro vilas":"A assembleia da Coroa";
@@ -3183,10 +3191,10 @@ function startGame(THREE) {
     const gate=new THREE.Mesh(new THREE.BoxGeometry(3.2,4.8,.35),castleDark);gate.position.set(0,2.4,-7.7);chapter12CastleGroup.add(gate);
     const crest=makeResourceLabel("COROA DOS QUATRO VALES","#f5d58b");crest.position.set(0,11.5,-4.2);crest.scale.set(7,.95,1);chapter12CastleGroup.add(crest);
     const banner=makeResourceLabel("CASTELO REAL","#f5d58b");banner.position.set(0,5,-7.95);banner.scale.set(4,.75,1);chapter12CastleGroup.add(banner);
-    chapter12CastleGroup.position.set(42,groundHeight(42,-145),-145);chapter12CastleGroup.visible=missionState.chapter12CastleBuilt;scene.add(chapter12CastleGroup);
+    chapter12CastleGroup.position.set(52,groundHeight(52,-72),-72);chapter12CastleGroup.visible=missionState.chapter12CastleBuilt;scene.add(chapter12CastleGroup);
   }
   chapter12ThreatMarker=new THREE.Group();
-  {const post=new THREE.Mesh(new THREE.CylinderGeometry(.16,.23,1.7,7),new THREE.MeshStandardMaterial({color:0x806b4e}));post.position.y=.85;chapter12ThreatMarker.add(post);const beacon=new THREE.Mesh(new THREE.OctahedronGeometry(.58,0),new THREE.MeshStandardMaterial({color:0xe5bd6c,emissive:0x98651e,emissiveIntensity:1.1}));beacon.position.y=1.95;chapter12ThreatMarker.add(beacon);const label=makeResourceLabel("CARTAS SECRETAS","#f0d39a");label.position.set(0,2.65,0);label.scale.set(3.8,.8,1);chapter12ThreatMarker.add(label);chapter12ThreatMarker.position.set(62,groundHeight(62,-145),-145);chapter12ThreatMarker.visible=missionState.chapter12PeopleSupport&&!missionState.chapter12ThreatInvestigated;scene.add(chapter12ThreatMarker);}
+  {const post=new THREE.Mesh(new THREE.CylinderGeometry(.16,.23,1.7,7),new THREE.MeshStandardMaterial({color:0x806b4e}));post.position.y=.85;chapter12ThreatMarker.add(post);const beacon=new THREE.Mesh(new THREE.OctahedronGeometry(.58,0),new THREE.MeshStandardMaterial({color:0xe5bd6c,emissive:0x98651e,emissiveIntensity:1.1}));beacon.position.y=1.95;chapter12ThreatMarker.add(beacon);const label=makeResourceLabel("CARTAS SECRETAS","#f0d39a");label.position.set(0,2.65,0);label.scale.set(3.8,.8,1);chapter12ThreatMarker.add(label);chapter12ThreatMarker.position.set(75,groundHeight(75,-72),-72);chapter12ThreatMarker.visible=missionState.chapter12PeopleSupport&&!missionState.chapter12ThreatInvestigated;scene.add(chapter12ThreatMarker);}
   chapter11WorkshopsGroup=new THREE.Group();
   {
     const workshopWood=new THREE.MeshStandardMaterial({color:0x795236,roughness:1}),workshopRoof=new THREE.MeshStandardMaterial({color:0x514237,roughness:1}),workshopStone=new THREE.MeshStandardMaterial({color:0x77766b,roughness:1}),workshopCloth=new THREE.MeshStandardMaterial({color:0x9a6245,roughness:1});
