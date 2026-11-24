@@ -174,6 +174,13 @@ function buildShelter(x,z,rotation=0,ghost=false){
  const leftRoof=new THREE.Mesh(new THREE.BoxGeometry(3.65,.2,6.1),roof);leftRoof.position.set(-1.52,4.0,0);leftRoof.rotation.z=-.48;group.add(leftRoof);
  const rightRoof=new THREE.Mesh(new THREE.BoxGeometry(3.65,.2,6.1),roof);rightRoof.position.set(1.52,4.0,0);rightRoof.rotation.z=.48;group.add(rightRoof);
  part(new THREE.BoxGeometry(.18,.28,6.2),darkWood,0,4.83,0);
+ if(ghost){
+  const glow=new THREE.MeshBasicMaterial({color:0xb8ff65,transparent:true,opacity:.96,depthTest:false});
+  const outline=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(7.35,5.35,6.35)),glow);outline.position.set(0,2.55,0);outline.renderOrder=20;group.add(outline);
+  const footprintPoints=[[-3.7,.09,-3.2],[3.7,.09,-3.2],[3.7,.09,3.2],[-3.7,.09,3.2]].map(p=>new THREE.Vector3(...p));
+  const footprint=new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(footprintPoints),glow);footprint.renderOrder=21;group.add(footprint);
+  group.traverse(obj=>{if(obj.isMesh&&obj.material&&obj.material.transparent){obj.material.opacity=.72;obj.material.depthWrite=false;obj.material.emissive=new THREE.Color(0x493817);obj.material.emissiveIntensity=.55;}});
+ }
  group.position.set(x,groundHeight(x,z),z);group.rotation.y=rotation;scene.add(group);return group;
 }
 const placedShelters=[];for(const item of state.shelters){if(Number.isFinite(item.x)&&Number.isFinite(item.z))placedShelters.push(buildShelter(item.x,item.z,item.rotation||0,false));}
