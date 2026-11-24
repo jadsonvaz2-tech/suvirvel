@@ -58,6 +58,11 @@ const collectButton = document.getElementById("collect-button");
 const interactionPrompt = document.getElementById("interaction-prompt");
 const interactionName = document.getElementById("interaction-name");
 const gameToast = document.getElementById("game-toast");
+const awakeningScreen = document.getElementById("awakening-screen");
+const wakeButton = document.getElementById("wake-button");
+const storyObjective = document.getElementById("story-objective");
+const storyObjectiveTitle = document.getElementById("story-objective-title");
+const storyObjectiveText = document.getElementById("story-objective-text");
 const inventoryUI = {
   branches: document.getElementById("branches-count"),
   stones: document.getElementById("stones-count"),
@@ -275,7 +280,7 @@ function startGame(THREE) {
   // O ponto de recursos é ancorado na posição inicial salva do jogador.
   // Assim, a primeira área de coleta aparece perto do personagem mesmo em saves antigos.
   const saved = readSave();
-  const gameTime = { day:saved?.gameTime?.day??1, hour:saved?.gameTime?.hour??8, minute:saved?.gameTime?.minute??0 };
+  const gameTime = { day:saved?.gameTime?.day??1, hour:saved?.gameTime?.hour??6, minute:saved?.gameTime?.minute??15 };
   let fishingLastCatch=Number.isSafeInteger(saved?.fishingSpotState?.lastCatch)?Math.max(0,saved.fishingSpotState.lastCatch):0;
   const cropTypes = {
     wheat:{label:"Trigo",seed:"wheatSeeds",produce:"wheat",growth:360,hunger:20},
@@ -318,7 +323,7 @@ function startGame(THREE) {
   let nextChildName=typeof saved?.nextChildName==="string"?saved.nextChildName.slice(0,24):"";
   function readMissionProgress(){
     try{
-      const raw=localStorage.getItem("legado-do-vale-missoes-v2");
+      const raw=localStorage.getItem("legado-do-vale-missoes-v3");
       const data=raw?JSON.parse(raw):{};
       return data&&typeof data==="object"?data:{};
     }catch{return {};}
@@ -426,9 +431,9 @@ function startGame(THREE) {
   }
   updateGameClockUI();
   const resourceBase = saved?.resourceBase ?? {
-    x: saved?.x ?? 0,
-    z: saved?.z ?? 35,
-    yaw: saved?.yaw ?? 0
+    x: 0,
+    z: 35,
+    yaw: 0
   };
   const forwardX = -Math.sin(resourceBase.yaw);
   const forwardZ = -Math.cos(resourceBase.yaw);
@@ -1395,7 +1400,7 @@ function startGame(THREE) {
       if(missionState.chapter1RewardClaimed){showToast("A recompensa deste capítulo já foi recebida.");return;}
       if(!ready){showToast("Ainda faltam objetivos para concluir o capítulo.");return;}
       missionState.chapter1RewardClaimed=true;
-      try{localStorage.setItem("legado-do-vale-missoes-v2",JSON.stringify(missionState));}catch{}
+      try{localStorage.setItem("legado-do-vale-missoes-v3",JSON.stringify(missionState));}catch{}
       coins=Math.min(999999,coins+25);
       tradeReputation=Math.min(9999,tradeReputation+2);
       settlementReputation.vale=Math.min(9999,(settlementReputation.vale||0)+2);
@@ -2050,11 +2055,16 @@ function startGame(THREE) {
 
   // Câmera em primeira pessoa e braços provisórios do personagem.
   const player = {
-    x: saved?.x ?? 0,
-    z: saved?.z ?? 35,
-    yaw: saved?.yaw ?? 0,
+    x: saved?.x ?? -60,
+    z: saved?.z ?? 10,
+    yaw: saved?.yaw ?? 0.2,
     pitch: saved?.pitch ?? -0.04
   };
+  let isAwakening = saved?.awakeningComplete !== true;
+  let wakeTransition = isAwakening ? 0 : 1;
+  let wakeStartPosition = null;
+  let wakeStartQuaternion = null;
+  let villageDiscovered = saved?.villageDiscovered === true;
   const survival = {
     health: saved?.health ?? 100,
     hunger: saved?.hunger ?? 100,
@@ -2285,18 +2295,78 @@ function startGame(THREE) {
   camera.add(armGroup);
   scene.add(camera);
 
+  let proneSurvivor = null;
+  if (isAwakening) {
+    proneSurvivor = new THREE.Group();
+    const wornCloth = new THREE.MeshStandardMaterial({color:0x51483d,roughness:1});
+    const darkCloth = new THREE.MeshStandardMaterial({color:0x343a35,roughness:1});
+    const skin = new THREE.MeshStandardMaterial({color:0xb98561,roughness:1});
+    const hair = new THREE.MeshStandardMaterial({color:0x30271f,roughness:1});
+    const torso = new THREE.Mesh(new THREE.BoxGeometry(.72,.38,1.08),wornCloth);torso.position.set(0,.52,0);proneSurvivor.add(torso);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(.25,10,8),skin);head.position.set(0,.62,-.72);proneSurvivor.add(head);
+    const hairCap = new THREE.Mesh(new THREE.SphereGeometry(.255,9,6),hair);hairCap.scale.set(1,.48,1);hairCap.position.set(0,.78,-.75);proneSurvivor.add(hairCap);
+    for (const side of [-1,1]) {
+      const arm = new THREE.Mesh(new THREE.BoxGeometry(.19,.2,.78),wornCloth);arm.position.set(side*.43,.43,-.08);arm.rotation.y=side*.12;proneSurvivor.add(arm);
+      const hand = new THREE.Mesh(new THREE.BoxGeometry(.18,.13,.2),skin);hand.position.set(side*.44,.38,-.48);proneSurvivor.add(hand);
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(.25,.24,.82),darkCloth);leg.position.set(side*.19,.31,.82);proneSurvivor.add(leg);
+      const boot = new THREE.Mesh(new THREE.BoxGeometry(.27,.18,.3),wornCloth);boot.position.set(side*.19,.25,1.34);proneSurvivor.add(boot);
+    }
+    proneSurvivor.position.set(player.x,groundHeight(player.x,player.z),player.z);
+    proneSurvivor.rotation.y=.18;
+    scene.add(proneSurvivor);
+  }
+
   function applyCamera() {
-    camera.position.set(player.x, groundHeight(player.x, player.z) + playerHeight, player.z);
+    const groundY = groundHeight(player.x, player.z);
+    if (isAwakening) {
+      camera.position.set(player.x+3.4,groundY+3.15,player.z+5.1);
+      camera.lookAt(player.x,groundY+.48,player.z);
+      return;
+    }
+    const targetPosition = new THREE.Vector3(player.x,groundY+playerHeight,player.z);
+    if (wakeTransition < 1 && wakeStartPosition && wakeStartQuaternion) {
+      wakeTransition = Math.min(1,wakeTransition+.035);
+      camera.position.lerpVectors(wakeStartPosition,targetPosition,wakeTransition);
+      const targetQuaternion = new THREE.Quaternion().setFromEuler(new THREE.Euler(player.pitch,player.yaw,0,"YXZ"));
+      camera.quaternion.slerpQuaternions(wakeStartQuaternion,targetQuaternion,wakeTransition);
+      return;
+    }
+    camera.position.copy(targetPosition);
     camera.rotation.order = "YXZ";
     camera.rotation.y = player.yaw;
     camera.rotation.x = player.pitch;
   }
+  function renderStoryObjective() {
+    if (!storyObjectiveTitle || !storyObjectiveText) return;
+    storyObjectiveTitle.textContent = villageDiscovered ? "VOCÊ ENCONTROU A VILA" : "ENCONTRE AJUDA";
+    storyObjectiveText.textContent = villageDiscovered
+      ? "Procure a anciã Alina e conte que sua aldeia foi destruída." 
+      : "Atravesse o rio pela ponte de madeira e siga até a Vila Vizinha. Procure a anciã Alina.";
+  }
+  renderStoryObjective();
+  if (storyObjective) storyObjective.classList.toggle("hidden",isAwakening);
+  if (awakeningScreen) awakeningScreen.classList.toggle("hidden",!isAwakening);
+  if (wakeButton) wakeButton.addEventListener("click",()=>{
+    if (!isAwakening) return;
+    isAwakening = false;
+    wakeTransition = 0;
+    wakeStartPosition = camera.position.clone();
+    wakeStartQuaternion = camera.quaternion.clone();
+    if (proneSurvivor) {scene.remove(proneSurvivor);proneSurvivor=null;}
+    awakeningScreen?.classList.add("hidden");
+    storyObjective?.classList.remove("hidden");
+    renderStoryObjective();
+    updateSurvivalUI(true);
+    showToast("Você conseguiu se levantar. Está ferido e sozinho. Precisa encontrar ajuda.");
+    saveProgress(true);
+  });
   applyCamera();
+  createWildlife();
   createWildlife();
 
   function readSave() {
     try {
-      const value = localStorage.getItem("legado-do-vale-prototipo-v2");
+      const value = localStorage.getItem("legado-do-vale-prototipo-v3");
       if (!value) return null;
       const saved = JSON.parse(value);
       if (!saved || !Number.isFinite(saved.x) || !Number.isFinite(saved.z)) return null;
@@ -2308,6 +2378,8 @@ function startGame(THREE) {
         z: saved.z,
         yaw: Number.isFinite(saved.yaw) ? saved.yaw : 0,
         pitch: Number.isFinite(saved.pitch) ? THREE.MathUtils.clamp(saved.pitch, -1.15, 1.15) : -0.04,
+        awakeningComplete: saved.awakeningComplete === true,
+        villageDiscovered: saved.villageDiscovered === true,
         coins: Number.isSafeInteger(saved.coins)?THREE.MathUtils.clamp(saved.coins,0,999999):30,
         tradeReputation:Number.isSafeInteger(saved.tradeReputation)?THREE.MathUtils.clamp(saved.tradeReputation,0,9999):0,
         settlementReputation:{vale:Number.isSafeInteger(saved.settlementReputation?.vale)?THREE.MathUtils.clamp(saved.settlementReputation.vale,0,9999):(Number.isSafeInteger(saved.tradeReputation)?THREE.MathUtils.clamp(saved.tradeReputation,0,9999):0)},
@@ -2400,8 +2472,10 @@ function startGame(THREE) {
     if (!force && now - lastSave < 1500) return;
     lastSave = now;
     try {
-      localStorage.setItem("legado-do-vale-prototipo-v2", JSON.stringify({
+      localStorage.setItem("legado-do-vale-prototipo-v3", JSON.stringify({
         x: player.x, z: player.z, yaw: player.yaw, pitch: player.pitch,
+        awakeningComplete: !isAwakening,
+        villageDiscovered,
         seedStarterPackClaimed: true,
         coins,
         tradeReputation,
@@ -2439,7 +2513,7 @@ function startGame(THREE) {
         nextChildName,
         structurePositions:structurePositionsForSave()
       }));
-      try{localStorage.setItem("legado-do-vale-missoes-v2",JSON.stringify(missionState));}catch{}
+      try{localStorage.setItem("legado-do-vale-missoes-v3",JSON.stringify(missionState));}catch{}
     } catch { /* O jogo continua mesmo sem armazenamento disponível. */ }
   }
 
@@ -2532,6 +2606,7 @@ function startGame(THREE) {
 
   window.addEventListener("keydown", (event) => {
     const key = event.key.toLowerCase();
+    if (isAwakening || wakeTransition < 1) {event.preventDefault();return;}
     if (["w", "a", "s", "d", "arrowup", "arrowdown", "arrowleft", "arrowright", " ", "e", "i"].includes(key)) event.preventDefault();
     if (!event.repeat && key === "e") { if (buildMode) confirmBuilding(); else performCurrentInteraction(); }
     if (!event.repeat && key === "i") toggleInventory();
@@ -2696,6 +2771,7 @@ function startGame(THREE) {
   merchantClose.addEventListener("click",closeMerchantPanel);
 
   function updateResourceTarget() {
+    if (isAwakening || wakeTransition < 1) { interactionPrompt.classList.add("hidden"); collectButton.classList.add("hidden"); return; }
     if (buildMode) { interactionPrompt.classList.add("hidden"); collectButton.classList.add("hidden"); return; }
     const facingX = -Math.sin(player.yaw);
     const facingZ = -Math.cos(player.yaw);
@@ -3340,6 +3416,15 @@ function startGame(THREE) {
   const chapter2Messenger=new THREE.Group();
   {const robe=new THREE.Mesh(new THREE.CylinderGeometry(.32,.42,1.2,8),new THREE.MeshStandardMaterial({color:0x52677a,roughness:1}));robe.position.y=.82;chapter2Messenger.add(robe);const head=new THREE.Mesh(new THREE.SphereGeometry(.24,10,8),new THREE.MeshStandardMaterial({color:0xd6ad86}));head.position.y=1.62;chapter2Messenger.add(head);const hood=new THREE.Mesh(new THREE.ConeGeometry(.3,.38,8),new THREE.MeshStandardMaterial({color:0x9a7848}));hood.position.y=1.88;chapter2Messenger.add(hood);chapter2Messenger.position.set(7,groundHeight(7,29),29);}
   chapter2DiscoveryDefs.forEach((place,index)=>{const group=new THREE.Group();const stem=new THREE.Mesh(new THREE.CylinderGeometry(.12,.18,1.5,7),new THREE.MeshStandardMaterial({color:0x806332,roughness:1}));stem.position.y=.75;group.add(stem);const beacon=new THREE.Mesh(new THREE.OctahedronGeometry(.48,0),new THREE.MeshStandardMaterial({color:0xf3c66e,emissive:0x9b6422,emissiveIntensity:1.1,roughness:.35}));beacon.position.y=1.8;group.add(beacon);group.position.set(place.x,groundHeight(place.x,place.z),place.z);group.userData.placeId=place.id;chapter2Markers.push(group);});
+  function updateOpeningObjective(){
+    if(isAwakening||wakeTransition<1||villageDiscovered)return;
+    if(Math.hypot(player.x-34,player.z+82)<=18){
+      villageDiscovered=true;
+      renderStoryObjective();
+      saveProgress(true);
+      showToast("Você encontrou a Vila Vizinha. Procure a anciã Alina.");
+    }
+  }
   function updateChapter7Exploration(){
     if(!missionState.chapter7Accepted||missionState.chapter7TrailFound)return;
     if(Math.hypot(player.x-58,player.z-25)<=6.2){
@@ -3369,11 +3454,11 @@ function startGame(THREE) {
     updateChapter2Exploration();
     updateChapter3Exploration();
     updateChapter7Exploration();
+    updateOpeningObjective();
     if(villagers.length)updateVillagers(delta);
     if(familyActors.length)updateFamilyActors(delta);
     if(kitchenFire){kitchenFire.time+=delta;const flicker=1+Math.sin(kitchenFire.time*13)*0.12+Math.sin(kitchenFire.time*21)*0.06;kitchenFire.flame.scale.set(1, flicker, 1);kitchenFire.flame.rotation.y=kitchenFire.time*1.8;kitchenFire.flameCore.scale.y=0.9+Math.sin(kitchenFire.time*17)*0.12;kitchenFire.light.intensity=1.25+Math.sin(kitchenFire.time*15)*0.22;}
-    gameTimeAccumulator+=delta;
-    while(gameTimeAccumulator>=5){gameTimeAccumulator-=5;advanceGameMinutes(1);}
+    if(!isAwakening&&wakeTransition>=1){gameTimeAccumulator+=delta;while(gameTimeAccumulator>=5){gameTimeAccumulator-=5;advanceGameMinutes(1);}}
     let forward = 0;
     let strafe = 0;
     if (keys.has("w") || keys.has("arrowup")) forward += 1;
@@ -3391,7 +3476,7 @@ function startGame(THREE) {
     const cos = Math.cos(player.yaw);
     const moveX = (-sin * forward + cos * strafe) * speed * delta;
     const moveZ = (-cos * forward - sin * strafe) * speed * delta;
-    if (sleepPanel.classList.contains("hidden") && farmPanel.classList.contains("hidden") && animalPanel.classList.contains("hidden") && kitchenPanel.classList.contains("hidden") && loomPanel.classList.contains("hidden") && tanneryPanel.classList.contains("hidden") && fishingPanel.classList.contains("hidden") && merchantPanel.classList.contains("hidden") && villagerPanel.classList.contains("hidden") && villagersDirectory.classList.contains("hidden") && (moveX || moveZ)) {
+    if (!isAwakening && wakeTransition>=1 && sleepPanel.classList.contains("hidden") && farmPanel.classList.contains("hidden") && animalPanel.classList.contains("hidden") && kitchenPanel.classList.contains("hidden") && loomPanel.classList.contains("hidden") && tanneryPanel.classList.contains("hidden") && fishingPanel.classList.contains("hidden") && merchantPanel.classList.contains("hidden") && villagerPanel.classList.contains("hidden") && villagersDirectory.classList.contains("hidden") && (moveX || moveZ)) {
       const nextX = player.x + moveX;
       const nextZ = player.z + moveZ;
       if (!isBlocked(nextX, player.z)) player.x = nextX;
@@ -3399,16 +3484,15 @@ function startGame(THREE) {
     }
 
     // Necessidades básicas: o tempo afeta fome e sede; movimento exige vigor.
-    survival.hunger = Math.max(0, survival.hunger - 0.075 * delta);
-    survival.thirst = Math.max(0, survival.thirst - 0.14 * delta);
-    const isMoving = hasMoveInput;
-    if (isMoving && running) {
-      survival.energy = Math.max(0, survival.energy - 6.5 * delta);
-    } else if (!isMoving) {
-      survival.energy = Math.min(100, survival.energy + 7.5 * delta);
+    if(!isAwakening&&wakeTransition>=1){
+      survival.hunger = Math.max(0, survival.hunger - 0.075 * delta);
+      survival.thirst = Math.max(0, survival.thirst - 0.14 * delta);
+      const isMoving = hasMoveInput;
+      if (isMoving && running) survival.energy = Math.max(0, survival.energy - 6.5 * delta);
+      else if (!isMoving) survival.energy = Math.min(100, survival.energy + 7.5 * delta);
     }
 
-    if (survival.hunger <= 0 || survival.thirst <= 0) {
+    if (!isAwakening && wakeTransition>=1 && (survival.hunger <= 0 || survival.thirst <= 0)) {
       const unmetNeeds = Number(survival.hunger <= 0) + Number(survival.thirst <= 0);
       survival.health = Math.max(0, survival.health - (1.15 * unmetNeeds) * delta);
     }
