@@ -284,6 +284,13 @@ function startGame(THREE) {
   let landClaimed=saved?.landClaimed===true;
   let landSurveyMode=saved?.landSurveyMode===true&&!landClaimed;
   let landPosition=landClaimed&&Number.isFinite(saved?.landX)&&Number.isFinite(saved?.landZ)?{x:saved.landX,z:saved.landZ}:null;
+  const propertyMarker=new THREE.Group();
+  const markerPost=new THREE.Mesh(new THREE.CylinderGeometry(0.09,0.13,2.65,7),new THREE.MeshStandardMaterial({color:0x79502f,roughness:1}));markerPost.position.y=1.32;propertyMarker.add(markerPost);
+  const markerFlag=new THREE.Mesh(new THREE.BoxGeometry(0.92,0.48,0.07),new THREE.MeshStandardMaterial({color:0xb68a42,roughness:0.9,side:THREE.DoubleSide}));markerFlag.position.set(0,2.25,0.04);propertyMarker.add(markerFlag);
+  const markerCap=new THREE.Mesh(new THREE.ConeGeometry(0.18,0.34,5),new THREE.MeshStandardMaterial({color:0x493323}));markerCap.position.y=2.82;propertyMarker.add(markerCap);
+  scene.add(propertyMarker);
+  function updatePropertyMarker(){if(!landPosition){propertyMarker.visible=false;return;}propertyMarker.visible=true;propertyMarker.position.set(landPosition.x,groundHeight(landPosition.x,landPosition.z),landPosition.z);}
+  updatePropertyMarker();
   let landTaxDebt=Number.isSafeInteger(saved?.landTaxDebt)?Math.max(0,saved.landTaxDebt):0;
   let nextLandTaxDay=Number.isSafeInteger(saved?.nextLandTaxDay)?Math.max(1,saved.nextLandTaxDay):365;
   const gameTime = { day:saved?.gameTime?.day??1, hour:saved?.gameTime?.hour??6, minute:saved?.gameTime?.minute??15 };
@@ -2129,7 +2136,8 @@ function startGame(THREE) {
     seedStarterPackClaimed = true;
   }
   const clothing = {tunic:saved?.clothing?.tunic===true,trousers:saved?.clothing?.trousers===true,boots:saved?.clothing?.boots===true};
-  const tools = { axe: saved?.tools?.axe === true, bow:saved?.tools?.bow===true, fishingRod:saved?.tools?.fishingRod===true, leatherBackpack:saved?.tools?.leatherBackpack===true };
+  const tools = { axe: saved?.tools?.axe === true, pickaxe:saved?.tools?.pickaxe===true, torch:saved?.tools?.torch===true, bow:saved?.tools?.bow===true, fishingRod:saved?.tools?.fishingRod===true, leatherBackpack:saved?.tools?.leatherBackpack===true };
+  const placedCampfires=Array.isArray(saved?.placedCampfires)?saved.placedCampfires.filter(p=>Number.isFinite(p?.x)&&Number.isFinite(p?.z)).slice(0,40).map(p=>({x:p.x,z:p.z})):[];
   const storage = { branches:saved?.storage?.branches??0, stones:saved?.storage?.stones??0, berries:saved?.storage?.berries??0, wood:saved?.storage?.wood??0 };
   let canUseCabinDoor=false, canUseStorageChest=false, canUseBed=false;
   let canUseFishingSpot=false,currentFishingSpot=null,fishingActive=false,fishingFinishAt=0,fishingAnimation=0;
@@ -2185,6 +2193,10 @@ function startGame(THREE) {
     eatBerryButton.disabled = !canEatBerry;
     workbenchStatus.textContent = tools.axe ? "Machado fabricado" : "Machado ainda não fabricado";
     buildingMaterials.textContent = "Madeira: " + inventory.wood + "/12 · Galhos: " + inventory.branches + "/8";
+    const pickaxeButton=document.getElementById("craft-pickaxe-button"),torchButton=document.getElementById("craft-torch-button"),campfireButton=document.getElementById("craft-campfire-button");
+    if(pickaxeButton){pickaxeButton.disabled=tools.pickaxe||inventory.branches<3||inventory.stones<3;pickaxeButton.textContent=tools.pickaxe?"PICARETA FABRICADA":"FABRICAR PICARETA · 3 GALHOS + 3 PEDRAS";}
+    if(torchButton){torchButton.disabled=tools.torch||inventory.branches<2||inventory.wood<1;torchButton.textContent=tools.torch?"TOCHA FABRICADA":"FABRICAR TOCHA · 2 GALHOS + 1 MADEIRA";}
+    if(campfireButton){campfireButton.disabled=inventory.branches<5||inventory.stones<3;campfireButton.textContent="MONTAR FOGUEIRA · 5 GALHOS + 3 PEDRAS";}
     buildingConfirm.disabled = !buildMode || !buildPreviewValid || Boolean(builtCabin) || inventory.wood < 12 || inventory.branches < 8;
     craftAxeButton.disabled = tools.axe || inventory.branches < 3 || inventory.stones < 2;
     craftAxeButton.textContent = tools.axe ? "MACHADO FABRICADO" : "FABRICAR MACHADO";
@@ -2273,6 +2285,10 @@ function startGame(THREE) {
     showToast("Machado fabricado! Materiais guardados na mochila foram usados.");
   }
   craftAxeButton.addEventListener("click", craftAxe);
+  const manualRecipeButtons=document.createElement("div");manualRecipeButtons.className="manual-recipe-buttons";manualRecipeButtons.innerHTML='<button type="button" id="craft-pickaxe-button" class="craft-action-button">FABRICAR PICARETA · 3 GALHOS + 3 PEDRAS</button><button type="button" id="craft-torch-button" class="craft-action-button">FABRICAR TOCHA · 2 GALHOS + 1 MADEIRA</button><button type="button" id="craft-campfire-button" class="craft-action-button">MONTAR FOGUEIRA · 5 GALHOS + 3 PEDRAS</button><p class="inventory-note">Fabricação manual: reúna os materiais e produza os itens sem usar uma bancada.</p>';craftingPanel.appendChild(manualRecipeButtons);
+  document.getElementById("craft-pickaxe-button").addEventListener("click",()=>{if(tools.pickaxe||inventory.branches<3||inventory.stones<3)return;inventory.branches-=3;inventory.stones-=3;tools.pickaxe=true;updatePickaxeVisual();updateInventoryUI();saveProgress(true);showToast("Picareta fabricada!");});
+  document.getElementById("craft-torch-button").addEventListener("click",()=>{if(tools.torch||inventory.branches<2||inventory.wood<1)return;inventory.branches-=2;inventory.wood--;tools.torch=true;updateTorchVisual();updateInventoryUI();saveProgress(true);showToast("Tocha fabricada! Ela ilumina o caminho à sua frente.");});
+  document.getElementById("craft-campfire-button").addEventListener("click",()=>{if(inventory.branches<5||inventory.stones<3)return;if(placedCampfires.length>=40){showToast("Você já montou muitas fogueiras.");return;}inventory.branches-=5;inventory.stones-=3;placedCampfires.push({x:player.x-Math.sin(player.yaw)*2.4,z:player.z-Math.cos(player.yaw)*2.4});createCampfire(placedCampfires[placedCampfires.length-1]);updateInventoryUI();saveProgress(true);showToast("Fogueira montada no local à sua frente.");});
   craftingClose.addEventListener("click", closeCrafting);
   function toggleInventory(force) {
     if(!openingManagementUnlocked)return;
@@ -2316,8 +2332,12 @@ function startGame(THREE) {
   axeModel.visible = tools.axe;
   armGroup.add(axeModel);
   function updateAxeVisual() { axeModel.visible = tools.axe; }
+  const pickaxeModel=new THREE.Group();const pickaxeHandle=new THREE.Mesh(new THREE.CylinderGeometry(0.035,0.05,0.92,7),new THREE.MeshStandardMaterial({color:0x80552f}));pickaxeHandle.position.set(0.48,-0.12,-0.76);pickaxeHandle.rotation.z=-0.18;const pickaxeHead=new THREE.Mesh(new THREE.BoxGeometry(0.62,0.12,0.13),new THREE.MeshStandardMaterial({color:0x899397,metalness:0.25,roughness:0.7}));pickaxeHead.position.set(0.5,0.3,-0.76);pickaxeModel.add(pickaxeHandle,pickaxeHead);pickaxeModel.visible=tools.pickaxe;armGroup.add(pickaxeModel);function updatePickaxeVisual(){pickaxeModel.visible=tools.pickaxe;}
+  const torchModel=new THREE.Group();const torchStick=new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.07,0.72,7),new THREE.MeshStandardMaterial({color:0x704628}));torchStick.position.set(0.42,-0.2,-0.72);torchModel.add(torchStick);const torchFlame=new THREE.Mesh(new THREE.ConeGeometry(0.13,0.38,7),new THREE.MeshBasicMaterial({color:0xffa52f}));torchFlame.position.set(0.42,0.3,-0.72);torchModel.add(torchFlame);const torchLight=new THREE.PointLight(0xffa64a,2.2,19);torchLight.position.set(0.42,0.35,-0.9);torchModel.add(torchLight);torchModel.visible=tools.torch;armGroup.add(torchModel);function updateTorchVisual(){torchModel.visible=tools.torch;}
   camera.add(armGroup);
   armGroup.visible = !isAwakening;
+  function createCampfire(point){const g=new THREE.Group();const woodMat=new THREE.MeshStandardMaterial({color:0x674329,roughness:1});for(let i=0;i<3;i++){const log=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.14,1.35,7),woodMat);log.rotation.z=Math.PI/2;log.rotation.y=i*Math.PI/3;log.position.y=0.16;g.add(log);}const stonesMat=new THREE.MeshStandardMaterial({color:0x77766c,roughness:1});for(let i=0;i<8;i++){const a=i*Math.PI/4;const stone=new THREE.Mesh(new THREE.DodecahedronGeometry(0.22,0),stonesMat);stone.position.set(Math.cos(a)*0.68,0.12,Math.sin(a)*0.68);stone.scale.set(1,0.65,0.9);g.add(stone);}const flame=new THREE.Mesh(new THREE.ConeGeometry(0.28,0.85,7),new THREE.MeshBasicMaterial({color:0xff8b24}));flame.position.y=0.62;g.add(flame);const light=new THREE.PointLight(0xff9a3d,1.6,12);light.position.y=1.1;g.add(light);g.position.set(point.x,groundHeight(point.x,point.z),point.z);scene.add(g);return g;}
+  for(const campfire of placedCampfires)createCampfire(campfire);
   scene.add(camera);
 
   let proneSurvivor = null;
@@ -2381,7 +2401,7 @@ function startGame(THREE) {
     if(!landSurveyMode)return;
     const reason=landClaimPlacementReason(player.x,player.z,player.yaw);
     if(reason){showToast(reason);updateResourceTarget();return;}
-    landPosition={x:Math.round(player.x*2)/2,z:Math.round(player.z*2)/2};landClaimed=true;landSurveyMode=false;openingManagementUnlocked=true;
+    landPosition={x:Math.round(player.x*2)/2,z:Math.round(player.z*2)/2};landClaimed=true;landSurveyMode=false;openingManagementUnlocked=true;updatePropertyMarker();
     document.body.classList.add("land-management-unlocked");nextLandTaxDay=gameTime.day+365;missionState.chapter2LandClaimed=true;
     renderStoryObjective();saveProgress(true);updateResourceTarget();
     showToast("Terreno registrado! Agora reúna os materiais e construa seu primeiro abrigo. A Coroa cobrará 30 moedas por ano.");
@@ -2543,7 +2563,7 @@ function startGame(THREE) {
         awakeningComplete: !isAwakening,
         villageDiscovered,
         elderReportDelivered,
-        landClaimed,landSurveyMode,landX:landPosition?.x??null,landZ:landPosition?.z??null,landTaxDebt,nextLandTaxDay,
+        landClaimed,landSurveyMode,landX:landPosition?.x??null,landZ:landPosition?.z??null,landTaxDebt,nextLandTaxDay,placedCampfires:placedCampfires.map(p=>({...p})),
         seedStarterPackClaimed: true,
         coins,
         tradeReputation,
