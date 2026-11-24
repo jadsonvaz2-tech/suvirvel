@@ -2285,6 +2285,9 @@ function startGame(THREE) {
     showToast("Machado fabricado! Materiais guardados na mochila foram usados.");
   }
   craftAxeButton.addEventListener("click", craftAxe);
+  const manualCraftToggle=document.createElement("button");manualCraftToggle.type="button";manualCraftToggle.textContent="FABRICAÇÃO MANUAL";manualCraftToggle.setAttribute("aria-label","Abrir fabricação manual");Object.assign(manualCraftToggle.style,{position:"fixed",right:"14px",bottom:"104px",zIndex:"45",padding:"12px 15px",border:"1px solid #b8955d",borderRadius:"8px",background:"#33271c",color:"#f5e6c7",fontWeight:"800",fontSize:"12px",letterSpacing:".04em",boxShadow:"0 3px 12px #0008",display:landClaimed?"block":"none"});game.appendChild(manualCraftToggle);manualCraftToggle.addEventListener("click",openCrafting);
+  function updateManualCraftAvailability(){manualCraftToggle.style.display=landClaimed?"block":"none";}
+  updateManualCraftAvailability();
   const manualRecipeButtons=document.createElement("div");manualRecipeButtons.className="manual-recipe-buttons";manualRecipeButtons.innerHTML='<button type="button" id="craft-pickaxe-button" class="craft-action-button">FABRICAR PICARETA · 3 GALHOS + 3 PEDRAS</button><button type="button" id="craft-torch-button" class="craft-action-button">FABRICAR TOCHA · 2 GALHOS + 1 MADEIRA</button><button type="button" id="craft-campfire-button" class="craft-action-button">MONTAR FOGUEIRA · 5 GALHOS + 3 PEDRAS</button><p class="inventory-note">Fabricação manual: reúna os materiais e produza os itens sem usar uma bancada.</p>';craftingPanel.appendChild(manualRecipeButtons);
   document.getElementById("craft-pickaxe-button").addEventListener("click",()=>{if(tools.pickaxe||inventory.branches<3||inventory.stones<3)return;inventory.branches-=3;inventory.stones-=3;tools.pickaxe=true;updatePickaxeVisual();updateInventoryUI();saveProgress(true);showToast("Picareta fabricada!");});
   document.getElementById("craft-torch-button").addEventListener("click",()=>{if(tools.torch||inventory.branches<2||inventory.wood<1)return;inventory.branches-=2;inventory.wood--;tools.torch=true;updateTorchVisual();updateInventoryUI();saveProgress(true);showToast("Tocha fabricada! Ela ilumina o caminho à sua frente.");});
@@ -2401,7 +2404,7 @@ function startGame(THREE) {
     if(!landSurveyMode)return;
     const reason=landClaimPlacementReason(player.x,player.z,player.yaw);
     if(reason){showToast(reason);updateResourceTarget();return;}
-    landPosition={x:Math.round(player.x*2)/2,z:Math.round(player.z*2)/2};landClaimed=true;landSurveyMode=false;openingManagementUnlocked=true;updatePropertyMarker();
+    landPosition={x:Math.round(player.x*2)/2,z:Math.round(player.z*2)/2};landClaimed=true;landSurveyMode=false;openingManagementUnlocked=true;updatePropertyMarker();updateManualCraftAvailability();
     document.body.classList.add("land-management-unlocked");nextLandTaxDay=gameTime.day+365;missionState.chapter2LandClaimed=true;
     renderStoryObjective();saveProgress(true);updateResourceTarget();
     showToast("Terreno registrado! Agora reúna os materiais e construa seu primeiro abrigo. A Coroa cobrará 30 moedas por ano.");
