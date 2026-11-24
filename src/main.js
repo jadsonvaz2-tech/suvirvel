@@ -1928,11 +1928,11 @@ function startGame(THREE) {
     if(!buildMode||!buildPreview||!buildSelectedId){buildingConfirm.disabled=true;return;}
     const fx=-Math.sin(player.yaw),fz=-Math.cos(player.yaw),x=Math.round((player.x+fx*8.2)*2)/2,z=Math.round((player.z+fz*8.2)*2)/2,yaw=player.yaw+Math.PI+buildRotation;
     buildPreview.position.set(x,groundHeight(x,z),z);buildPreview.rotation.y=yaw;
-    buildPreviewReason=buildSelectedId==="cabin"?cabinFootprintValid(x,z,yaw):buildSelectedId==="village-house"?villageHousePlacementValid(x,z,yaw):structurePlacementValid(x,z,buildSelectedItem);
+    buildPreviewReason=buildSelectedId==="cabin"?cabinFootprintValid(x,z,yaw):buildSelectedId==="village-house"?villageHousePlacementValid(x,z,yaw):buildSelectedId==="campfire"?(landClaimed&&landPosition&&Math.hypot(x-landPosition.x,z-landPosition.z)>34?"Coloque a fogueira dentro dos limites da sua propriedade.":structurePlacementValid(x,z,{id:"campfire-placement",radius:1.25})):structurePlacementValid(x,z,buildSelectedItem);
     buildPreviewValid=!buildPreviewReason;setBuildPreviewAppearance(buildPreviewValid);
     buildingStatus.textContent=buildPreviewValid?"Local adequado · confirme a posição":buildPreviewReason;buildingStatus.classList.toggle("invalid",!buildPreviewValid);
-    const cost=buildSelectedId==="cabin"?[12,8]:buildSelectedId==="village-house"?[20,12]:[0,0];
-    buildingConfirm.disabled=!buildPreviewValid||(cost[0]>0&&(inventory.wood<cost[0]||inventory.branches<cost[1]))||(buildSelectedId==="cabin"&&Boolean(builtCabin));
+    const cost=buildSelectedId==="cabin"?[12,8]:buildSelectedId==="village-house"?[20,12]:buildSelectedId==="campfire"?[1,5,3]:[0,0];
+    buildingConfirm.disabled=!buildPreviewValid||(buildSelectedId==="campfire"&&(inventory.wood<cost[0]||inventory.branches<cost[1]||inventory.stones<cost[2]))||(cost.length===2&&cost[0]>0&&(inventory.wood<cost[0]||inventory.branches<cost[1]))||(buildSelectedId==="cabin"&&Boolean(builtCabin));
   }
   function startBuilding(){
     if(!openingManagementUnlocked)return;
@@ -1945,6 +1945,8 @@ function startGame(THREE) {
     buildMode=false; buildingPanel.classList.add("hidden");
     if (buildPreview) { scene.remove(buildPreview); buildPreview=null; }
     buildPreviewValid=false;buildSelectedId=null;buildSelectedItem=null;
+    if(buildingOptions){buildingOptions.style.display="";buildingOptions.innerHTML="";}
+    buildingPanel.querySelector(".eyebrow").textContent="CONSTRUÇÃO";buildingPanel.querySelector("header strong").textContent="PRIMEIRA CABANA";buildingPanel.querySelector(".building-description").textContent="Escolha uma estrutura e mova-se para posicionar a prévia. Gire com R ou pelo botão.";buildingConfirm.textContent="CONSTRUIR";buildingRotate.textContent="GIRAR 45°";
   }
   function rotateBuilding() {
     if (!buildMode) return;
@@ -1953,6 +1955,13 @@ function startGame(THREE) {
   function confirmBuilding(){
     if(!buildMode||!buildSelectedId)return;updateBuildPreview();if(!buildPreviewValid){showToast(buildPreviewReason);return;}
     const position=buildPreview.position,yaw=buildPreview.rotation.y;
+    if(buildSelectedId==="campfire"){
+      if(inventory.wood<1||inventory.branches<5||inventory.stones<3){showToast("Faltam materiais: 1 madeira, 5 galhos e 3 pedras.");updateInventoryUI();return;}
+      if(placedCampfires.length>=40){showToast("Você já montou muitas fogueiras.");return;}
+      inventory.wood--;inventory.branches-=5;inventory.stones-=3;
+      const campfirePoint={x:position.x,z:position.z,yaw};placedCampfires.push(campfirePoint);createCampfire(campfirePoint);
+      stopBuilding();updateInventoryUI();saveProgress(true);showToast("Fogueira construída no local escolhido!");return;
+    }
     if(buildSelectedId==="cabin"){
       if(builtCabin)return;if(inventory.wood<12||inventory.branches<8){showToast("Faltam materiais: 12 madeiras e 8 galhos.");updateInventoryUI();return;}
       inventory.wood-=12;inventory.branches-=8;builtCabin={x:position.x,z:position.z,yaw};placeCabin();
@@ -2137,7 +2146,7 @@ function startGame(THREE) {
   }
   const clothing = {tunic:saved?.clothing?.tunic===true,trousers:saved?.clothing?.trousers===true,boots:saved?.clothing?.boots===true};
   const tools = { axe: saved?.tools?.axe === true, pickaxe:saved?.tools?.pickaxe===true, torch:saved?.tools?.torch===true, bow:saved?.tools?.bow===true, fishingRod:saved?.tools?.fishingRod===true, leatherBackpack:saved?.tools?.leatherBackpack===true };
-  const placedCampfires=Array.isArray(saved?.placedCampfires)?saved.placedCampfires.filter(p=>Number.isFinite(p?.x)&&Number.isFinite(p?.z)).slice(0,40).map(p=>({x:p.x,z:p.z})):[];
+  const placedCampfires=Array.isArray(saved?.placedCampfires)?saved.placedCampfires.filter(p=>Number.isFinite(p?.x)&&Number.isFinite(p?.z)).slice(0,40).map(p=>({x:p.x,z:p.z,yaw:Number.isFinite(p.yaw)?p.yaw:0})):[];
   const storage = { branches:saved?.storage?.branches??0, stones:saved?.storage?.stones??0, berries:saved?.storage?.berries??0, wood:saved?.storage?.wood??0 };
   let canUseCabinDoor=false, canUseStorageChest=false, canUseBed=false;
   let canUseFishingSpot=false,currentFishingSpot=null,fishingActive=false,fishingFinishAt=0,fishingAnimation=0;
@@ -2291,7 +2300,7 @@ function startGame(THREE) {
   const manualRecipeButtons=document.createElement("div");manualRecipeButtons.className="manual-recipe-buttons";manualRecipeButtons.innerHTML='<button type="button" id="craft-pickaxe-button" class="craft-action-button">FABRICAR PICARETA · 3 GALHOS + 3 PEDRAS</button><button type="button" id="craft-torch-button" class="craft-action-button">FABRICAR TOCHA · 2 GALHOS + 1 MADEIRA</button><button type="button" id="craft-campfire-button" class="craft-action-button">MONTAR FOGUEIRA · 5 GALHOS + 3 PEDRAS</button><p class="inventory-note">Fabricação manual: reúna os materiais e produza os itens sem usar uma bancada.</p>';craftingPanel.appendChild(manualRecipeButtons);
   document.getElementById("craft-pickaxe-button").addEventListener("click",()=>{if(tools.pickaxe||inventory.branches<3||inventory.stones<3)return;inventory.branches-=3;inventory.stones-=3;tools.pickaxe=true;updatePickaxeVisual();updateInventoryUI();saveProgress(true);showToast("Picareta fabricada!");});
   document.getElementById("craft-torch-button").addEventListener("click",()=>{if(tools.torch||inventory.branches<2||inventory.wood<1)return;inventory.branches-=2;inventory.wood--;tools.torch=true;updateTorchVisual();updateInventoryUI();saveProgress(true);showToast("Tocha fabricada! Ela ilumina o caminho à sua frente.");});
-  document.getElementById("craft-campfire-button").addEventListener("click",()=>{if(inventory.branches<5||inventory.stones<3)return;if(placedCampfires.length>=40){showToast("Você já montou muitas fogueiras.");return;}inventory.branches-=5;inventory.stones-=3;placedCampfires.push({x:player.x-Math.sin(player.yaw)*2.4,z:player.z-Math.cos(player.yaw)*2.4});createCampfire(placedCampfires[placedCampfires.length-1]);updateInventoryUI();saveProgress(true);showToast("Fogueira montada no local à sua frente.");});
+  document.getElementById("craft-campfire-button").addEventListener("click",()=>{if(inventory.wood<1||inventory.branches<5||inventory.stones<3){showToast("Para montar a fogueira: 1 madeira, 5 galhos e 3 pedras.");return;}if(placedCampfires.length>=40){showToast("Você já montou muitas fogueiras.");return;}closeCrafting();buildMode=true;buildSelectedId="campfire";buildSelectedItem={id:"campfire-placement",label:"Fogueira",radius:1.25};buildRotation=0;buildingOptions.innerHTML="";buildingOptions.style.display="none";buildingPanel.classList.remove("hidden");buildingPanel.querySelector(".eyebrow").textContent="POSICIONAMENTO";buildingPanel.querySelector("header strong").textContent="MONTAR FOGUEIRA";buildingPanel.querySelector(".building-description").textContent="Mova-se e gire a câmera para escolher o local. A prévia acompanha o terreno.";buildingMaterials.textContent="1 madeira · 5 galhos · 3 pedras";buildingStatus.textContent="Escolha um local livre dentro da sua propriedade.";buildingConfirm.textContent="CONFIRMAR POSIÇÃO";buildingConfirm.disabled=true;buildingRotate.textContent="GIRAR 45°";if(buildPreview)scene.remove(buildPreview);const campfireGhost=createCampfire({x:0,z:0});scene.remove(campfireGhost);buildPreview=cabinGhost(campfireGhost);scene.add(buildPreview);updateBuildPreview();});
   craftingClose.addEventListener("click", closeCrafting);
   function toggleInventory(force) {
     if(!openingManagementUnlocked)return;
@@ -2339,7 +2348,7 @@ function startGame(THREE) {
   const torchModel=new THREE.Group();const torchStick=new THREE.Mesh(new THREE.CylinderGeometry(0.045,0.07,0.72,7),new THREE.MeshStandardMaterial({color:0x704628}));torchStick.position.set(0.42,-0.2,-0.72);torchModel.add(torchStick);const torchFlame=new THREE.Mesh(new THREE.ConeGeometry(0.13,0.38,7),new THREE.MeshBasicMaterial({color:0xffa52f}));torchFlame.position.set(0.42,0.3,-0.72);torchModel.add(torchFlame);const torchLight=new THREE.PointLight(0xffa64a,2.2,19);torchLight.position.set(0.42,0.35,-0.9);torchModel.add(torchLight);torchModel.visible=tools.torch;armGroup.add(torchModel);function updateTorchVisual(){torchModel.visible=tools.torch;}
   camera.add(armGroup);
   armGroup.visible = !isAwakening;
-  function createCampfire(point){const g=new THREE.Group();const woodMat=new THREE.MeshStandardMaterial({color:0x674329,roughness:1});for(let i=0;i<3;i++){const log=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.14,1.35,7),woodMat);log.rotation.z=Math.PI/2;log.rotation.y=i*Math.PI/3;log.position.y=0.16;g.add(log);}const stonesMat=new THREE.MeshStandardMaterial({color:0x77766c,roughness:1});for(let i=0;i<8;i++){const a=i*Math.PI/4;const stone=new THREE.Mesh(new THREE.DodecahedronGeometry(0.22,0),stonesMat);stone.position.set(Math.cos(a)*0.68,0.12,Math.sin(a)*0.68);stone.scale.set(1,0.65,0.9);g.add(stone);}const flame=new THREE.Mesh(new THREE.ConeGeometry(0.28,0.85,7),new THREE.MeshBasicMaterial({color:0xff8b24}));flame.position.y=0.62;g.add(flame);const light=new THREE.PointLight(0xff9a3d,1.6,12);light.position.y=1.1;g.add(light);g.position.set(point.x,groundHeight(point.x,point.z),point.z);scene.add(g);return g;}
+  function createCampfire(point){const g=new THREE.Group();const woodMat=new THREE.MeshStandardMaterial({color:0x674329,roughness:1});for(let i=0;i<3;i++){const log=new THREE.Mesh(new THREE.CylinderGeometry(0.12,0.14,1.35,7),woodMat);log.rotation.z=Math.PI/2;log.rotation.y=i*Math.PI/3;log.position.y=0.16;g.add(log);}const stonesMat=new THREE.MeshStandardMaterial({color:0x77766c,roughness:1});for(let i=0;i<8;i++){const a=i*Math.PI/4;const stone=new THREE.Mesh(new THREE.DodecahedronGeometry(0.22,0),stonesMat);stone.position.set(Math.cos(a)*0.68,0.12,Math.sin(a)*0.68);stone.scale.set(1,0.65,0.9);g.add(stone);}const flame=new THREE.Mesh(new THREE.ConeGeometry(0.28,0.85,7),new THREE.MeshBasicMaterial({color:0xff8b24}));flame.position.y=0.62;g.add(flame);const light=new THREE.PointLight(0xff9a3d,1.6,12);light.position.y=1.1;g.add(light);g.position.set(point.x,groundHeight(point.x,point.z),point.z);g.rotation.y=point.yaw||0;scene.add(g);return g;}
   for(const campfire of placedCampfires)createCampfire(campfire);
   scene.add(camera);
 
