@@ -6,18 +6,20 @@
   <meta name="theme-color" content="#243b2b">
   <meta name="description" content="Legado do Vale 3D — reconstrução do mundo medieval.">
   <title>Legado do Vale 3D</title>
-  <link rel="stylesheet" href="./style.css?v=terreno-vila-04">
+  <link rel="stylesheet" href="./style.css?v=fabricacao-manual-05">
 </head>
 <body>
   <main id="game">
     <div id="loading"><div class="mark">LV</div><strong>LEGADO DO VALE</strong><span>Preparando o vale...</span></div>
     <div id="error" hidden></div>
-    <header class="topbar"><div class="brand"><span class="mark small">LV</span><div><strong>LEGADO DO VALE</strong><small>CAPÍTULO 1 · O DESPERTAR</small></div></div><div class="clock" id="game-clock">DIA 1 · 06:15</div></header>
+    <header class="topbar"><div class="brand"><span class="mark small">LV</span><div><strong>LEGADO DO VALE</strong><small>CAPÍTULO 1 · O DESPERTAR</small></div></div><div class="clock" id="game-clock">DIA 1 · 06:15</div><button id="craft-open" class="craft-open" type="button">MOCHILA / FABRICAR</button></header>
     <section class="objective" id="objective" hidden><span>CAPÍTULO 1 · O DESPERTAR</span><strong>Você está sozinho no vale</strong><p>Explore a floresta e conheça o lugar onde sua nova história começará.</p></section>
     <section class="chapter-intro" id="chapter-intro"><div class="intro-card"><span>LEGADO DO VALE 3D</span><h1>O Despertar</h1><p>O vento atravessa as árvores. O rio corre entre as margens e a floresta se estende até onde seus olhos conseguem alcançar.</p><p>Você despertou sozinho neste vale. Não possui ferramentas, moedas ou abrigo. Tudo o que vier a construir começará com suas próprias mãos.</p><button id="start-adventure" type="button">COMEÇAR JORNADA</button></div></section>
     <section id="talk-prompt" class="talk-prompt" hidden><span id="talk-label">MORADOR ESTÁ POR PERTO</span><button id="talk-button" type="button">CONVERSAR</button><small>APERTE E</small></section>
     <section id="land-prompt" class="land-prompt" hidden><span>VOCÊ ESTÁ EM UMA ÁREA DO VALE</span><button id="land-button" type="button">MARCAR ESTE TERRENO</button></section>
     <section id="plot-confirm" class="dialogue" hidden aria-live="polite"><div class="dialogue-card"><span class="dialogue-kicker">ESCOLHA DO TERRENO</span><h2>Confirmar esta área?</h2><p id="plot-confirm-text">Deseja escolher este terreno para sua futura vila?</p><div class="plot-actions"><button id="plot-accept" type="button">CONFIRMAR TERRENO</button><button id="plot-cancel" type="button">ESCOLHER OUTRO LOCAL</button></div></div></section>
+    <section id="gather-prompt" class="gather-prompt" hidden><span id="gather-label">RECURSO POR PERTO</span><button id="gather-button" type="button">COLETAR</button></section>
+    <section id="craft-panel" class="craft-panel" hidden aria-live="polite"><div class="craft-card"><div class="craft-heading"><div><span class="dialogue-kicker">SOBREVIVÊNCIA</span><h2>Mochila e fabricação manual</h2></div><button id="craft-close" type="button" aria-label="Fechar">FECHAR</button></div><p id="inventory-text"></p><div class="craft-recipes"><button data-craft="axe" type="button">FABRICAR MACHADO<br><small>3 galhos · 2 pedras · 2 fibras</small></button><button data-craft="pickaxe" type="button">FABRICAR PICARETA<br><small>3 galhos · 3 pedras · 2 fibras</small></button><button data-craft="torch" type="button">FABRICAR TOCHA<br><small>1 galho · 2 fibras</small></button><button data-craft="campfire" type="button">FABRICAR FOGUEIRA<br><small>5 galhos · 4 pedras</small></button></div><button id="campfire-place" class="campfire-place" type="button" hidden>COLOCAR FOGUEIRA NO LOCAL</button><p id="craft-status" class="craft-status">Colete materiais pelo vale para liberar as receitas.</p></div></section>
     <section id="dialogue" class="dialogue" hidden aria-live="polite"><div class="dialogue-card"><span class="dialogue-kicker">VILA VIZINHA</span><h2 id="dialogue-speaker">Alina</h2><p id="dialogue-text"></p><button id="dialogue-next" type="button">CONTINUAR</button></div></section>
     <div class="crosshair" aria-hidden="true"></div>
     <div id="joystick" class="joystick" hidden><div id="stick" class="stick"></div></div>
@@ -27,6 +29,6 @@
     <div id="game-toast" class="toast" role="status"></div>
     <footer><span>PROTÓTIPO EM RECONSTRUÇÃO</span><span>UM MUNDO EM CONSTRUÇÃO</span></footer>
   </main>
-  <script type="module" src="./src/main.js?v=terreno-vila-04"></script>
+  <script type="module" src="./src/main.js?v=fabricacao-manual-05"></script>
 </body>
 </html>
