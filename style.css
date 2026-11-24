@@ -641,3 +641,27 @@ body.land-management-unlocked #inventory-toggle,body.land-management-unlocked #b
 .building-panel.campfire-placement-mode .building-actions {
   pointer-events: auto;
 }
+
+
+/* Limpeza da versão inicial: somente a casa permanece como estrutura construída. */
+#inventory-toggle,
+#inventory-panel,
+#crafting-panel,
+.manual-craft-toggle,
+#chest-panel,
+#farm-panel,
+#animal-panel,
+#kitchen-panel,
+#loom-panel,
+#tannery-panel,
+#fishing-panel,
+#merchant-panel,
+#villager-panel,
+#villagers-toggle,
+#villagers-directory,
+#sleep-panel {
+  display: none !important;
+}
+body.house-built #build-toggle {
+  display: none !important;
+}
