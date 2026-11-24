@@ -627,3 +627,17 @@ body.land-management-unlocked #inventory-toggle,body.land-management-unlocked #b
 .building-panel.campfire-placement-mode > .building-help { display:none !important; }
 .building-panel.campfire-placement-mode .building-actions { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; }
 .building-panel.campfire-placement-mode .building-actions button { min-height:48px; font-size:10px; }
+
+
+/* A fogueira mantém somente os três controles; o painel não cobre mais o mundo. */
+.building-panel.campfire-placement-mode {
+  background: transparent !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  backdrop-filter: none !important;
+  padding: 0 !important;
+  pointer-events: none;
+}
+.building-panel.campfire-placement-mode .building-actions {
+  pointer-events: auto;
+}
