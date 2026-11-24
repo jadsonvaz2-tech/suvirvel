@@ -602,3 +602,4 @@ kbd { min-width: 17px; padding: 4px 5px; border: 1px solid rgba(241,232,210,.28)
 
 /* Os atalhos de gestão ficam guardados durante o prólogo; serão liberados pela história. */
 #inventory-toggle,#build-toggle,#villagers-toggle{display:none!important}
+body.land-management-unlocked #inventory-toggle,body.land-management-unlocked #build-toggle{display:block!important}
