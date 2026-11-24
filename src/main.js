@@ -2078,12 +2078,12 @@ function startGame(THREE) {
     trunk.scale.set(s, s, s);
     const crown = new THREE.Mesh(crownGeometry, crownMaterial);
     crown.position.y = 6.2 * s;
-    crown.scale.set(s, s, s);
+    crown.scale.set(s, s, 0.2 * s);
     const crownTop = new THREE.Mesh(crownTopGeometry, crownMaterial);
     crownTop.position.y = 10.0 * s;
-    crownTop.scale.set(s * 0.78, s * 0.78, s * 0.78);
+    crownTop.scale.set(s * 0.78, s * 0.78, s * 0.156);
     group.add(trunk, crown, crownTop);
-    group.position.set(tree.x, groundY + 0.5 * s, tree.z);
+    group.position.set(tree.x, groundY + 0.65 * s, tree.z);
     group.rotation.set(Math.PI / 2, yaw, 0);
     scene.add(group);
     return group;
@@ -3152,6 +3152,8 @@ function startGame(THREE) {
   function finishTreeFelling(index, groundY, group, branchReward) {
     const tree = treeSpots[index];
     felledTreeYaw.set(index, group.rotation.y);
+    scene.remove(group);
+    createFelledTreeModel(tree, groundY, group.rotation.y);
     addTreeStump(tree, groundY);
     treeHitCounts.delete(index);
     updateInventoryUI();
