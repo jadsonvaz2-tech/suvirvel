@@ -281,6 +281,11 @@ function startGame(THREE) {
   // Assim, a primeira área de coleta aparece perto do personagem mesmo em saves antigos.
   const loadedSave = readSave();
   const saved = loadedSave?.saveSchemaVersion===4 ? loadedSave : loadedSave ? {...loadedSave,saveSchemaVersion:4,coins:0,tradeReputation:0,settlementReputation:{vale:0},completedTradeContracts:[],missionState:{},inventory:{},tools:{},storage:{},clothing:{},farmPlots:[],animalCare:{},huntedWildlife:[],collectedResources:[],resourceRespawnAt:{},felledTrees:[],treeHits:{},builtCabin:null,cabinDoorOpen:false,villageHouses:[],recruitedVillagers:[],villageStock:{},villagerRelationships:[],familyPregnancies:[],familyChildren:[],dynastyState:{},nextChildName:"",structurePositions:{},tanneryState:{readyAt:0,ready:false},fishingSpotState:{lastCatch:0}} : null;
+  let landClaimed=saved?.landClaimed===true;
+  let landSurveyMode=saved?.landSurveyMode===true&&!landClaimed;
+  let landPosition=landClaimed&&Number.isFinite(saved?.landX)&&Number.isFinite(saved?.landZ)?{x:saved.landX,z:saved.landZ}:null;
+  let landTaxDebt=Number.isSafeInteger(saved?.landTaxDebt)?Math.max(0,saved.landTaxDebt):0;
+  let nextLandTaxDay=Number.isSafeInteger(saved?.nextLandTaxDay)?Math.max(1,saved.nextLandTaxDay):365;
   const gameTime = { day:saved?.gameTime?.day??1, hour:saved?.gameTime?.hour??6, minute:saved?.gameTime?.minute??15 };
   let fishingLastCatch=Number.isSafeInteger(saved?.fishingSpotState?.lastCatch)?Math.max(0,saved.fishingSpotState.lastCatch):0;
   const cropTypes = {
@@ -419,6 +424,16 @@ function startGame(THREE) {
       if(survival.warmth<=0)survival.health=Math.max(0,survival.health-0.035);}
     updateSurvivalUI(true);
   }
+  function processAnnualLandTax(){
+    if(!landClaimed)return;
+    let changed=false;
+    while(gameTime.day>=nextLandTaxDay){
+      if(coins>=30){coins-=30;showToast("Imposto anual pago ao rei: 30 moedas.");}
+      else{landTaxDebt+=30;showToast("Imposto anual não pago: 30 moedas foram acrescentadas à sua dívida com a Coroa.");}
+      nextLandTaxDay+=365;changed=true;
+    }
+    if(changed){if(walletUI)walletUI.textContent=String(coins);saveProgress(true);}
+  }
   function advanceGameMinutes(minutes){
     updateColdExposure(minutes);
     const total=gameTime.hour*60+gameTime.minute+minutes;
@@ -429,6 +444,7 @@ function startGame(THREE) {
     refreshAnimalProduction();
     refreshTanneryProduction();
     refreshResourceRespawns();
+    processAnnualLandTax();
     processVillageProduction();
   }
   updateGameClockUI();
@@ -1171,7 +1187,8 @@ function startGame(THREE) {
     saveProgress(true);renderVillagersDirectory();updateResourceTarget();
     showToast(def.name+" aceitou o convite e chegou ao vilarejo!");
   }
-  const openingManagementUnlocked=false;
+  let openingManagementUnlocked=landClaimed;
+  if(openingManagementUnlocked)document.body.classList.add("land-management-unlocked");
   function openVillagersDirectory(){if(!openingManagementUnlocked)return;renderVillagersDirectory();villagersDirectory.classList.remove("hidden");}
   function closeVillagersDirectory(){villagersDirectory.classList.add("hidden");}
   villagersToggle.addEventListener("click",openVillagersDirectory);
@@ -1865,6 +1882,7 @@ function startGame(THREE) {
   }
   function cabinFootprintValid(x,z,yaw) {
     if (Math.abs(x)>96 || Math.abs(z)>96) return "Fora da área de construção.";
+    if(landClaimed&&landPosition&&Math.hypot(x-landPosition.x,z-landPosition.z)>34)return "Construa dentro dos limites das terras registradas para sua vila.";
     const samples=[[-2.15,-2.55],[0,-2.55],[2.15,-2.55],[-2.15,0],[0,0],[2.15,0],[-2.15,2.55],[0,2.55],[2.15,2.55]];
     const heights=[];
     for (const [lx,lz] of samples) {
@@ -2348,14 +2366,40 @@ function startGame(THREE) {
     if (!storyObjectiveTitle || !storyObjectiveText) return;
     if (!villageDiscovered) { storyObjectiveTitle.textContent="ENCONTRE AJUDA"; storyObjectiveText.textContent="Atravesse o rio pela ponte de madeira e siga até a Vila Vizinha. Procure a anciã Alina."; }
     else if (!elderReportDelivered) { storyObjectiveTitle.textContent="FALE COM ALINA"; storyObjectiveText.textContent="Aproxime-se da anciã e toque em FALAR para contar sobre o ataque à sua aldeia."; }
-    else { storyObjectiveTitle.textContent="ALINA OUVIU SEU RELATO"; storyObjectiveText.textContent="A anciã prometeu ajudar a procurar sobreviventes. Aguarde novas orientações."; }
+    else if(!landClaimed){storyObjectiveTitle.textContent="ESCOLHA ONDE RECOMEÇAR";storyObjectiveText.textContent="Converse novamente com Alina para conhecer as terras da Coroa. Depois explore o vale e escolha um terreno livre para fundar sua vila.";}
+    else{storyObjectiveTitle.textContent=builtCabin?"SUA NOVA VIDA COMEÇOU":"REÚNA MATERIAIS PARA O ABRIGO";storyObjectiveText.textContent="Terreno registrado nas coordenadas "+Math.round(landPosition.x)+", "+Math.round(landPosition.z)+". Construa dentro da área escolhida. Imposto anual ao rei: 30 moedas · próxima cobrança no dia "+nextLandTaxDay+". Dívida atual: "+landTaxDebt+" moedas.";}
+  }
+  function landClaimPlacementReason(x,z,yaw){
+    if(Math.abs(x)>90||Math.abs(z)>90)return "Escolha um terreno dentro do vale explorável.";
+    const cabinReason=cabinFootprintValid(x,z,yaw);if(cabinReason)return cabinReason;
+    if(Math.hypot(x-34,z+82)<23)return "Essa área pertence à Vila Vizinha. Escolha um terreno mais distante.";
+    if(typeof neighborVillageObstacles!=="undefined"&&neighborVillageObstacles.some(item=>Math.hypot(x-item.x,z-item.z)<item.radius+7))return "Há construções de outra comunidade muito perto. Procure um espaço livre.";
+    if(Math.hypot(x-78,z-68)<19)return "Essa área pertence a outro povoado. Escolha um terreno independente.";
+    return "";
+  }
+  function claimLandHere(){
+    if(!landSurveyMode)return;
+    const reason=landClaimPlacementReason(player.x,player.z,player.yaw);
+    if(reason){showToast(reason);updateResourceTarget();return;}
+    landPosition={x:Math.round(player.x*2)/2,z:Math.round(player.z*2)/2};landClaimed=true;landSurveyMode=false;openingManagementUnlocked=true;
+    document.body.classList.add("land-management-unlocked");nextLandTaxDay=gameTime.day+365;missionState.chapter2LandClaimed=true;
+    renderStoryObjective();saveProgress(true);updateResourceTarget();
+    showToast("Terreno registrado! Agora reúna os materiais e construa seu primeiro abrigo. A Coroa cobrará 30 moedas por ano.");
   }
   function showOpeningElderDialogue() {
     let panel=document.getElementById("opening-elder-dialogue");
     if(!panel){panel=document.createElement("section");panel.id="opening-elder-dialogue";panel.className="chapter2-dialogue";panel.setAttribute("role","dialog");panel.setAttribute("aria-modal","true");game.appendChild(panel);}
-    panel.innerHTML=elderReportDelivered?'<header><span>VILA VIZINHA · ALINA, ANCIÃ</span><button type="button" data-elder-close aria-label="Fechar">×</button></header><h3>Estamos com você</h3><p>“Descanse um pouco, viajante. Vou perguntar aos moradores se alguém viu sobreviventes ou reconheceu os símbolos dos invasores. Não está sozinho.”</p><div class="chapter-two-actions"><button type="button" data-elder-close>CONTINUAR</button></div>':'<header><span>VILA VIZINHA · ALINA, ANCIÃ</span><button type="button" data-elder-close aria-label="Fechar">×</button></header><h3>O que aconteceu com você?</h3><p>“Você parece ferido e veio de longe. Meu nome é Alina, sou a anciã desta vila. Sente-se e conte: por que está sozinho na floresta?”</p><div class="chapter-two-actions"><button type="button" data-elder-report>CONTAR SOBRE O ATAQUE</button><button type="button" data-elder-close>PRECISO DE UM MOMENTO</button></div>';
+    const header='<header><span>VILA VIZINHA · ALINA, ANCIÃ</span><button type="button" data-elder-close aria-label="Fechar">×</button></header>';
+    if(!elderReportDelivered){panel.innerHTML=header+'<h3>O que aconteceu com você?</h3><p>“Você parece ferido e veio de longe. Meu nome é Alina, sou a anciã desta vila. Sente-se e conte: por que está sozinho na floresta?”</p><div class="chapter-two-actions"><button type="button" data-elder-report>CONTAR SOBRE O ATAQUE</button><button type="button" data-elder-close>PRECISO DE UM MOMENTO</button></div>';}
+    else if(landClaimed){panel.innerHTML=header+'<h3>Seu novo começo</h3><p>“Agora você tem suas próprias terras. Cuide delas, construa seu abrigo e reúna pessoas quando estiver pronto. Lembre-se: a Coroa cobra 30 moedas a cada ano pelo uso do terreno. Seu próximo pagamento será no dia '+nextLandTaxDay+'.”</p><div class="chapter-two-actions"><button type="button" data-elder-close>ENTENDI</button></div>';}
+    else{panel.innerHTML=header+'<h3>Uma oportunidade para recomeçar</h3><p>“Você não precisa permanecer nesta vila. As terras além daqui pertencem ao rei. Você pode escolher qualquer pedaço de terra livre no vale, construir seu abrigo e, pouco a pouco, formar uma nova vila. Mas há uma condição: todos os anos deverá pagar à Coroa 30 moedas pelo uso das terras. Se aceitar, explore o vale e escolha onde deseja começar.”</p><div class="chapter-two-actions"><button type="button" data-land-offer>QUERO CONHECER AS CONDIÇÕES</button><button type="button" data-elder-close>DEPOIS</button></div>';}
     panel.classList.add("is-open");
-    panel.onclick=event=>{if(event.target.closest("[data-elder-close]")){panel.classList.remove("is-open");return;}if(event.target.closest("[data-elder-report]")){elderReportDelivered=true;villageDiscovered=true;renderStoryObjective();saveProgress(true);panel.innerHTML='<header><span>VILA VIZINHA · ALINA, ANCIÃ</span><button type="button" data-elder-close aria-label="Fechar">×</button></header><h3>Você não está sozinho</h3><p>“Sinto muito pela sua aldeia. Bárbaros não costumam atacar sem motivo. Vou conversar com os moradores e descobrir se alguém viu para onde foram os sobreviventes. Por enquanto, fique perto da vila.”</p><div class="chapter-two-actions"><button type="button" data-elder-close>AGRADECER</button></div>';showToast("Alina ouviu seu relato. A história da sua aldeia começa a ser investigada.");}};
+    panel.onclick=event=>{
+      if(event.target.closest("[data-elder-close]")){panel.classList.remove("is-open");return;}
+      if(event.target.closest("[data-elder-report]")){elderReportDelivered=true;villageDiscovered=true;renderStoryObjective();saveProgress(true);panel.innerHTML=header+'<h3>Você não está sozinho</h3><p>“Sinto muito pela sua aldeia. Vou conversar com os moradores para descobrir se alguém viu os sobreviventes ou reconheceu os invasores. E quero lhe mostrar uma possibilidade: você poderá reconstruir sua vida em terras concedidas pela Coroa.”</p><div class="chapter-two-actions"><button type="button" data-land-offer>FALAR SOBRE AS TERRAS</button><button type="button" data-elder-close>AGRADECER</button></div>';showToast("Alina ouviu seu relato. Ela também conhece uma oportunidade para recomeçar.");return;}
+      if(event.target.closest("[data-land-offer]")){panel.innerHTML=header+'<h3>As terras da Coroa</h3><p>“Escolha um terreno livre, longe das vilas existentes e das margens do rio. Caminhe até o lugar que deseja e confirme a escolha. Aquele será o início da sua propriedade. Você pagará 30 moedas ao rei uma vez por ano. Se estiver pronto, comece a procurar.”</p><div class="chapter-two-actions"><button type="button" data-land-start>COMEÇAR A ESCOLHER TERRENO</button><button type="button" data-elder-close>MAIS TARDE</button></div>';return;}
+      if(event.target.closest("[data-land-start]")){landSurveyMode=true;saveProgress(true);panel.classList.remove("is-open");updateResourceTarget();showToast("Explore o vale. Quando estiver em um terreno livre e adequado, toque em REIVINDICAR TERRENO.");}
+    };
   }
   renderStoryObjective();
   if (storyObjective) storyObjective.classList.toggle("hidden",isAwakening);
@@ -2394,6 +2438,12 @@ function startGame(THREE) {
         awakeningComplete: saved.awakeningComplete === true,
         villageDiscovered: saved.villageDiscovered === true,
         elderReportDelivered: saved.elderReportDelivered === true,
+        landClaimed:saved.landClaimed===true,
+        landSurveyMode:saved.landSurveyMode===true,
+        landX:Number.isFinite(saved.landX)?THREE.MathUtils.clamp(saved.landX,-96,96):null,
+        landZ:Number.isFinite(saved.landZ)?THREE.MathUtils.clamp(saved.landZ,-96,96):null,
+        landTaxDebt:Number.isSafeInteger(saved.landTaxDebt)?THREE.MathUtils.clamp(saved.landTaxDebt,0,999999):0,
+        nextLandTaxDay:Number.isSafeInteger(saved.nextLandTaxDay)?THREE.MathUtils.clamp(saved.nextLandTaxDay,1,999999):365,
         saveSchemaVersion: saved.saveSchemaVersion === 4 ? 4 : 3,
         coins: Number.isSafeInteger(saved.coins)?THREE.MathUtils.clamp(saved.coins,0,999999):30,
         tradeReputation:Number.isSafeInteger(saved.tradeReputation)?THREE.MathUtils.clamp(saved.tradeReputation,0,9999):0,
@@ -2493,6 +2543,7 @@ function startGame(THREE) {
         awakeningComplete: !isAwakening,
         villageDiscovered,
         elderReportDelivered,
+        landClaimed,landSurveyMode,landX:landPosition?.x??null,landZ:landPosition?.z??null,landTaxDebt,nextLandTaxDay,
         seedStarterPackClaimed: true,
         coins,
         tradeReputation,
@@ -2790,6 +2841,7 @@ function startGame(THREE) {
   function updateResourceTarget() {
     if (isAwakening || wakeTransition < 1) { interactionPrompt.classList.add("hidden"); collectButton.classList.add("hidden"); return; }
     if (buildMode) { interactionPrompt.classList.add("hidden"); collectButton.classList.add("hidden"); return; }
+    if(landSurveyMode){const reason=landClaimPlacementReason(player.x,player.z,player.yaw);interactionPrompt.classList.remove("hidden");collectButton.classList.remove("hidden");collectButton.disabled=Boolean(reason);interactionType.textContent="TERRAS DA COROA";interactionName.textContent="Escolha sua futura vila";interactionVerb.textContent=reason||"Este terreno está livre para ser registrado";collectButton.textContent=reason?"TERRENO INADEQUADO":"REIVINDICAR TERRENO";return;}
     const facingX = -Math.sin(player.yaw);
     const facingZ = -Math.cos(player.yaw);
     let match = null;
@@ -3155,6 +3207,7 @@ function startGame(THREE) {
   sleepPanel.addEventListener("click",event=>{const button=event.target.closest("button[data-sleep-hours]");if(button)sleepFor(Number(button.dataset.sleepHours));});
   sleepClose.addEventListener("click",closeSleepPanel);
   function performCurrentInteraction(){
+    if(landSurveyMode){claimLandHere();return;}
     if(!chestPanel.classList.contains("hidden")||!sleepPanel.classList.contains("hidden")||!farmPanel.classList.contains("hidden")||!animalPanel.classList.contains("hidden")||!kitchenPanel.classList.contains("hidden")||!loomPanel.classList.contains("hidden")||!tanneryPanel.classList.contains("hidden")||!fishingPanel.classList.contains("hidden")||!merchantPanel.classList.contains("hidden")||!villagerPanel.classList.contains("hidden")||!villagersDirectory.classList.contains("hidden"))return;
     if(buildMode){confirmBuilding();return;}
     if(currentResourceTarget)collectCurrentResource();
