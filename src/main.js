@@ -290,7 +290,21 @@ function startGame(THREE) {
     familyHouseId:typeof saved?.dynastyState?.familyHouseId==="string"&&villageHouses.some(house=>house.id===saved.dynastyState.familyHouseId)?saved.dynastyState.familyHouseId:(villageHouses[0]?.id||"")
   };
   let nextChildName=typeof saved?.nextChildName==="string"?saved.nextChildName.slice(0,24):"";
-  const missionState={chapter1RewardClaimed:saved?.missionState?.chapter1RewardClaimed===true,chapter2MessengerMet:saved?.missionState?.chapter2MessengerMet===true,chapter2Discoveries:Array.isArray(saved?.missionState?.chapter2Discoveries)?[...new Set(saved.missionState.chapter2Discoveries.filter(id=>["lookout","river-crossing","old-oak","old-road","village-trail"].includes(id)))]:[],chapter2RewardClaimed:saved?.missionState?.chapter2RewardClaimed===true,chapter2Journal:Array.isArray(saved?.missionState?.chapter2Journal)?saved.missionState.chapter2Journal.filter(item=>typeof item==="string").slice(-20):[]};
+  function readMissionProgress(){
+    try{
+      const raw=localStorage.getItem("legado-do-vale-missoes-v1");
+      const data=raw?JSON.parse(raw):{};
+      return data&&typeof data==="object"?data:{};
+    }catch{return {};}
+  }
+  const savedMissionProgress=readMissionProgress();
+  const missionState={
+    chapter1RewardClaimed:saved?.missionState?.chapter1RewardClaimed===true||savedMissionProgress.chapter1RewardClaimed===true,
+    chapter2MessengerMet:saved?.missionState?.chapter2MessengerMet===true||savedMissionProgress.chapter2MessengerMet===true,
+    chapter2Discoveries:[...new Set([...(Array.isArray(saved?.missionState?.chapter2Discoveries)?saved.missionState.chapter2Discoveries:[]),...(Array.isArray(savedMissionProgress.chapter2Discoveries)?savedMissionProgress.chapter2Discoveries:[])].filter(id=>["lookout","river-crossing","old-oak","old-road","village-trail"].includes(id)))],
+    chapter2RewardClaimed:saved?.missionState?.chapter2RewardClaimed===true||savedMissionProgress.chapter2RewardClaimed===true,
+    chapter2Journal:[...new Set([...(Array.isArray(saved?.missionState?.chapter2Journal)?saved.missionState.chapter2Journal:[]),...(Array.isArray(savedMissionProgress.chapter2Journal)?savedMissionProgress.chapter2Journal:[])].filter(item=>typeof item==="string"))].slice(-20)
+  };
   const villageStock=Object.fromEntries(["wheat","carrots","cabbages","wood","branches","stones","wool","rawMeat","hide","trout","carp","minnow","roastedMeat","vegetableSoup","bread","omelet","berryPorridge","grilledTrout","grilledCarp","grilledMinnow","fabric","craftedGoods","tools"].map(key=>[key,Number.isSafeInteger(saved?.villageStock?.[key])?Math.max(0,Math.min(999999,saved.villageStock[key])):0]));
   let villageProductionLastMinute=Number.isSafeInteger(saved?.villageProductionLastMinute)?Math.max(0,saved.villageProductionLastMinute):totalGameMinutes();
   let villageFoodLastDay=Number.isSafeInteger(saved?.villageFoodLastDay)?Math.max(1,saved.villageFoodLastDay):gameTime.day;
@@ -1016,6 +1030,7 @@ function startGame(THREE) {
       if(missionState.chapter1RewardClaimed){showToast("A recompensa deste capítulo já foi recebida.");return;}
       if(!ready){showToast("Ainda faltam objetivos para concluir o capítulo.");return;}
       missionState.chapter1RewardClaimed=true;
+      try{localStorage.setItem("legado-do-vale-missoes-v1",JSON.stringify(missionState));}catch{}
       coins=Math.min(999999,coins+25);
       tradeReputation=Math.min(9999,tradeReputation+2);
       settlementReputation.vale=Math.min(9999,(settlementReputation.vale||0)+2);
@@ -2073,6 +2088,7 @@ function startGame(THREE) {
         nextChildName,
         structurePositions:structurePositionsForSave()
       }));
+      try{localStorage.setItem("legado-do-vale-missoes-v1",JSON.stringify(missionState));}catch{}
     } catch { /* O jogo continua mesmo sem armazenamento disponível. */ }
   }
 
