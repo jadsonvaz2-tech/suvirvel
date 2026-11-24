@@ -130,6 +130,10 @@ function startGame(THREE) {
   const WATER_Y = -0.82;
   const riverX = (z) => -40 + 12 * Math.sin(z * 0.035);
   const riverDistance = (x, z) => Math.abs(x - riverX(z));
+  const RIVER_BRIDGE_Z = -12;
+  const RIVER_BRIDGE_HALF_DEPTH = 3.15;
+  const RIVER_BRIDGE_DECK_Y = WATER_Y + 0.32;
+  const isOnRiverBridge = (x,z) => Math.abs(z-RIVER_BRIDGE_Z)<=RIVER_BRIDGE_HALF_DEPTH && riverDistance(x,z)<9.8;
   function groundHeight(x, z) {
     let h = 1.05 + Math.sin(x * 0.045) * 0.72 + Math.cos(z * 0.04) * 0.78 + Math.sin((x + z) * 0.025) * 0.62;
     const d = riverDistance(x, z);
@@ -142,6 +146,8 @@ function startGame(THREE) {
       const smoothBank = bankBlend * bankBlend * (3 - 2 * bankBlend);
       h = riverBed + (h - riverBed) * smoothBank;
     }
+    // A ponte possui um tabuleiro plano e contínuo sobre o leito do rio.
+    if (Math.abs(z-RIVER_BRIDGE_Z)<3.4 && d<9.8) h=RIVER_BRIDGE_DECK_Y;
     return h;
   }
 
@@ -196,6 +202,29 @@ function startGame(THREE) {
     color: 0x4d9fa9, roughness: 0.28, metalness: 0.08, transparent: true, opacity: 0.88, side: THREE.DoubleSide
   }));
   scene.add(water);
+
+  // Ponte de madeira atravessável: liga as duas margens no ponto indicado no mapa.
+  {
+    const bridge=new THREE.Group();
+    const deckMat=new THREE.MeshStandardMaterial({color:0x795333,roughness:0.96});
+    const railMat=new THREE.MeshStandardMaterial({color:0x604329,roughness:1});
+    const deck=new THREE.Mesh(new THREE.BoxGeometry(19.2,0.28,5.9),deckMat);
+    deck.position.y=RIVER_BRIDGE_DECK_Y-0.14;bridge.add(deck);
+    for(let i=0;i<25;i++){
+      const plank=new THREE.Mesh(new THREE.BoxGeometry(0.68,0.055,5.72),new THREE.MeshStandardMaterial({color:i%2?0x987047:0x88613d,roughness:1}));
+      plank.position.set(-9.15+i*0.762,RIVER_BRIDGE_DECK_Y+0.025,0);bridge.add(plank);
+    }
+    for(const side of [-1,1]){
+      const rail=new THREE.Mesh(new THREE.BoxGeometry(19.2,0.18,0.2),railMat);
+      rail.position.set(0,RIVER_BRIDGE_DECK_Y+0.78,side*2.72);bridge.add(rail);
+      for(let i=0;i<7;i++){
+        const post=new THREE.Mesh(new THREE.BoxGeometry(0.22,1.05,0.22),railMat);
+        post.position.set(-8.8+i*(17.6/6),RIVER_BRIDGE_DECK_Y+0.48,side*2.72);bridge.add(post);
+      }
+    }
+    bridge.position.set(riverX(RIVER_BRIDGE_Z),0,RIVER_BRIDGE_Z);
+    scene.add(bridge);
+  }
 
   // Pontos de pesca marcados por juncos nas margens acessíveis do rio.
   const fishingSpots=[-48,-8,34,78].map((z,index)=>{
@@ -2164,7 +2193,7 @@ function startGame(THREE) {
   // Colisão simples: limites do mapa, troncos e leito do rio.
   function isBlocked(x, z) {
     if (Math.abs(x) > 104 || Math.abs(z) > 104) return true;
-    if (riverDistance(x, z) < 8.2) return true;
+    if (riverDistance(x, z) < 8.2 && !isOnRiverBridge(x,z)) return true;
     for (let i = 0; i < treeSpots.length; i++) {
       if (felledTrees.has(i)) continue;
       const tree = treeSpots[i];
@@ -2683,7 +2712,7 @@ function startGame(THREE) {
   }
   collectButton.addEventListener("click", performCurrentInteraction);
 
-  const chapter2DiscoveryDefs=[{id:"lookout",name:"Mirante das Colinas",x:28,z:12},{id:"river-crossing",name:"Travessia do Rio",x:-20,z:-12},{id:"old-oak",name:"Carvalho Antigo",x:58,z:-38},{id:"old-road",name:"Estrada Antiga",x:-62,z:-58},{id:"village-trail",name:"Trilha da Vila Distante",x:28,z:-82}];
+  const chapter2DiscoveryDefs=[{id:"lookout",name:"Mirante das Colinas",x:28,z:12},{id:"river-crossing",name:"Travessia do Rio",x:riverX(RIVER_BRIDGE_Z),z:RIVER_BRIDGE_Z},{id:"old-oak",name:"Carvalho Antigo",x:58,z:-38},{id:"old-road",name:"Estrada Antiga",x:-62,z:-58},{id:"village-trail",name:"Trilha da Vila Distante",x:28,z:-82}];
   const chapter2Markers=[];
   const chapter2Messenger=new THREE.Group();
   {const robe=new THREE.Mesh(new THREE.CylinderGeometry(.32,.42,1.2,8),new THREE.MeshStandardMaterial({color:0x52677a,roughness:1}));robe.position.y=.82;chapter2Messenger.add(robe);const head=new THREE.Mesh(new THREE.SphereGeometry(.24,10,8),new THREE.MeshStandardMaterial({color:0xd6ad86}));head.position.y=1.62;chapter2Messenger.add(head);const hood=new THREE.Mesh(new THREE.ConeGeometry(.3,.38,8),new THREE.MeshStandardMaterial({color:0x9a7848}));hood.position.y=1.88;chapter2Messenger.add(hood);chapter2Messenger.position.set(7,groundHeight(7,29),29);scene.add(chapter2Messenger);}
