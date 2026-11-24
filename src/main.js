@@ -303,7 +303,11 @@ function startGame(THREE) {
     chapter2MessengerMet:saved?.missionState?.chapter2MessengerMet===true||savedMissionProgress.chapter2MessengerMet===true,
     chapter2Discoveries:[...new Set([...(Array.isArray(saved?.missionState?.chapter2Discoveries)?saved.missionState.chapter2Discoveries:[]),...(Array.isArray(savedMissionProgress.chapter2Discoveries)?savedMissionProgress.chapter2Discoveries:[])].filter(id=>["lookout","river-crossing","old-oak","old-road","village-trail"].includes(id)))],
     chapter2RewardClaimed:saved?.missionState?.chapter2RewardClaimed===true||savedMissionProgress.chapter2RewardClaimed===true,
-    chapter2Journal:[...new Set([...(Array.isArray(saved?.missionState?.chapter2Journal)?saved.missionState.chapter2Journal:[]),...(Array.isArray(savedMissionProgress.chapter2Journal)?savedMissionProgress.chapter2Journal:[])].filter(item=>typeof item==="string"))].slice(-20)
+    chapter2Journal:[...new Set([...(Array.isArray(saved?.missionState?.chapter2Journal)?saved.missionState.chapter2Journal:[]),...(Array.isArray(savedMissionProgress.chapter2Journal)?savedMissionProgress.chapter2Journal:[])].filter(item=>typeof item==="string"))].slice(-20),
+    chapter3ElderMet:saved?.missionState?.chapter3ElderMet===true||savedMissionProgress.chapter3ElderMet===true,
+    chapter3Discoveries:[...new Set([...(Array.isArray(saved?.missionState?.chapter3Discoveries)?saved.missionState.chapter3Discoveries:[]),...(Array.isArray(savedMissionProgress.chapter3Discoveries)?savedMissionProgress.chapter3Discoveries:[])].filter(id=>["market-square","village-well","council-hall"].includes(id)))],
+    chapter3RewardClaimed:saved?.missionState?.chapter3RewardClaimed===true||savedMissionProgress.chapter3RewardClaimed===true,
+    chapter3Journal:[...new Set([...(Array.isArray(saved?.missionState?.chapter3Journal)?saved.missionState.chapter3Journal:[]),...(Array.isArray(savedMissionProgress.chapter3Journal)?savedMissionProgress.chapter3Journal:[])].filter(item=>typeof item==="string"))].slice(-20)
   };
   const villageStock=Object.fromEntries(["wheat","carrots","cabbages","wood","branches","stones","wool","rawMeat","hide","trout","carp","minnow","roastedMeat","vegetableSoup","bread","omelet","berryPorridge","grilledTrout","grilledCarp","grilledMinnow","fabric","craftedGoods","tools"].map(key=>[key,Number.isSafeInteger(saved?.villageStock?.[key])?Math.max(0,Math.min(999999,saved.villageStock[key])):0]));
   let villageProductionLastMinute=Number.isSafeInteger(saved?.villageProductionLastMinute)?Math.max(0,saved.villageProductionLastMinute):totalGameMinutes();
@@ -932,7 +936,11 @@ function startGame(THREE) {
     const chapter2Count=missionState.chapter2Discoveries.length;
     const chapter2Ready=missionState.chapter2MessengerMet&&chapter2Count===chapter2Places.length;
     const chapter2Markup='<section class="village-relationships chapter-two"><h3 class="villager-invite-heading">📜 HISTÓRIA PRINCIPAL · CAPÍTULO 2</h3><div class="village-couple"><strong>CONHECENDO O VALE</strong><span>'+(missionState.chapter1RewardClaimed?'Um viajante chegou com notícias de outras comunidades. Conheça o mensageiro e siga os marcos brilhantes para descobrir os caminhos do vale.':'Conclua o Capítulo 1 para desbloquear esta jornada.')+'</span><div class="villager-needs-track"><i style="width:'+Math.round((Number(missionState.chapter2MessengerMet)+chapter2Count+Number(missionState.chapter2RewardClaimed))/(7)*100)+'%"></i></div><small>Progresso: '+(Number(missionState.chapter2MessengerMet)+chapter2Count+(missionState.chapter2RewardClaimed?1:0))+'/7 etapas</small></div><div class="chapter-two-actions">'+(missionState.chapter1RewardClaimed?'<button type="button" data-chapter2-talk>FALAR COM O MENSAGEIRO</button>':'<small>Capítulo bloqueado · conclua o primeiro capítulo.</small>')+'</div><h4 class="villager-invite-heading">MAPA DE DESCOBERTAS</h4>'+chapter2Places.map((place,index)=>'<div class="village-couple"><strong>'+(missionState.chapter2Discoveries.includes(place.id)?'✓ ':'◇ ')+(index+1)+'. '+place.name+'</strong><small>'+(missionState.chapter2Discoveries.includes(place.id)?place.description:'Local ainda não explorado · procure o marco dourado no mundo')+'</small></div>').join("")+'<h4 class="villager-invite-heading">DIÁRIO DE AVENTURAS</h4><div class="chapter-two-journal">'+(missionState.chapter2Journal.length?missionState.chapter2Journal.map(entry=>'<p>📖 '+entry+'</p>').join(""):'<p>O diário está vazio. Suas conversas e descobertas serão registradas aqui.</p>')+'</div>'+(missionState.chapter2RewardClaimed?'<div class="village-couple"><strong>Capítulo 2 concluído!</strong><span>Relatório entregue · Recompensa recebida: 40 moedas e 3 pontos de reputação regional.</span></div>':chapter2Ready?'<div class="village-couple"><strong>Todos os locais foram descobertos!</strong><span>Volte ao mensageiro e entregue seu relatório.</span></div>':'<small>Explore os cinco marcos dourados e retorne ao mensageiro para concluir o capítulo.</small>')+'</section>';
-    villagersList.innerHTML=missionMarkup+chapter2Markup+reputationMarkup+dynastyMarkup+relationshipMarkup+pregnancyMarkup+familyTreeMarkup+(villagers.length?villagers.map(v=>{
+    const chapter3Places=[{id:"market-square",name:"Praça do Mercado",description:"Os comerciantes organizam as trocas e abastecem a comunidade."},{id:"village-well",name:"Poço Comunitário",description:"O poço reúne os moradores e garante água para a vila."},{id:"council-hall",name:"Casa do Conselho",description:"Os anciãos decidem os rumos e as necessidades da comunidade."}];
+    const chapter3Count=missionState.chapter3Discoveries.length;
+    const chapter3Ready=missionState.chapter3ElderMet&&chapter3Count===chapter3Places.length;
+    const chapter3Markup='<section class="village-relationships chapter-two"><h3 class="villager-invite-heading">📜 HISTÓRIA PRINCIPAL · CAPÍTULO 3</h3><div class="village-couple"><strong>A VILA VIZINHA</strong><span>'+(missionState.chapter2RewardClaimed?'A trilha revelou uma pequena comunidade. Converse com a anciã Alina e conheça os pontos importantes da vila.':'Conclua o Capítulo 2 para desbloquear esta jornada.')+'</span><div class="villager-needs-track"><i style="width:'+Math.round((Number(missionState.chapter3ElderMet)+chapter3Count+Number(missionState.chapter3RewardClaimed))/5*100)+'%"></i></div><small>Progresso: '+(Number(missionState.chapter3ElderMet)+chapter3Count+(missionState.chapter3RewardClaimed?1:0))+'/5 etapas</small></div><div class="chapter-two-actions">'+(missionState.chapter2RewardClaimed?'<button type="button" data-chapter3-talk>FALAR COM ALINA · ANCIÃ DA VILA</button>':'<small>Capítulo bloqueado · conclua o segundo capítulo.</small>')+'</div><h4 class="villager-invite-heading">PONTOS DA COMUNIDADE</h4>'+chapter3Places.map((place,index)=>'<div class="village-couple"><strong>'+(missionState.chapter3Discoveries.includes(place.id)?'✓ ':'◇ ')+(index+1)+'. '+place.name+'</strong><small>'+(missionState.chapter3Discoveries.includes(place.id)?place.description:'Local ainda não visitado · procure o marco dourado na vila vizinha')+'</small></div>').join("")+'<h4 class="villager-invite-heading">DIÁRIO DA VILA</h4><div class="chapter-two-journal">'+(missionState.chapter3Journal.length?missionState.chapter3Journal.map(entry=>'<p>📖 '+entry+'</p>').join(""):'<p>Conheça Alina para iniciar seu diário nesta comunidade.</p>')+'</div>'+(missionState.chapter3RewardClaimed?'<div class="village-couple"><strong>Capítulo 3 concluído!</strong><span>A vila vizinha reconheceu sua ajuda · Recompensa recebida: 60 moedas e 4 pontos de reputação regional.</span></div>':chapter3Ready?'<div class="village-couple"><strong>A vila está conhecida!</strong><span>Volte a Alina e entregue seu relatório.</span></div>':'<small>Conheça Alina, visite a praça, o poço e a casa do conselho.</small>')+'</section>';
+    villagersList.innerHTML=missionMarkup+chapter2Markup+chapter3Markup+reputationMarkup+dynastyMarkup+relationshipMarkup+pregnancyMarkup+familyTreeMarkup+(villagers.length?villagers.map(v=>{
       const distance=Math.hypot(v.x-player.x,v.z-player.z),direction=villagerDirection(v);
       const mood=v.happiness>=75?"Muito feliz":v.happiness>=50?"Satisfeito":v.happiness>=25?"Insatisfeito":"Muito insatisfeito";
       return '<article class="villager-directory-item"><div><strong>'+v.name+'</strong><span>'+v.role+' · '+mood+'</span><small class="villager-romance">'+villagerRelationshipLabel(v)+'</small><small>Felicidade '+Math.round(v.happiness)+'/100 · Fome '+Math.round(v.hunger)+'/100</small><div class="villager-needs-track"><i style="width:'+v.happiness+'%"></i></div><small>'+v.foodStatus+' · '+v.housingStatus+' · '+(v.atWork?"Trabalhando":"Em casa / deslocando-se")+' · '+direction+' · '+distance.toFixed(0)+' m · Casa '+v.houseId.replace("house-","")+'</small><label class="villager-profession-label">PROFISSÃO <select data-villager-profession="'+v.id+'">'+villagerDefinitions.map(def=>'<option value="'+def.role+'" '+(def.role===v.role?"selected":"")+' >'+def.role+'</option>').join("")+'</select></label></div><button type="button" data-face-villager="'+v.id+'">LOCALIZAR</button></article>';
@@ -1008,6 +1016,21 @@ function startGame(THREE) {
     saveProgress(true);renderVillagersDirectory();showToast(villager.name+" agora trabalha como "+villager.role+".");
   });
   function addChapter2Journal(entry){if(!missionState.chapter2Journal.includes(entry))missionState.chapter2Journal.push(entry);missionState.chapter2Journal=missionState.chapter2Journal.slice(-20);}
+  function addChapter3Journal(entry){if(!missionState.chapter3Journal.includes(entry))missionState.chapter3Journal.push(entry);missionState.chapter3Journal=missionState.chapter3Journal.slice(-20);}
+  function showChapter3Dialogue(){
+    if(!missionState.chapter2RewardClaimed){showToast("Conclua o Capítulo 2 para encontrar a vila vizinha.");return;}
+    let panel=document.getElementById("chapter3-dialogue");
+    if(!panel){panel=document.createElement("section");panel.id="chapter3-dialogue";panel.className="chapter2-dialogue";panel.setAttribute("role","dialog");panel.setAttribute("aria-modal","true");game.appendChild(panel);}
+    const ready=missionState.chapter3ElderMet&&missionState.chapter3Discoveries.length===3&&!missionState.chapter3RewardClaimed;
+    panel.innerHTML='<header><span>VILA VIZINHA · ANCIÃ ALINA</span><button type="button" data-chapter3-close aria-label="Fechar">×</button></header><h3>'+(missionState.chapter3ElderMet?(ready?'A comunidade agradece':'Uma vila em crescimento'):'Uma nova comunidade')+'</h3><p>'+(missionState.chapter3ElderMet?(ready?'“Agora você conhece nossa praça, nosso poço e a casa do conselho. Leve este relatório aos moradores.”':'“Nossa vila precisa de aliados. Conheça os lugares importantes e entenderá como podemos crescer juntos.”'):'“Seja bem-vindo! Sou Alina, anciã desta comunidade. A praça recebe nossos comerciantes, o poço abastece as famílias e a casa do conselho guarda os planos para o futuro.”')+'</p><div class="chapter-two-actions">'+(missionState.chapter3ElderMet?(ready?'<button type="button" data-chapter3-report>ENTREGAR RELATÓRIO</button>':'<button type="button" data-chapter3-close>VOU CONHECER A VILA</button>'):'<button type="button" data-chapter3-accept>ACEITAR A MISSÃO</button><button type="button" data-chapter3-question>PERGUNTAR SOBRE A COMUNIDADE</button>')+'</div>';
+    panel.classList.add("is-open");
+    panel.onclick=event=>{
+      if(event.target.closest("[data-chapter3-close]")){panel.classList.remove("is-open");return;}
+      if(event.target.closest("[data-chapter3-accept]")){missionState.chapter3ElderMet=true;addChapter3Journal("Você conheceu Alina, a anciã, e aceitou conhecer a comunidade.");saveProgress(true);panel.classList.remove("is-open");renderVillagersDirectory();showToast("Nova missão: conheça os três pontos da vila vizinha.");return;}
+      if(event.target.closest("[data-chapter3-question]")){panel.querySelector("p").textContent="“A praça fica no coração da vila. O poço está próximo das casas, e a casa do conselho fica na parte alta, onde decidimos os assuntos de todos.”";addChapter3Journal("Alina explicou a importância da praça, do poço e da casa do conselho.");saveProgress(true);panel.querySelector("[data-chapter3-question]")?.remove();return;}
+      if(event.target.closest("[data-chapter3-report]")){if(missionState.chapter3RewardClaimed||!missionState.chapter3ElderMet||missionState.chapter3Discoveries.length!==3)return;missionState.chapter3RewardClaimed=true;coins=Math.min(999999,coins+60);tradeReputation=Math.min(9999,tradeReputation+4);settlementReputation.vale=Math.min(9999,(settlementReputation.vale||0)+4);addChapter3Journal("Relatório entregue. Alina agradeceu sua visita e convidou o vale central a manter relações com a vila vizinha.");saveProgress(true);updateInventoryUI();panel.classList.remove("is-open");renderVillagersDirectory();showToast("Capítulo 3 concluído! +60 moedas e +4 reputação regional.");}
+    };
+  }
   function showChapter2Dialogue(){
     if(!missionState.chapter1RewardClaimed){showToast("Conclua o Capítulo 1 para iniciar esta jornada.");return;}
     let panel=document.getElementById("chapter2-dialogue");
@@ -1023,6 +1046,7 @@ function startGame(THREE) {
     };
   }
   villagersList.addEventListener("click",event=>{
+    if(event.target.closest("[data-chapter3-talk]")){showChapter3Dialogue();return;}
     if(event.target.closest("[data-chapter2-talk]")){showChapter2Dialogue();return;}
     const rewardButton=event.target.closest("[data-claim-chapter-one]");
     if(rewardButton){
@@ -1584,6 +1608,7 @@ function startGame(THREE) {
     const x = (random() - 0.5) * 198;
     const z = (random() - 0.5) * 198;
     if (Math.abs(x) < 27 && z > -4 && z < 83) continue;
+    if (x>25&&x<67&&z>-102&&z<-66) continue;
     if (riverDistance(x, z) < 11) continue;
     if (Math.abs(x) > 96 || Math.abs(z) > 96) continue;
     treeSpots.push({ x, z, scale: 0.72 + random() * 0.76, turn: random() * Math.PI * 2 });
@@ -1961,7 +1986,7 @@ function startGame(THREE) {
         tradeReputation:Number.isSafeInteger(saved.tradeReputation)?THREE.MathUtils.clamp(saved.tradeReputation,0,9999):0,
         settlementReputation:{vale:Number.isSafeInteger(saved.settlementReputation?.vale)?THREE.MathUtils.clamp(saved.settlementReputation.vale,0,9999):(Number.isSafeInteger(saved.tradeReputation)?THREE.MathUtils.clamp(saved.tradeReputation,0,9999):0)},
         completedTradeContracts:Array.isArray(saved.completedTradeContracts)?saved.completedTradeContracts.filter(id=>typeof id==="string"&&id.length<80).slice(-100):[],
-        missionState:{chapter1RewardClaimed:saved.missionState?.chapter1RewardClaimed===true,chapter2MessengerMet:saved.missionState?.chapter2MessengerMet===true,chapter2Discoveries:Array.isArray(saved.missionState?.chapter2Discoveries)?[...new Set(saved.missionState.chapter2Discoveries.filter(id=>["lookout","river-crossing","old-oak","old-road","village-trail"].includes(id)))]:[],chapter2RewardClaimed:saved.missionState?.chapter2RewardClaimed===true,chapter2Journal:Array.isArray(saved.missionState?.chapter2Journal)?saved.missionState.chapter2Journal.filter(item=>typeof item==="string").slice(-20):[]},
+        missionState:{chapter1RewardClaimed:saved.missionState?.chapter1RewardClaimed===true,chapter2MessengerMet:saved.missionState?.chapter2MessengerMet===true,chapter2Discoveries:Array.isArray(saved.missionState?.chapter2Discoveries)?[...new Set(saved.missionState.chapter2Discoveries.filter(id=>["lookout","river-crossing","old-oak","old-road","village-trail"].includes(id)))]:[],chapter2RewardClaimed:saved.missionState?.chapter2RewardClaimed===true,chapter2Journal:Array.isArray(saved.missionState?.chapter2Journal)?saved.missionState.chapter2Journal.filter(item=>typeof item==="string").slice(-20):[],chapter3ElderMet:saved.missionState?.chapter3ElderMet===true,chapter3Discoveries:Array.isArray(saved.missionState?.chapter3Discoveries)?[...new Set(saved.missionState.chapter3Discoveries.filter(id=>["market-square","village-well","council-hall"].includes(id)))]:[],chapter3RewardClaimed:saved.missionState?.chapter3RewardClaimed===true,chapter3Journal:Array.isArray(saved.missionState?.chapter3Journal)?saved.missionState.chapter3Journal.filter(item=>typeof item==="string").slice(-20):[]},
         health: safeStat(saved.health),
         hunger: safeStat(saved.hunger),
         thirst: safeStat(saved.thirst),
@@ -2210,6 +2235,7 @@ function startGame(THREE) {
   // Colisão simples: limites do mapa, troncos e leito do rio.
   function isBlocked(x, z) {
     if (Math.abs(x) > 104 || Math.abs(z) > 104) return true;
+    if (typeof neighborVillageObstacles!=="undefined" && neighborVillageObstacles.some(point=>Math.hypot(x-point.x,z-point.z)<point.radius)) return true;
     if (riverDistance(x, z) < 8.2 && !isOnRiverBridge(x,z)) return true;
     for (let i = 0; i < treeSpots.length; i++) {
       if (felledTrees.has(i)) continue;
@@ -2729,11 +2755,59 @@ function startGame(THREE) {
   }
   collectButton.addEventListener("click", performCurrentInteraction);
 
-  const chapter2DiscoveryDefs=[{id:"lookout",name:"Mirante das Colinas",x:28,z:12},{id:"river-crossing",name:"Travessia do Rio",x:riverX(RIVER_BRIDGE_Z),z:RIVER_BRIDGE_Z},{id:"old-oak",name:"Carvalho Antigo",x:58,z:-38},{id:"old-road",name:"Estrada Antiga",x:-62,z:-58},{id:"village-trail",name:"Trilha da Vila Distante",x:28,z:-82}];
+  const neighborVillageObstacles=[{x:40,z:-90,radius:2.4},{x:51,z:-90,radius:2.4},{x:40,z:-76,radius:2.4},{x:52,z:-76,radius:2.4},{x:61,z:-82,radius:2.1},{x:47,z:-82,radius:1.2}];
+  const neighborVillageGroup=new THREE.Group();
+  const villageWood=new THREE.MeshStandardMaterial({color:0x89603c,roughness:1});
+  const villageLightWood=new THREE.MeshStandardMaterial({color:0xb08350,roughness:1});
+  const villageRoof=new THREE.MeshStandardMaterial({color:0x514333,roughness:1});
+  const villageStone=new THREE.MeshStandardMaterial({color:0x77766b,roughness:1});
+  function addNeighborHouse(x,z,scale=1){
+    const house=new THREE.Group();
+    const body=new THREE.Mesh(new THREE.BoxGeometry(5*scale,3.1*scale,4.4*scale),villageWood);body.position.y=1.55*scale;house.add(body);
+    const roofA=new THREE.Mesh(new THREE.BoxGeometry(3.1*scale,.22*scale,4.9*scale),villageRoof);roofA.position.set(-1.25*scale,3.35*scale,0);roofA.rotation.z=-.58;house.add(roofA);
+    const roofB=roofA.clone();roofB.position.x=1.25*scale;roofB.rotation.z=.58;house.add(roofB);
+    const door=new THREE.Mesh(new THREE.BoxGeometry(.95*scale,1.9*scale,.12*scale),villageLightWood);door.position.set(0,.95*scale,-2.26*scale);house.add(door);
+    const windowMat=new THREE.MeshStandardMaterial({color:0x3c4c48,roughness:.8});
+    for(const side of [-1,1]){const windowMesh=new THREE.Mesh(new THREE.BoxGeometry(.7*scale,.72*scale,.1*scale),windowMat);windowMesh.position.set(side*1.55*scale,1.9*scale,-2.26*scale);house.add(windowMesh);}
+    house.position.set(x,groundHeight(x,z),z);neighborVillageGroup.add(house);
+  }
+  addNeighborHouse(40,-90,1);addNeighborHouse(51,-90,.92);addNeighborHouse(40,-76,.92);
+  const marketStall=new THREE.Group();
+  const counter=new THREE.Mesh(new THREE.BoxGeometry(4.8,.9,1.5),villageLightWood);counter.position.y=.55;marketStall.add(counter);
+  for(const x of [-2.1,2.1])for(const z of [-.55,.55]){const post=new THREE.Mesh(new THREE.CylinderGeometry(.07,.08,2.8,6),villageWood);post.position.set(x,1.4,z);marketStall.add(post);}
+  const canopy=new THREE.Mesh(new THREE.BoxGeometry(5.2,.18,2.1),new THREE.MeshStandardMaterial({color:0x9b5541,roughness:1}));canopy.position.y=2.85;marketStall.add(canopy);
+  marketStall.position.set(52,groundHeight(52,-76),-76);neighborVillageGroup.add(marketStall);
+  const well=new THREE.Group();
+  const wellBase=new THREE.Mesh(new THREE.CylinderGeometry(1.25,1.35,.75,10),villageStone);wellBase.position.y=.38;well.add(wellBase);
+  const water=new THREE.Mesh(new THREE.CircleGeometry(1.02,12),new THREE.MeshStandardMaterial({color:0x527f8a,roughness:.3,metalness:.1}));water.rotation.x=-Math.PI/2;water.position.y=.78;well.add(water);
+  for(const x of [-.95,.95]){const post=new THREE.Mesh(new THREE.BoxGeometry(.16,2.2,.16),villageWood);post.position.set(x,1.45,0);well.add(post);}
+  const beam=new THREE.Mesh(new THREE.BoxGeometry(2.2,.16,.18),villageWood);beam.position.y=2.5;well.add(beam);
+  well.position.set(47,groundHeight(47,-82),-82);neighborVillageGroup.add(well);
+  const council=new THREE.Group();
+  const hallBody=new THREE.Mesh(new THREE.BoxGeometry(6.2,3.6,5.2),villageLightWood);hallBody.position.y=1.8;council.add(hallBody);
+  const hallRoof=new THREE.Mesh(new THREE.ConeGeometry(4.8,2.2,4),villageRoof);hallRoof.position.y=4.6;hallRoof.rotation.y=Math.PI/4;council.add(hallRoof);
+  const hallDoor=new THREE.Mesh(new THREE.BoxGeometry(1.1,2.1,.14),villageWood);hallDoor.position.set(0,1.05,-2.68);council.add(hallDoor);
+  council.position.set(61,groundHeight(61,-82),-82);neighborVillageGroup.add(council);
+  const elder=new THREE.Group();
+  const elderRobe=new THREE.Mesh(new THREE.CylinderGeometry(.3,.4,1.2,8),new THREE.MeshStandardMaterial({color:0x687b54,roughness:1}));elderRobe.position.y=.8;elder.add(elderRobe);
+  const elderHead=new THREE.Mesh(new THREE.SphereGeometry(.24,9,7),new THREE.MeshStandardMaterial({color:0xd7b08d}));elderHead.position.y=1.62;elder.add(elderHead);
+  const elderHair=new THREE.Mesh(new THREE.SphereGeometry(.27,8,6),new THREE.MeshStandardMaterial({color:0xb9b2a2,roughness:1}));elderHair.position.set(0,1.77,.02);elder.add(elderHair);
+  const elderLabel=makeResourceLabel("ALINA · ANCIÃ","#e6c77d");elderLabel.position.set(0,2.35,0);elderLabel.scale.set(3.1,.78,1);elder.add(elderLabel);
+  elder.position.set(34,groundHeight(34,-82),-82);neighborVillageGroup.add(elder);
+  scene.add(neighborVillageGroup);
+  const chapter3DiscoveryDefs=[{id:"market-square",name:"Praça do Mercado",x:52,z:-76},{id:"village-well",name:"Poço Comunitário",x:47,z:-82},{id:"council-hall",name:"Casa do Conselho",x:61,z:-82}];
+  const chapter3Markers=[];
+  chapter3DiscoveryDefs.forEach(place=>{const marker=new THREE.Group();const stem=new THREE.Mesh(new THREE.CylinderGeometry(.12,.18,1.5,7),new THREE.MeshStandardMaterial({color:0x806332,roughness:1}));stem.position.y=.75;marker.add(stem);const beacon=new THREE.Mesh(new THREE.OctahedronGeometry(.48,0),new THREE.MeshStandardMaterial({color:0x9bd18c,emissive:0x3d7b39,emissiveIntensity:1,roughness:.35}));beacon.position.y=1.8;marker.add(beacon);marker.position.set(place.x,groundHeight(place.x,place.z),place.z);marker.userData.placeId=place.id;neighborVillageGroup.add(marker);chapter3Markers.push(marker);});
   const chapter2Markers=[];
   const chapter2Messenger=new THREE.Group();
   {const robe=new THREE.Mesh(new THREE.CylinderGeometry(.32,.42,1.2,8),new THREE.MeshStandardMaterial({color:0x52677a,roughness:1}));robe.position.y=.82;chapter2Messenger.add(robe);const head=new THREE.Mesh(new THREE.SphereGeometry(.24,10,8),new THREE.MeshStandardMaterial({color:0xd6ad86}));head.position.y=1.62;chapter2Messenger.add(head);const hood=new THREE.Mesh(new THREE.ConeGeometry(.3,.38,8),new THREE.MeshStandardMaterial({color:0x9a7848}));hood.position.y=1.88;chapter2Messenger.add(hood);chapter2Messenger.position.set(7,groundHeight(7,29),29);scene.add(chapter2Messenger);}
   chapter2DiscoveryDefs.forEach((place,index)=>{const group=new THREE.Group();const stem=new THREE.Mesh(new THREE.CylinderGeometry(.12,.18,1.5,7),new THREE.MeshStandardMaterial({color:0x806332,roughness:1}));stem.position.y=.75;group.add(stem);const beacon=new THREE.Mesh(new THREE.OctahedronGeometry(.48,0),new THREE.MeshStandardMaterial({color:0xf3c66e,emissive:0x9b6422,emissiveIntensity:1.1,roughness:.35}));beacon.position.y=1.8;group.add(beacon);group.position.set(place.x,groundHeight(place.x,place.z),place.z);group.userData.placeId=place.id;scene.add(group);chapter2Markers.push(group);});
+  function updateChapter3Exploration(){
+    if(!missionState.chapter3ElderMet||missionState.chapter3RewardClaimed||!missionState.chapter2RewardClaimed)return;
+    let changed=false;
+    chapter3DiscoveryDefs.forEach(place=>{if(missionState.chapter3Discoveries.includes(place.id))return;const distance=Math.hypot(player.x-place.x,player.z-place.z);if(distance<=5.4){missionState.chapter3Discoveries.push(place.id);addChapter3Journal("Visitou "+place.name+". "+place.description);chapter3Markers.find(marker=>marker.userData.placeId===place.id)?.scale.setScalar(.35);showToast("Ponto da vila conhecido: "+place.name);changed=true;}});
+    if(changed){saveProgress(true);if(!villagersDirectory.classList.contains("hidden"))renderVillagersDirectory();}
+  }
   function updateChapter2Exploration(){
     if(!missionState.chapter2MessengerMet||missionState.chapter2RewardClaimed)return;
     let changed=false;
@@ -2746,6 +2820,7 @@ function startGame(THREE) {
     const delta = Math.min(clock.getDelta(), 0.05);
     updateFishingProgress(delta);
     updateChapter2Exploration();
+    updateChapter3Exploration();
     if(villagers.length)updateVillagers(delta);
     if(familyActors.length)updateFamilyActors(delta);
     if(kitchenFire){kitchenFire.time+=delta;const flicker=1+Math.sin(kitchenFire.time*13)*0.12+Math.sin(kitchenFire.time*21)*0.06;kitchenFire.flame.scale.set(1, flicker, 1);kitchenFire.flame.rotation.y=kitchenFire.time*1.8;kitchenFire.flameCore.scale.y=0.9+Math.sin(kitchenFire.time*17)*0.12;kitchenFire.light.intensity=1.25+Math.sin(kitchenFire.time*15)*0.22;}
