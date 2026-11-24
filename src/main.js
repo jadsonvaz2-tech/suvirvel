@@ -2066,12 +2066,12 @@ function startGame(THREE) {
   let wakeStartQuaternion = null;
   let villageDiscovered = saved?.villageDiscovered === true;
   const survival = {
-    health: saved?.health ?? 100,
-    hunger: saved?.hunger ?? 100,
-    thirst: saved?.thirst ?? 100,
-    energy: saved?.energy ?? 100, warmth: saved?.warmth ?? 100
+    health: saved?.health ?? 58,
+    hunger: saved?.hunger ?? 46,
+    thirst: saved?.thirst ?? 32,
+    energy: saved?.energy ?? 18, warmth: saved?.warmth ?? 55
   };
-  let coins = Number.isSafeInteger(saved?.coins) ? Math.max(0,Math.min(999999,saved.coins)) : 30;
+  let coins = Number.isSafeInteger(saved?.coins) ? Math.max(0,Math.min(999999,saved.coins)) : 0;
   let tradeReputation=Number.isSafeInteger(saved?.tradeReputation)?Math.max(0,Math.min(9999,saved.tradeReputation)):0;
   const settlementReputation={vale:Number.isSafeInteger(saved?.settlementReputation?.vale)?THREE.MathUtils.clamp(saved.settlementReputation.vale,0,9999):tradeReputation};
   const completedTradeContracts=new Set(Array.isArray(saved?.completedTradeContracts)?saved.completedTradeContracts.filter(id=>typeof id==="string"):[]);
@@ -2080,9 +2080,9 @@ function startGame(THREE) {
     stones: saved?.inventory?.stones ?? 0,
     berries: saved?.inventory?.berries ?? 0,
     wood: saved?.inventory?.wood ?? 0,
-    wheatSeeds: saved?.inventory?.wheatSeeds ?? 3,
-    carrotSeeds: saved?.inventory?.carrotSeeds ?? 3,
-    cabbageSeeds: saved?.inventory?.cabbageSeeds ?? 3,
+    wheatSeeds: saved?.inventory?.wheatSeeds ?? 0,
+    carrotSeeds: saved?.inventory?.carrotSeeds ?? 0,
+    cabbageSeeds: saved?.inventory?.cabbageSeeds ?? 0,
     wheat: saved?.inventory?.wheat ?? 0,
     carrots: saved?.inventory?.carrots ?? 0,
     cabbages: saved?.inventory?.cabbages ?? 0,
