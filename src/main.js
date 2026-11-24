@@ -148,6 +148,16 @@ function startGame(THREE) {
     }
     // A ponte possui um tabuleiro plano e contínuo sobre o leito do rio.
     if (Math.abs(z-RIVER_BRIDGE_Z)<3.4 && d<9.8) h=RIVER_BRIDGE_DECK_Y;
+    // Clareira nivelada para a Vila Vizinha: remove a elevação que encobria
+    // as construções e cria uma transição suave com as colinas ao redor.
+    const villageNX=(x-49)/22;
+    const villageNZ=(z+83)/19;
+    const villageRadius=Math.sqrt(villageNX*villageNX+villageNZ*villageNZ);
+    if(villageRadius<1){
+      const blend=THREE.MathUtils.clamp((villageRadius-0.62)/0.38,0,1);
+      const smooth=blend*blend*(3-2*blend);
+      h=h*(1-smooth)+0.42*smooth;
+    }
     return h;
   }
 
