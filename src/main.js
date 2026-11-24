@@ -3328,7 +3328,7 @@ function startGame(THREE) {
     else if(canUseBed)openSleepPanel();
     else if(canUseStorageChest)openChest();
     else if(canChopTree)chopCurrentTree();
-    else if(currentTreeTarget&&!tools.axe)showToast("Você precisa fabricar um machado na bancada.");
+    else if(currentTreeTarget&&!tools.axe)showToast("Você precisa fabricar um machado na fabricação manual.");
   }
   collectButton.addEventListener("click", performCurrentInteraction);
 
