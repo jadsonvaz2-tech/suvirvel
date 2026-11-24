@@ -2484,7 +2484,7 @@ function startGame(THREE) {
     if (!force && now - lastSave < 1500) return;
     lastSave = now;
     try {
-      localStorage.setItem("legado-do-vale-prototipo-v3", JSON.stringify({
+      localStorage.setItem("legado-do-vale-prototipo-v4", JSON.stringify({
         x: player.x, z: player.z, yaw: player.yaw, pitch: player.pitch,
         saveSchemaVersion:4,
         awakeningComplete: !isAwakening,
