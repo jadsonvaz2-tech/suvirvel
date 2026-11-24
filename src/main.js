@@ -283,7 +283,7 @@ function startGame(THREE) {
   // O ponto de recursos é ancorado na posição inicial salva do jogador.
   // Assim, a primeira área de coleta aparece perto do personagem mesmo em saves antigos.
   const loadedSave = readSave();
-  const saved = loadedSave?.saveSchemaVersion===4 ? loadedSave : loadedSave ? {...loadedSave,saveSchemaVersion:4,coins:0,tradeReputation:0,settlementReputation:{vale:0},completedTradeContracts:[],missionState:{},inventory:{},tools:{},storage:{},clothing:{},farmPlots:[],animalCare:{},huntedWildlife:[],collectedResources:[],resourceRespawnAt:{},felledTrees:[],treeHits:{},builtCabin:null,cabinDoorOpen:false,villageHouses:[],recruitedVillagers:[],villageStock:{},villagerRelationships:[],familyPregnancies:[],familyChildren:[],dynastyState:{},nextChildName:"",structurePositions:{},tanneryState:{readyAt:0,ready:false},fishingSpotState:{lastCatch:0}} : null;
+  const saved = loadedSave?.saveSchemaVersion===5 ? loadedSave : loadedSave ? {...loadedSave,saveSchemaVersion:5,coins:0,tradeReputation:0,settlementReputation:{vale:0},completedTradeContracts:[],missionState:{},inventory:{},tools:{},storage:{},clothing:{},farmPlots:[],animalCare:{},huntedWildlife:[],collectedResources:[],resourceRespawnAt:{},felledTrees:[],treeHits:{},builtCabin:loadedSave.builtCabin??null,cabinDoorOpen:false,placedCampfires:[],villageHouses:[],recruitedVillagers:[],villageStock:{},villagerRelationships:[],familyPregnancies:[],familyChildren:[],dynastyState:{},nextChildName:"",structurePositions:{},tanneryState:{readyAt:0,ready:false},fishingSpotState:{lastCatch:0}} : null;
   let landClaimed=saved?.landClaimed===true;
   let landSurveyMode=saved?.landSurveyMode===true&&!landClaimed;
   let landPosition=landClaimed&&Number.isFinite(saved?.landX)&&Number.isFinite(saved?.landZ)?{x:saved.landX,z:saved.landZ}:null;
@@ -1836,40 +1836,20 @@ function startGame(THREE) {
     group.position.set(tanneryPosition.x,groundHeight(tanneryPosition.x,tanneryPosition.z),tanneryPosition.z);group.rotation.y=Number.isFinite(savedTannery?.yaw)?savedTannery.yaw:builtCabin.yaw;scene.add(group);
   }
   function placeCabin() {
+    // Nesta versão, a casa é a única estrutura inicial. Sistemas antigos
+    // (baú, cama, cozinha, tear, curtume, hortas e cercados) não são criados.
     cabinModel=createCabinModel();
     cabinModel.position.set(builtCabin.x,groundHeight(builtCabin.x,builtCabin.z),builtCabin.z);
     cabinModel.rotation.y=builtCabin.yaw;
-    cabinDoorPivot=cabinModel.userData.doorPivot; cabinDoorPivot.rotation.y=cabinDoorAngle; scene.add(cabinModel);
-    const chest=createCabinChest();
-    chest.position.set(builtCabin.x+1.18*Math.cos(builtCabin.yaw)+1.15*Math.sin(builtCabin.yaw),groundHeight(builtCabin.x,builtCabin.z),builtCabin.z-1.18*Math.sin(builtCabin.yaw)+1.15*Math.cos(builtCabin.yaw));
-    chest.rotation.y=builtCabin.yaw; scene.add(chest);
-    cabinBed=createCabinBed();
-    cabinBed.position.set(builtCabin.x-1.15*Math.cos(builtCabin.yaw)+0.48*Math.sin(builtCabin.yaw),groundHeight(builtCabin.x,builtCabin.z),builtCabin.z+1.15*Math.sin(builtCabin.yaw)+0.48*Math.cos(builtCabin.yaw));
-    cabinBed.rotation.y=builtCabin.yaw;scene.add(cabinBed);
-    // Mantém a banca do mercador no lado oposto ao curtume, com espaço para circular.
-    const savedMerchant=savedStructurePositions.merchant;
-    merchantPosition=Number.isFinite(savedMerchant?.x)?{x:savedMerchant.x,z:savedMerchant.z}:localCabinPosition(-10,-7);
-    merchantStall.position.set(merchantPosition.x,groundHeight(merchantPosition.x,merchantPosition.z),merchantPosition.z);
-    merchantStall.rotation.y=Number.isFinite(savedMerchant?.yaw)?savedMerchant.yaw:builtCabin.yaw;
-    createKitchenStation();createLoomStation();createTanneryStation();
-    createFarmPlots();
-    createAnimalEnclosures();
-    applySavedStructurePositions();
+    cabinDoorPivot=cabinModel.userData.doorPivot;
+    cabinDoorPivot.rotation.y=cabinDoorAngle;
+    scene.add(cabinModel);
+    document.body.classList.add("house-built");
   }
 
   function getBuildableStructures(){
-    if(!builtCabin)return [];
-    const items=[
-      {id:"workbench",label:"Bancada de fabricação",group:workbench,radius:1.8,apply:(x,z)=>{workbenchPosition.x=x;workbenchPosition.z=z;}},
-      {id:"merchant",label:"Banca do mercador",group:merchantStall,radius:2.2,apply:(x,z)=>{merchantPosition={x,z};}},
-      {id:"kitchen",label:"Cozinha",group:kitchenGroup,radius:1.7,apply:(x,z)=>{kitchenPosition={x,z};}},
-      {id:"loom",label:"Tear de lã",group:loomGroup,radius:1.7,apply:(x,z)=>{loomPosition={x,z};}},
-      {id:"tannery",label:"Curtume",group:tanneryGroup,radius:2,apply:(x,z)=>{tanneryPosition={x,z};}},
-      {id:"chickens-pen",label:"Cercado das galinhas",group:animalEnclosures.chickens.group,radius:2.8,apply:(x,z,yaw)=>Object.assign(animalEnclosures.chickens,{x,z,yaw})},
-      {id:"sheep-pen",label:"Cercado das ovelhas",group:animalEnclosures.sheep.group,radius:3.4,apply:(x,z,yaw)=>Object.assign(animalEnclosures.sheep,{x,z,yaw})}
-    ];
-    for(const plot of farmPlots)items.push({id:plot.id,label:"Horta "+plot.id.slice(-1),group:plot.group,radius:1.35,apply:(x,z)=>{plot.x=x;plot.z=z;}});
-    return items.filter(item=>item.group);
+    // Novas estruturas serão implementadas do zero, uma por vez.
+    return [];
   }
   function applySavedStructurePositions(){
     for(const item of getBuildableStructures()){
@@ -1885,18 +1865,18 @@ function startGame(THREE) {
   function renderBuildingOptions(){
     if(!buildingOptions)return;
     buildingOptions.innerHTML="";
-    if(!builtCabin){
-      const button=document.createElement("button");button.type="button";button.className="building-option";button.dataset.buildId="cabin";
-      button.innerHTML="<strong>Cabana inicial</strong><small>12 madeiras · 8 galhos · sua moradia</small>";buildingOptions.appendChild(button);
-      buildingStatus.textContent="Construa primeiro sua cabana.";
-    }else{
-      const houseButton=document.createElement("button");houseButton.type="button";houseButton.className="building-option";houseButton.dataset.buildId="village-house";
-      houseButton.innerHTML="<strong>Casa para moradores</strong><small>20 madeiras · 12 galhos · capacidade para 2 pessoas</small>";buildingOptions.appendChild(houseButton);
-      const heading=document.createElement("small");heading.className="building-options-heading";heading.textContent="OU REPOSICIONE UMA ESTRUTURA";buildingOptions.appendChild(heading);
-      for(const item of getBuildableStructures()){const button=document.createElement("button");button.type="button";button.className="building-option";button.dataset.buildId=item.id;button.textContent=item.label;buildingOptions.appendChild(button);}
-      buildingStatus.textContent="Cada casa construída libera duas vagas para convites.";
+    if(builtCabin){
+      buildingStatus.textContent="A casa já foi construída. Novas construções serão adicionadas futuramente.";
+      return;
     }
-    buildingOptions.querySelectorAll("[data-build-id]").forEach(button=>button.addEventListener("click",()=>selectBuildOption(button.dataset.buildId)));
+    const button=document.createElement("button");
+    button.type="button";
+    button.className="building-option";
+    button.dataset.buildId="cabin";
+    button.innerHTML="<strong>Casa inicial</strong><small>12 madeiras · 8 galhos · sua moradia</small>";
+    buildingOptions.appendChild(button);
+    buildingStatus.textContent="Construa sua primeira casa.";
+    button.addEventListener("click",()=>selectBuildOption("cabin"));
   }
   function selectBuildOption(id){
     if(id==="cabin"){if(builtCabin)return;buildSelectedId="cabin";buildSelectedItem=null;}
@@ -1979,7 +1959,7 @@ function startGame(THREE) {
     buildingConfirm.disabled=!buildPreviewValid||(buildSelectedId==="campfire"&&(inventory.wood<cost[0]||inventory.branches<cost[1]||inventory.stones<cost[2]))||(cost.length===2&&cost[0]>0&&(inventory.wood<cost[0]||inventory.branches<cost[1]))||(buildSelectedId==="cabin"&&Boolean(builtCabin));
   }
   function startBuilding(){
-    if(!openingManagementUnlocked)return;
+    if(!openingManagementUnlocked||builtCabin)return;
     buildMode=true;buildingPanel.classList.remove("hidden");renderBuildingOptions();
     if(!builtCabin)selectBuildOption("cabin");
     else{buildSelectedId=null;buildSelectedItem=null;buildingConfirm.disabled=true;buildingMaterials.textContent="Escolha uma estrutura para reposicionar";}
@@ -2009,7 +1989,8 @@ function startGame(THREE) {
     if(buildSelectedId==="cabin"){
       if(builtCabin)return;if(inventory.wood<12||inventory.branches<8){showToast("Faltam materiais: 12 madeiras e 8 galhos.");updateInventoryUI();return;}
       inventory.wood-=12;inventory.branches-=8;builtCabin={x:position.x,z:position.z,yaw};placeCabin();
-      stopBuilding();updateInventoryUI();saveProgress(true);showToast("Cabana construída! Seu primeiro abrigo está pronto.");return;
+      buildToggle.style.display="none";
+      stopBuilding();updateInventoryUI();saveProgress(true);showToast("Casa construída! Seu abrigo está pronto.");return;
     }
     if(buildSelectedId==="village-house"){
       if(inventory.wood<20||inventory.branches<12){showToast("Faltam materiais: 20 madeiras e 12 galhos.");return;}
@@ -2349,14 +2330,7 @@ function startGame(THREE) {
     showToast("Machado fabricado! Materiais guardados na mochila foram usados.");
   }
   craftAxeButton.addEventListener("click", craftAxe);
-  const manualCraftToggle=document.createElement("button");manualCraftToggle.type="button";manualCraftToggle.className="manual-craft-toggle";manualCraftToggle.textContent="FABRICAÇÃO MANUAL";manualCraftToggle.setAttribute("aria-label","Abrir fabricação manual");Object.assign(manualCraftToggle.style,{position:"fixed",right:"14px",bottom:"104px",zIndex:"45",padding:"12px 15px",border:"1px solid #b8955d",borderRadius:"8px",background:"#33271c",color:"#f5e6c7",fontWeight:"800",fontSize:"12px",letterSpacing:".04em",boxShadow:"0 3px 12px #0008",display:landClaimed?"block":"none"});game.appendChild(manualCraftToggle);manualCraftToggle.addEventListener("click",openCrafting);
-  function updateManualCraftAvailability(){manualCraftToggle.style.display=landClaimed?"block":"none";}
-  updateManualCraftAvailability();
-  const manualRecipeButtons=document.createElement("div");manualRecipeButtons.className="manual-recipe-buttons";manualRecipeButtons.innerHTML='<button type="button" id="craft-pickaxe-button" class="craft-action-button">FABRICAR PICARETA · 3 GALHOS + 3 PEDRAS</button><button type="button" id="craft-torch-button" class="craft-action-button">FABRICAR TOCHA · 2 GALHOS + 1 MADEIRA</button><button type="button" id="craft-campfire-button" class="craft-action-button">MONTAR FOGUEIRA · 1 MADEIRA + 5 GALHOS + 3 PEDRAS</button><button type="button" id="craft-cord-button" class="craft-action-button">TORCER CORDA · 3 FIBRAS</button><p class="inventory-note">Recolha fibras das plantas e torça-as em cordas. A corda pode substituir o tecido na fabricação do arco e da vara de pesca.</p>';craftingPanel.appendChild(manualRecipeButtons);
-  document.getElementById("craft-cord-button").addEventListener("click",()=>{if(inventory.fibers<3){showToast("Reúna 3 fibras vegetais para torcer uma corda.");return;}if(!canCarry(1))return;inventory.fibers-=3;inventory.cord=Math.min(9999,inventory.cord+1);updateInventoryUI();saveProgress(true);showToast("Você torceu 1 corda com fibras vegetais.");});
-  document.getElementById("craft-pickaxe-button").addEventListener("click",()=>{if(tools.pickaxe||inventory.branches<3||inventory.stones<3)return;inventory.branches-=3;inventory.stones-=3;tools.pickaxe=true;updatePickaxeVisual();updateInventoryUI();saveProgress(true);showToast("Picareta fabricada!");});
-  document.getElementById("craft-torch-button").addEventListener("click",()=>{if(tools.torch||inventory.branches<2||inventory.wood<1)return;inventory.branches-=2;inventory.wood--;tools.torch=true;updateTorchVisual();updateInventoryUI();saveProgress(true);showToast("Tocha fabricada! Ela ilumina o caminho à sua frente.");});
-  document.getElementById("craft-campfire-button").addEventListener("click",()=>{if(inventory.wood<1||inventory.branches<5||inventory.stones<3){showToast("Para montar a fogueira: 1 madeira, 5 galhos e 3 pedras.");return;}if(placedCampfires.length>=40){showToast("Você já montou muitas fogueiras.");return;}closeCrafting();buildMode=true;buildSelectedId="campfire";buildSelectedItem={id:"campfire-placement",label:"Fogueira",radius:1.25};buildRotation=0;buildingOptions.innerHTML="";buildingOptions.style.display="none";buildingPanel.classList.remove("hidden");buildingPanel.classList.add("campfire-placement-mode");buildingPanel.querySelector(".eyebrow").textContent="POSICIONAMENTO";buildingPanel.querySelector("header strong").textContent="MONTAR FOGUEIRA";buildingPanel.querySelector(".building-description").textContent="Mova-se e gire a câmera para escolher o local. A prévia acompanha o terreno.";buildingMaterials.textContent="1 madeira · 5 galhos · 3 pedras";buildingStatus.textContent="Escolha um local livre dentro da sua propriedade.";buildingConfirm.textContent="CONFIRMAR POSIÇÃO";buildingConfirm.disabled=true;buildingRotate.textContent="GIRAR 45°";if(buildPreview)scene.remove(buildPreview);const campfireGhost=createCampfire({x:0,z:0});scene.remove(campfireGhost);buildPreview=cabinGhost(campfireGhost);scene.add(buildPreview);updateBuildPreview();});
+  // A fabricação antiga foi desativada; o novo sistema será criado separadamente.
   craftingClose.addEventListener("click", closeCrafting);
   function toggleInventory(force) {
     if(!openingManagementUnlocked)return;
@@ -2532,7 +2506,7 @@ function startGame(THREE) {
         landZ:Number.isFinite(saved.landZ)?THREE.MathUtils.clamp(saved.landZ,-96,96):null,
         landTaxDebt:Number.isSafeInteger(saved.landTaxDebt)?THREE.MathUtils.clamp(saved.landTaxDebt,0,999999):0,
         nextLandTaxDay:Number.isSafeInteger(saved.nextLandTaxDay)?THREE.MathUtils.clamp(saved.nextLandTaxDay,1,999999):365,
-        saveSchemaVersion: saved.saveSchemaVersion === 4 ? 4 : 3,
+        saveSchemaVersion: saved.saveSchemaVersion === 5 ? 5 : saved.saveSchemaVersion === 4 ? 4 : 3,
         coins: Number.isSafeInteger(saved.coins)?THREE.MathUtils.clamp(saved.coins,0,999999):30,
         tradeReputation:Number.isSafeInteger(saved.tradeReputation)?THREE.MathUtils.clamp(saved.tradeReputation,0,9999):0,
         settlementReputation:{vale:Number.isSafeInteger(saved.settlementReputation?.vale)?THREE.MathUtils.clamp(saved.settlementReputation.vale,0,9999):(Number.isSafeInteger(saved.tradeReputation)?THREE.MathUtils.clamp(saved.tradeReputation,0,9999):0)},
@@ -2628,7 +2602,7 @@ function startGame(THREE) {
     try {
       localStorage.setItem("legado-do-vale-prototipo-v4", JSON.stringify({
         x: player.x, z: player.z, yaw: player.yaw, pitch: player.pitch,
-        saveSchemaVersion:4,
+        saveSchemaVersion:5,
         awakeningComplete: !isAwakening,
         villageDiscovered,
         elderReportDelivered,
