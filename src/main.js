@@ -1970,7 +1970,7 @@ function startGame(THREE) {
   }
   function updateBuildPreview(){
     if(!buildMode||!buildPreview||!buildSelectedId){buildingConfirm.disabled=true;return;}
-    const fx=-Math.sin(player.yaw),fz=-Math.cos(player.yaw),x=Math.round((player.x+fx*8.2)*2)/2,z=Math.round((player.z+fz*8.2)*2)/2,yaw=player.yaw+Math.PI+buildRotation;
+    const fx=-Math.sin(player.yaw),fz=-Math.cos(player.yaw),placementDistance=buildSelectedId==="campfire"?3.0:8.2,x=Math.round((player.x+fx*placementDistance)*2)/2,z=Math.round((player.z+fz*placementDistance)*2)/2,yaw=player.yaw+Math.PI+buildRotation;
     buildPreview.position.set(x,groundHeight(x,z),z);buildPreview.rotation.y=yaw;
     buildPreviewReason=buildSelectedId==="cabin"?cabinFootprintValid(x,z,yaw):buildSelectedId==="village-house"?villageHousePlacementValid(x,z,yaw):buildSelectedId==="campfire"?(landClaimed&&landPosition&&Math.hypot(x-landPosition.x,z-landPosition.z)>34?"Coloque a fogueira dentro dos limites da sua propriedade.":structurePlacementValid(x,z,{id:"campfire-placement",radius:1.25})):structurePlacementValid(x,z,buildSelectedItem);
     buildPreviewValid=!buildPreviewReason;setBuildPreviewAppearance(buildPreviewValid);
