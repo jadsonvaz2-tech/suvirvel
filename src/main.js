@@ -2775,7 +2775,7 @@ function startGame(THREE) {
   const marketStall=new THREE.Group();
   const counter=new THREE.Mesh(new THREE.BoxGeometry(4.8,.9,1.5),villageLightWood);counter.position.y=.55;marketStall.add(counter);
   for(const x of [-2.1,2.1])for(const z of [-.55,.55]){const post=new THREE.Mesh(new THREE.CylinderGeometry(.07,.08,2.8,6),villageWood);post.position.set(x,1.4,z);marketStall.add(post);}
-  const canopy=new THREE.Mesh(new THREE.BoxGeometry(5.2,.18,2.1),new THREE.MeshStandardMaterial({color:0x9b5541,roughness:1}));canopy.position.y=2.85;marketStall.add(canopy);
+  const neighborCanopy=new THREE.Mesh(new THREE.BoxGeometry(5.2,.18,2.1),new THREE.MeshStandardMaterial({color:0x9b5541,roughness:1}));neighborCanopy.position.y=2.85;marketStall.add(neighborCanopy);
   marketStall.position.set(52,groundHeight(52,-76),-76);neighborVillageGroup.add(marketStall);
   const well=new THREE.Group();
   const wellBase=new THREE.Mesh(new THREE.CylinderGeometry(1.25,1.35,.75,10),villageStone);wellBase.position.y=.38;well.add(wellBase);
