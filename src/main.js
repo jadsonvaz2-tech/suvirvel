@@ -2020,6 +2020,7 @@ function startGame(THREE) {
   buildingConfirm.addEventListener("click",confirmBuilding);
 
   const felledTrees = new Set(saved?.felledTrees ?? []);
+  const felledTreeYaw = new Map(Object.entries(saved?.felledTreeYaw ?? {}).filter(([key,value])=>/^\d+$/.test(key)&&Number.isFinite(value)).map(([key,value])=>[Number(key),value]));
   const savedTreeHits = saved?.treeHits ?? {};
   const treeHitCounts = new Map(Object.entries(savedTreeHits).map(([key, value]) => [Number(key), value]));
   const treeSpots = [];
@@ -2063,23 +2064,40 @@ function startGame(THREE) {
   const dummy = new THREE.Object3D();
   const treeRemainsMaterial = new THREE.MeshStandardMaterial({ color: 0x806044, roughness: 1 });
   const logMaterial = new THREE.MeshStandardMaterial({ color: 0x9a7046, roughness: 1 });
-  function addTreeRemains(tree, groundY = groundHeight(tree.x, tree.z)) {
+  function addTreeStump(tree, groundY = groundHeight(tree.x, tree.z)) {
     const stump = new THREE.Mesh(new THREE.CylinderGeometry(0.42 * tree.scale, 0.5 * tree.scale, 0.62, 7), treeRemainsMaterial);
     stump.position.set(tree.x, groundY + 0.31, tree.z);
     stump.rotation.y = tree.turn;
     scene.add(stump);
-    const log = new THREE.Mesh(new THREE.CylinderGeometry(0.28 * tree.scale, 0.32 * tree.scale, 2.0 * tree.scale, 7), logMaterial);
-    log.rotation.z = Math.PI / 2;
-    log.rotation.y = tree.turn;
-    log.position.set(tree.x + 0.95 * tree.scale, groundY + 0.32 * tree.scale, tree.z + 0.55 * tree.scale);
-    scene.add(log);
+  }
+  function createFelledTreeModel(tree, groundY, yaw) {
+    const group = new THREE.Group();
+    const s = tree.scale;
+    const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+    trunk.position.y = 2.1 * s;
+    trunk.scale.set(s, s, s);
+    const crown = new THREE.Mesh(crownGeometry, crownMaterial);
+    crown.position.y = 6.2 * s;
+    crown.scale.set(s, s, s);
+    const crownTop = new THREE.Mesh(crownTopGeometry, crownMaterial);
+    crownTop.position.y = 10.0 * s;
+    crownTop.scale.set(s * 0.78, s * 0.78, s * 0.78);
+    group.add(trunk, crown, crownTop);
+    group.position.set(tree.x, groundY + 0.5 * s, tree.z);
+    group.rotation.set(Math.PI / 2, yaw, 0);
+    scene.add(group);
+    return group;
+  }
+  function addTreeRemains(tree, groundY = groundHeight(tree.x, tree.z), index = -1) {
+    addTreeStump(tree, groundY);
+    createFelledTreeModel(tree, groundY, felledTreeYaw.get(index) ?? tree.turn);
   }
   treeSpots.forEach((tree, index) => {
     const y = groundHeight(tree.x, tree.z);
     const s = tree.scale;
     const tint = new THREE.Color().setHSL(0.29 + random() * 0.035, 0.32, 0.22 + random() * 0.12);
     if (felledTrees.has(index)) {
-      addTreeRemains(tree, y);
+      addTreeRemains(tree, y, index);
       dummy.position.set(0, -1000, 0);
       dummy.scale.set(0, 0, 0);
       dummy.updateMatrix();
@@ -2596,6 +2614,7 @@ function startGame(THREE) {
             ))
           : {},
         felledTrees: Array.isArray(saved.felledTrees) ? saved.felledTrees.filter((index) => Number.isInteger(index) && index >= 0 && index < 470) : [],
+         felledTreeYaw: saved.felledTreeYaw && typeof saved.felledTreeYaw === "object" ? Object.fromEntries(Object.entries(saved.felledTreeYaw).filter(([key,value])=>/^\d+$/.test(key)&&Number(key)>=0&&Number(key)<470&&Number.isFinite(value))) : {},
         treeHits: saved.treeHits && typeof saved.treeHits === "object" ? Object.fromEntries(Object.entries(saved.treeHits).filter(([key, value]) => /^\d+$/.test(key) && Number.isInteger(value) && value >= 0 && value < 3)) : {}
       };
     } catch {
@@ -2636,6 +2655,7 @@ function startGame(THREE) {
         collectedResources: [...collectedResources],
         resourceRespawnAt: Object.fromEntries(resourceRespawnAt),
         felledTrees: [...felledTrees],
+        felledTreeYaw: Object.fromEntries(felledTreeYaw),
         treeHits: Object.fromEntries(treeHitCounts),
         builtCabin: builtCabin ? { ...builtCabin } : null,
         villageHouses:villageHouses.map(({id,x,z,yaw})=>({id,x,z,yaw})),
@@ -3113,7 +3133,7 @@ function startGame(THREE) {
     const groundY = groundHeight(tree.x, tree.z);
     hideTreeInstance(index);
     const group = new THREE.Group();
-    group.position.set(tree.x, groundY, tree.z);
+    group.position.set(tree.x, groundY + 0.5 * tree.scale, tree.z);
     const s = tree.scale;
     const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
     trunk.position.y = 2.1 * s;
@@ -3127,14 +3147,16 @@ function startGame(THREE) {
     group.add(trunk, crown, crownTop);
     group.rotation.y = Math.atan2(player.x - tree.x, player.z - tree.z);
     scene.add(group);
-    fallingTrees.push({ index, group, elapsed: 0, duration: 0.82, groundY });
+    return { group, groundY };
   }
-  function finishTreeFelling(index, groundY) {
+  function finishTreeFelling(index, groundY, group, branchReward) {
     const tree = treeSpots[index];
-    addTreeRemains(tree, groundY);
+    felledTreeYaw.set(index, group.rotation.y);
+    addTreeStump(tree, groundY);
     treeHitCounts.delete(index);
+    updateInventoryUI();
     saveProgress(true);
-    showToast("Árvore derrubada · +4 madeiras na mochila");
+    showToast("Árvore derrubada · +4 madeiras · +" + branchReward + " galhos");
   }
   function chopCurrentTree() {
     const target = currentTreeTarget;
@@ -3143,10 +3165,12 @@ function startGame(THREE) {
     const hits = (treeHitCounts.get(target.index) ?? 0) + 1;
     treeHitCounts.set(target.index, hits);
     if (hits >= 3) {
-      if(!canCarry(4))return;
+      const branchReward = 2 + Math.floor(Math.random() * 2);
+      if(!canCarry(4 + branchReward))return;
       felledTrees.add(target.index);
       treeHitCounts.delete(target.index);
       inventory.wood = Math.min(9999, inventory.wood + 4);
+      inventory.branches = Math.min(9999, inventory.branches + branchReward);
       updateInventoryUI();
       createFallingTree(target.index);
       currentTreeTarget = null;
@@ -3670,8 +3694,7 @@ function startGame(THREE) {
       const progress = Math.min(1, falling.elapsed / falling.duration);
       falling.group.rotation.x = progress * (Math.PI / 2);
       if (progress >= 1) {
-        scene.remove(falling.group);
-        finishTreeFelling(falling.index, falling.groundY);
+        finishTreeFelling(falling.index, falling.groundY, falling.group, falling.branchReward);
         fallingTrees.splice(i, 1);
       }
     }
