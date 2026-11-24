@@ -21,6 +21,7 @@ const buildingPanel = document.getElementById("building-panel");
 const buildingClose = document.getElementById("building-close");
 const buildingRotate = document.getElementById("building-rotate");
 const buildingConfirm = document.getElementById("building-confirm");
+const buildingCancel = document.getElementById("building-cancel");
 const buildingStatus = document.getElementById("building-status");
 const buildingMaterials = document.getElementById("building-materials");
 const buildingOptions = document.getElementById("building-options");
@@ -1985,7 +1986,7 @@ function startGame(THREE) {
     updateInventoryUI();
   }
   function stopBuilding() {
-    buildMode=false; buildingPanel.classList.add("hidden");
+    buildMode=false; buildingPanel.classList.add("hidden");buildingPanel.classList.remove("campfire-placement-mode");
     if (buildPreview) { scene.remove(buildPreview); buildPreview=null; }
     buildPreviewValid=false;buildSelectedId=null;buildSelectedItem=null;
     if(buildingOptions){buildingOptions.style.display="";buildingOptions.innerHTML="";}
@@ -2024,6 +2025,7 @@ function startGame(THREE) {
   if (builtCabin) placeCabin();
   buildToggle.addEventListener("click",startBuilding);
   buildingClose.addEventListener("click",stopBuilding);
+  buildingCancel.addEventListener("click",stopBuilding);
   buildingRotate.addEventListener("click",rotateBuilding);
   buildingConfirm.addEventListener("click",confirmBuilding);
 
@@ -2354,7 +2356,7 @@ function startGame(THREE) {
   document.getElementById("craft-cord-button").addEventListener("click",()=>{if(inventory.fibers<3){showToast("Reúna 3 fibras vegetais para torcer uma corda.");return;}if(!canCarry(1))return;inventory.fibers-=3;inventory.cord=Math.min(9999,inventory.cord+1);updateInventoryUI();saveProgress(true);showToast("Você torceu 1 corda com fibras vegetais.");});
   document.getElementById("craft-pickaxe-button").addEventListener("click",()=>{if(tools.pickaxe||inventory.branches<3||inventory.stones<3)return;inventory.branches-=3;inventory.stones-=3;tools.pickaxe=true;updatePickaxeVisual();updateInventoryUI();saveProgress(true);showToast("Picareta fabricada!");});
   document.getElementById("craft-torch-button").addEventListener("click",()=>{if(tools.torch||inventory.branches<2||inventory.wood<1)return;inventory.branches-=2;inventory.wood--;tools.torch=true;updateTorchVisual();updateInventoryUI();saveProgress(true);showToast("Tocha fabricada! Ela ilumina o caminho à sua frente.");});
-  document.getElementById("craft-campfire-button").addEventListener("click",()=>{if(inventory.wood<1||inventory.branches<5||inventory.stones<3){showToast("Para montar a fogueira: 1 madeira, 5 galhos e 3 pedras.");return;}if(placedCampfires.length>=40){showToast("Você já montou muitas fogueiras.");return;}closeCrafting();buildMode=true;buildSelectedId="campfire";buildSelectedItem={id:"campfire-placement",label:"Fogueira",radius:1.25};buildRotation=0;buildingOptions.innerHTML="";buildingOptions.style.display="none";buildingPanel.classList.remove("hidden");buildingPanel.querySelector(".eyebrow").textContent="POSICIONAMENTO";buildingPanel.querySelector("header strong").textContent="MONTAR FOGUEIRA";buildingPanel.querySelector(".building-description").textContent="Mova-se e gire a câmera para escolher o local. A prévia acompanha o terreno.";buildingMaterials.textContent="1 madeira · 5 galhos · 3 pedras";buildingStatus.textContent="Escolha um local livre dentro da sua propriedade.";buildingConfirm.textContent="CONFIRMAR POSIÇÃO";buildingConfirm.disabled=true;buildingRotate.textContent="GIRAR 45°";if(buildPreview)scene.remove(buildPreview);const campfireGhost=createCampfire({x:0,z:0});scene.remove(campfireGhost);buildPreview=cabinGhost(campfireGhost);scene.add(buildPreview);updateBuildPreview();});
+  document.getElementById("craft-campfire-button").addEventListener("click",()=>{if(inventory.wood<1||inventory.branches<5||inventory.stones<3){showToast("Para montar a fogueira: 1 madeira, 5 galhos e 3 pedras.");return;}if(placedCampfires.length>=40){showToast("Você já montou muitas fogueiras.");return;}closeCrafting();buildMode=true;buildSelectedId="campfire";buildSelectedItem={id:"campfire-placement",label:"Fogueira",radius:1.25};buildRotation=0;buildingOptions.innerHTML="";buildingOptions.style.display="none";buildingPanel.classList.remove("hidden");buildingPanel.classList.add("campfire-placement-mode");buildingPanel.querySelector(".eyebrow").textContent="POSICIONAMENTO";buildingPanel.querySelector("header strong").textContent="MONTAR FOGUEIRA";buildingPanel.querySelector(".building-description").textContent="Mova-se e gire a câmera para escolher o local. A prévia acompanha o terreno.";buildingMaterials.textContent="1 madeira · 5 galhos · 3 pedras";buildingStatus.textContent="Escolha um local livre dentro da sua propriedade.";buildingConfirm.textContent="CONFIRMAR POSIÇÃO";buildingConfirm.disabled=true;buildingRotate.textContent="GIRAR 45°";if(buildPreview)scene.remove(buildPreview);const campfireGhost=createCampfire({x:0,z:0});scene.remove(campfireGhost);buildPreview=cabinGhost(campfireGhost);scene.add(buildPreview);updateBuildPreview();});
   craftingClose.addEventListener("click", closeCrafting);
   function toggleInventory(force) {
     if(!openingManagementUnlocked)return;
