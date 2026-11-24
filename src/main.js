@@ -2949,6 +2949,32 @@ function startGame(THREE) {
     scene.add(chapter6CaravanGroup);
   }
   scene.add(neighborVillageGroup);
+  // Mercado central dos três vales: três bancas e carroças, reveladas após a construção.
+  chapter8MarketGroup=new THREE.Group();
+  {
+    const marketWood=new THREE.MeshStandardMaterial({color:0x805737,roughness:1});
+    const marketCloth=new THREE.MeshStandardMaterial({color:0x9b6048,roughness:1});
+    const marketStone=new THREE.MeshStandardMaterial({color:0x77766b,roughness:1});
+    const platform=new THREE.Mesh(new THREE.BoxGeometry(16,.24,11),marketStone);platform.position.y=.12;chapter8MarketGroup.add(platform);
+    for(let stall=0;stall<3;stall++){
+      const x=-5+stall*5;
+      const counter=new THREE.Mesh(new THREE.BoxGeometry(3.8,.9,1.35),marketWood);counter.position.set(x,.68,1.2);chapter8MarketGroup.add(counter);
+      for(const side of [-1,1]){const post=new THREE.Mesh(new THREE.BoxGeometry(.13,2.9,.13),marketWood);post.position.set(x+side*1.65,1.45,-.45);chapter8MarketGroup.add(post);}
+      const canopy=new THREE.Mesh(new THREE.BoxGeometry(4.1,.2,2.8),marketCloth);canopy.position.set(x,2.95,-.45);chapter8MarketGroup.add(canopy);
+      const goods=new THREE.Mesh(new THREE.BoxGeometry(1.4,.45,.7),marketWood);goods.position.set(x,.9,.75);chapter8MarketGroup.add(goods);
+    }
+    const sign=new THREE.Mesh(new THREE.BoxGeometry(5,.9,.16),marketWood);sign.position.set(0,3.35,-4.3);chapter8MarketGroup.add(sign);
+    const signText=makeResourceLabel("MERCADO DOS TRÊS VALES","#f2d58b");signText.position.set(0,3.35,-4.18);signText.scale.set(5,.8,1);chapter8MarketGroup.add(signText);
+    for(let cartIndex=0;cartIndex<2;cartIndex++){
+      const cart=new THREE.Group(),bed=new THREE.Mesh(new THREE.BoxGeometry(2.6,.25,1.5),marketWood);bed.position.y=.85;cart.add(bed);
+      for(const side of [-1,1]){const wheel=new THREE.Mesh(new THREE.TorusGeometry(.48,.09,7,14),marketStone);wheel.rotation.y=Math.PI/2;wheel.position.set(side*1.15,.55,0);cart.add(wheel);}
+      const load=new THREE.Mesh(new THREE.BoxGeometry(1.5,.75,1.1),marketWood);load.position.set(0,1.35,0);cart.add(load);
+      cart.position.set(cartIndex?6:-6,0,4);chapter8MarketGroup.add(cart);
+    }
+    chapter8MarketGroup.position.set(48,groundHeight(48,-69),-69);
+    chapter8MarketGroup.visible=missionState.chapter8MarketBuilt;
+    scene.add(chapter8MarketGroup);
+  }
   // Terceira vila: povoado serrano revelado quando a expedição é aceita.
   thirdVillageGroup=new THREE.Group();
   const thirdWood=new THREE.MeshStandardMaterial({color:0x765036,roughness:1});
