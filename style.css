@@ -599,3 +599,6 @@ kbd { min-width: 17px; padding: 4px 5px; border: 1px solid rgba(241,232,210,.28)
 
 /* Durante o prólogo, o painel antigo de moradores e capítulos fica fora da interface. */
 #villagers-toggle,#villagers-directory{display:none!important}
+
+/* Os atalhos de gestão ficam guardados durante o prólogo; serão liberados pela história. */
+#inventory-toggle,#build-toggle,#villagers-toggle{display:none!important}
