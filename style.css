@@ -596,3 +596,6 @@ kbd { min-width: 17px; padding: 4px 5px; border: 1px solid rgba(241,232,210,.28)
 .story-objective>strong{display:block;color:#f4d59b;font-family:Georgia,serif;font-size:14px;letter-spacing:.04em}
 .story-objective>p{margin:6px 0 0;color:#e7e0d1;font-size:10px;line-height:1.5}
 @media(max-width:700px),(pointer:coarse){.awakening-screen{padding:14px}.awakening-card{padding:22px 19px;border-radius:11px}.awakening-card h1{margin:9px 0 13px}.awakening-card p{font-size:13px;line-height:1.58}.awakening-card button{min-height:46px}.story-objective{top:72px;left:10px;width:min(300px,calc(100vw - 20px));padding:9px 11px}.story-objective>strong{font-size:12px}.story-objective>p{font-size:9px}}
+
+/* Durante o prólogo, o painel antigo de moradores e capítulos fica fora da interface. */
+#villagers-toggle,#villagers-directory{display:none!important}
