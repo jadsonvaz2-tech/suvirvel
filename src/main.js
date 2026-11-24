@@ -210,20 +210,20 @@ function startPlacement(kind){
  if(kind==="shelter"&&!canBuildShelter()){craftStatus.textContent=!state.selectedPlot?"Escolha primeiro o terreno da sua vila.":"Materiais necessários: 12 madeiras, 8 galhos e 6 fibras.";return;}
  selectedPlacementKind=kind;placementRotation=0;placementMode=true;pendingPlacement=null;placementPreview.visible=false;
  if(activeShelterPreview){scene.remove(activeShelterPreview);activeShelterPreview=null;}
- if(kind==="shelter")activeShelterPreview=buildShelter(0,0,0,true);
+ if(kind==="shelter"){activeShelterPreview=buildShelter(0,0,0,true);activeShelterPreview.visible=false;root.classList.add("placing-shelter");}
  craftVisible=false;craftPanel.hidden=true;placementPrompt.hidden=false;root.classList.add("placing-structure");
  placementHint.textContent=kind==="shelter"?"Toque no terreno para pré-visualizar o abrigo.":"Toque no terreno para pré-visualizar a fogueira.";
  placementConfirm.disabled=true;document.exitPointerLock?.();keys.clear();resetStick();
 }
-function cancelPlacement(){placementMode=false;pendingPlacement=null;selectedPlacementKind=null;placementPreview.visible=false;if(activeShelterPreview){scene.remove(activeShelterPreview);activeShelterPreview=null;}placementPrompt.hidden=true;root.classList.remove("placing-structure");}
+function cancelPlacement(){placementMode=false;pendingPlacement=null;selectedPlacementKind=null;placementPreview.visible=false;if(activeShelterPreview){scene.remove(activeShelterPreview);activeShelterPreview=null;}placementPrompt.hidden=true;root.classList.remove("placing-structure","placing-shelter");}
 function selectPlacementPoint(clientX,clientY){if(!placementMode)return;const rect=renderer.domElement.getBoundingClientRect();placementPointer.set((clientX-rect.left)/rect.width*2-1,-((clientY-rect.top)/rect.height)*2+1);placementRaycaster.setFromCamera(placementPointer,camera);const hit=placementRaycaster.intersectObject(terrainMesh,false)[0];if(!hit){placementHint.textContent="Toque em uma parte visível do chão do vale.";placementConfirm.disabled=true;return;}const x=hit.point.x,z=hit.point.z,reason=placementError(x,z,selectedPlacementKind);if(reason){pendingPlacement=null;placementPreview.visible=false;if(activeShelterPreview)activeShelterPreview.visible=false;placementConfirm.disabled=true;placementHint.textContent=reason;return;}pendingPlacement={x:Math.round(x*10)/10,z:Math.round(z*10)/10};if(selectedPlacementKind==="campfire"){placementPreview.position.set(pendingPlacement.x,groundHeight(pendingPlacement.x,pendingPlacement.z)+.05,pendingPlacement.z);placementPreview.visible=true;}else if(activeShelterPreview){activeShelterPreview.position.set(pendingPlacement.x,groundHeight(pendingPlacement.x,pendingPlacement.z),pendingPlacement.z);activeShelterPreview.rotation.y=placementRotation;activeShelterPreview.visible=true;}placementConfirm.disabled=false;placementHint.textContent="Prévia posicionada. Confirme para construir ou gire para ajustar.";}
 function confirmPlacement(){
  if(!placementMode||!pendingPlacement)return;
  const reason=placementError(pendingPlacement.x,pendingPlacement.z,selectedPlacementKind);if(reason){placementHint.textContent=reason;return;}
- const pos={...pendingPlacement};
- if(selectedPlacementKind==="campfire"){if(state.items.campfires<1)return;placedCampfires.push(buildCampfire(pos.x,pos.z));state.campfires=state.campfires||[];state.campfires.push(pos);state.items.campfires--;notify("Fogueira colocada no local escolhido.");}
+ const pos={...pendingPlacement},builtKind=selectedPlacementKind;
+ if(builtKind==="campfire"){if(state.items.campfires<1)return;placedCampfires.push(buildCampfire(pos.x,pos.z));state.campfires=state.campfires||[];state.campfires.push(pos);state.items.campfires--;notify("Fogueira colocada no local escolhido.");}
  else{if(!canBuildShelter())return;state.inventory.wood-=12;state.inventory.branches-=8;state.inventory.fiber-=6;const built={x:pos.x,z:pos.z,rotation:placementRotation};state.shelters.push(built);placedShelters.push(buildShelter(built.x,built.z,built.rotation,false));notify("Seu primeiro abrigo foi construído!");objective.querySelector("strong").textContent="Primeiro abrigo construído";objective.querySelector("p").textContent="Você ergueu seu primeiro abrigo com os materiais que reuniu. Sua vila começou a tomar forma.";}
- saveState();cancelPlacement();renderCrafting();craftStatus.textContent=selectedPlacementKind==="shelter"?"Abrigo construído no local escolhido.":"Fogueira colocada no local escolhido.";
+ saveState();cancelPlacement();renderCrafting();craftStatus.textContent=builtKind==="shelter"?"Abrigo construído no local escolhido.":"Fogueira colocada no local escolhido.";
 }
 const recipes={axe:{label:"Machado rudimentar",cost:{branches:3,stones:2,fiber:2}},pickaxe:{label:"Picareta rudimentar",cost:{branches:3,stones:3,fiber:2}},torch:{label:"Tocha",cost:{branches:1,fiber:2}},campfire:{label:"Fogueira",cost:{branches:5,stones:4}}};
 function canCraft(key){const r=recipes[key];return Object.entries(r.cost).every(([k,v])=>state.inventory[k]>=v)&&(key!=="axe"||!state.tools.axe)&&(key!=="pickaxe"||!state.tools.pickaxe);}
