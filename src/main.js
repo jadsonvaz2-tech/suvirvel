@@ -2756,6 +2756,8 @@ function startGame(THREE) {
   collectButton.addEventListener("click", performCurrentInteraction);
 
   const neighborVillageObstacles=[{x:40,z:-90,radius:2.4},{x:51,z:-90,radius:2.4},{x:40,z:-76,radius:2.4},{x:52,z:-76,radius:2.4},{x:61,z:-82,radius:2.1},{x:47,z:-82,radius:1.2}];
+  let chapter3DiscoveryDefs=[],chapter3Markers=[];
+  {
   const neighborVillageGroup=new THREE.Group();
   const villageWood=new THREE.MeshStandardMaterial({color:0x89603c,roughness:1});
   const villageLightWood=new THREE.MeshStandardMaterial({color:0xb08350,roughness:1});
@@ -2795,9 +2797,10 @@ function startGame(THREE) {
   const elderLabel=makeResourceLabel("ALINA · ANCIÃ","#e6c77d");elderLabel.position.set(0,2.35,0);elderLabel.scale.set(3.1,.78,1);elder.add(elderLabel);
   elder.position.set(34,groundHeight(34,-82),-82);neighborVillageGroup.add(elder);
   scene.add(neighborVillageGroup);
-  const chapter3DiscoveryDefs=[{id:"market-square",name:"Praça do Mercado",x:52,z:-76},{id:"village-well",name:"Poço Comunitário",x:47,z:-82},{id:"council-hall",name:"Casa do Conselho",x:61,z:-82}];
-  const chapter3Markers=[];
+  chapter3DiscoveryDefs=[{id:"market-square",name:"Praça do Mercado",x:52,z:-76},{id:"village-well",name:"Poço Comunitário",x:47,z:-82},{id:"council-hall",name:"Casa do Conselho",x:61,z:-82}];
+  chapter3Markers=[];
   chapter3DiscoveryDefs.forEach(place=>{const marker=new THREE.Group();const stem=new THREE.Mesh(new THREE.CylinderGeometry(.12,.18,1.5,7),new THREE.MeshStandardMaterial({color:0x806332,roughness:1}));stem.position.y=.75;marker.add(stem);const beacon=new THREE.Mesh(new THREE.OctahedronGeometry(.48,0),new THREE.MeshStandardMaterial({color:0x9bd18c,emissive:0x3d7b39,emissiveIntensity:1,roughness:.35}));beacon.position.y=1.8;marker.add(beacon);marker.position.set(place.x,groundHeight(place.x,place.z),place.z);marker.userData.placeId=place.id;neighborVillageGroup.add(marker);chapter3Markers.push(marker);});
+  }
   const chapter2Markers=[];
   const chapter2Messenger=new THREE.Group();
   {const robe=new THREE.Mesh(new THREE.CylinderGeometry(.32,.42,1.2,8),new THREE.MeshStandardMaterial({color:0x52677a,roughness:1}));robe.position.y=.82;chapter2Messenger.add(robe);const head=new THREE.Mesh(new THREE.SphereGeometry(.24,10,8),new THREE.MeshStandardMaterial({color:0xd6ad86}));head.position.y=1.62;chapter2Messenger.add(head);const hood=new THREE.Mesh(new THREE.ConeGeometry(.3,.38,8),new THREE.MeshStandardMaterial({color:0x9a7848}));hood.position.y=1.88;chapter2Messenger.add(hood);chapter2Messenger.position.set(7,groundHeight(7,29),29);scene.add(chapter2Messenger);}
