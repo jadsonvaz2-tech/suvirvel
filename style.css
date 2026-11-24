@@ -603,3 +603,16 @@ kbd { min-width: 17px; padding: 4px 5px; border: 1px solid rgba(241,232,210,.28)
 /* Os atalhos de gestão ficam guardados durante o prólogo; serão liberados pela história. */
 #inventory-toggle,#build-toggle,#villagers-toggle{display:none!important}
 body.land-management-unlocked #inventory-toggle,body.land-management-unlocked #build-toggle{display:block!important}
+
+
+/* Botão de fabricação manual fica acima do controle de corrida em telas sensíveis ao toque. */
+.manual-craft-toggle { cursor: pointer; }
+.item-fiber { color: #d1c184; }
+@media (max-width: 700px), (pointer: coarse) {
+  .manual-craft-toggle {
+    right: 20px !important;
+    bottom: max(174px, calc(env(safe-area-inset-bottom) + 166px)) !important;
+    padding: 10px 12px !important;
+    font-size: 10px !important;
+  }
+}
