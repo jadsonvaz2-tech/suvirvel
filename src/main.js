@@ -66,6 +66,8 @@ const storyObjectiveText = document.getElementById("story-objective-text");
 const inventoryUI = {
   branches: document.getElementById("branches-count"),
   stones: document.getElementById("stones-count"),
+  fibers: document.getElementById("fibers-count"),
+  cord: document.getElementById("cord-count"),
   berries: document.getElementById("berries-count"),
   wood: document.getElementById("wood-count"),
   wheatSeeds: document.getElementById("wheat-seeds-count"),
@@ -473,7 +475,7 @@ function startGame(THREE) {
 
   const collectedResources = new Set(saved?.collectedResources ?? []);
   const resourceRespawnAt = new Map(Object.entries(saved?.resourceRespawnAt ?? {}).filter(([id, value]) =>
-    ["branch-pile-01","branch-pile-02","branch-pile-03","branch-pile-04","branch-pile-05","branch-pile-06","stone-cluster-01","stone-cluster-02","stone-cluster-03","berry-bush-01"].includes(id) &&
+    ["branch-pile-01","branch-pile-02","branch-pile-03","branch-pile-04","branch-pile-05","branch-pile-06","stone-cluster-01","stone-cluster-02","stone-cluster-03","rock-outcrop-01","rock-outcrop-02","rock-outcrop-03","fiber-patch-01","fiber-patch-02","fiber-patch-03","fiber-patch-04","berry-bush-01"].includes(id) &&
     Number.isSafeInteger(value) && value >= 0
   ));
   const resourceDefinitions = new Map();
@@ -510,8 +512,8 @@ function startGame(THREE) {
     return sprite;
   }
 
-  function addResourceNode(id, itemKey, label, amount, x, z, accent, build) {
-    resourceDefinitions.set(id, { id, itemKey, label, amount, x, z, accent, build });
+  function addResourceNode(id, itemKey, label, amount, x, z, accent, build, toolRequired=null) {
+    resourceDefinitions.set(id, { id, itemKey, label, amount, x, z, accent, build, toolRequired });
     if (collectibleNodes.some((node) => node.id === id)) return;
     if (collectedResources.has(id)) {
       const respawnAt = resourceRespawnAt.get(id);
@@ -524,7 +526,7 @@ function startGame(THREE) {
     build(root);
     root.add(makeResourceLabel(label.toLocaleUpperCase("pt-BR") + "  +" + amount, accent));
     scene.add(root);
-    const node = { id, itemKey, label, amount, root, x, z };
+    const node = { id, itemKey, label, amount, root, x, z, toolRequired };
     root.traverse((object) => {
       if (object.isMesh) {
         object.userData.resourceNode = node;
@@ -539,7 +541,7 @@ function startGame(THREE) {
       if (totalGameMinutes() >= respawnAt && !collectibleNodes.some((node) => node.id === id)) {
         const definition = resourceDefinitions.get(id);
         if (definition) addResourceNode(definition.id, definition.itemKey, definition.label, definition.amount,
-          definition.x, definition.z, definition.accent, definition.build);
+          definition.x, definition.z, definition.accent, definition.build, definition.toolRequired);
       }
     }
   }
@@ -596,6 +598,39 @@ function startGame(THREE) {
   for (const [id, side, forward] of [["stone-cluster-02",-5.2,14],["stone-cluster-03",5.2,14]]) {
     const spot = resourcePosition(side, forward);
     addResourceNode(id, "stones", "Pedras", 4, spot.x, spot.z, "#bfc6c2", buildStonePile);
+  }
+
+  // Afloramentos rochosos: exigem picareta e fornecem pedras em maior quantidade.
+  function buildRockOutcrop(root) {
+    const rockMat=new THREE.MeshStandardMaterial({color:0x777d78,roughness:1,flatShading:true});
+    const darkMat=new THREE.MeshStandardMaterial({color:0x5e655f,roughness:1,flatShading:true});
+    [[-0.55,0.72,0.05,1.05],[0.18,0.88,-0.12,1.25],[0.72,0.48,0.16,0.82],[-0.05,0.42,0.62,0.78]].forEach(([x,y,z,scale],i)=>{
+      const boulder=new THREE.Mesh(new THREE.DodecahedronGeometry(0.72,0),i===2?darkMat:rockMat);
+      boulder.position.set(x,y,z);boulder.scale.set(scale*1.1,scale,scale*0.92);boulder.rotation.set(0.12*i,0.25*i,0.08*i);root.add(boulder);
+    });
+  }
+  for(const [id,side,forward] of [["rock-outcrop-01",-8.5,22],["rock-outcrop-02",8.5,22],["rock-outcrop-03",0,31]]){
+    const spot=resourcePosition(side,forward);
+    addResourceNode(id,"stones","Pedras da rocha",5,spot.x,spot.z,"#c2c9c4",buildRockOutcrop,"pickaxe");
+  }
+
+  // Plantas fibrosas podem ser colhidas à mão e voltam a crescer com o tempo.
+  function buildFiberPlant(root){
+    const stemMat=new THREE.MeshStandardMaterial({color:0x77834a,roughness:1});
+    const seedMat=new THREE.MeshStandardMaterial({color:0xc5ad72,roughness:1});
+    for(let i=0;i<7;i++){
+      const a=i/7*Math.PI*2,h=0.72+(i%3)*0.16;
+      const stem=new THREE.Mesh(new THREE.CylinderGeometry(0.025,0.045,h,5),stemMat);
+      stem.position.set(Math.cos(a)*0.16,h/2,Math.sin(a)*0.16);stem.rotation.z=Math.cos(a)*0.18;stem.rotation.x=Math.sin(a)*0.18;root.add(stem);
+      const head=new THREE.Mesh(new THREE.ConeGeometry(0.075,0.28,5),seedMat);
+      head.position.set(Math.cos(a)*0.2,h+0.06,Math.sin(a)*0.2);head.rotation.z=-0.12;root.add(head);
+    }
+    const leaves=new THREE.Mesh(new THREE.IcosahedronGeometry(0.24,0),stemMat);
+    leaves.position.y=0.22;leaves.scale.set(1.5,0.55,1.2);root.add(leaves);
+  }
+  for(const [id,side,forward] of [["fiber-patch-01",-8,9],["fiber-patch-02",8,9],["fiber-patch-03",-8,17],["fiber-patch-04",8,17]]){
+    const spot=resourcePosition(side,forward);
+    addResourceNode(id,"fibers","Fibras vegetais",3,spot.x,spot.z,"#d1c184",buildFiberPlant);
   }
 
   const berrySpot = resourcePosition(0, 5.35);
@@ -2117,6 +2152,8 @@ function startGame(THREE) {
   const inventory = {
     branches: saved?.inventory?.branches ?? 0,
     stones: saved?.inventory?.stones ?? 0,
+    fibers: saved?.inventory?.fibers ?? 0,
+    cord: saved?.inventory?.cord ?? 0,
     berries: saved?.inventory?.berries ?? 0,
     wood: saved?.inventory?.wood ?? 0,
     wheatSeeds: saved?.inventory?.wheatSeeds ?? 0,
@@ -2202,17 +2239,18 @@ function startGame(THREE) {
     eatBerryButton.disabled = !canEatBerry;
     workbenchStatus.textContent = tools.axe ? "Machado fabricado" : "Machado ainda não fabricado";
     buildingMaterials.textContent = "Madeira: " + inventory.wood + "/12 · Galhos: " + inventory.branches + "/8";
-    const pickaxeButton=document.getElementById("craft-pickaxe-button"),torchButton=document.getElementById("craft-torch-button"),campfireButton=document.getElementById("craft-campfire-button");
+    const pickaxeButton=document.getElementById("craft-pickaxe-button"),torchButton=document.getElementById("craft-torch-button"),campfireButton=document.getElementById("craft-campfire-button"),cordButton=document.getElementById("craft-cord-button");
     if(pickaxeButton){pickaxeButton.disabled=tools.pickaxe||inventory.branches<3||inventory.stones<3;pickaxeButton.textContent=tools.pickaxe?"PICARETA FABRICADA":"FABRICAR PICARETA · 3 GALHOS + 3 PEDRAS";}
     if(torchButton){torchButton.disabled=tools.torch||inventory.branches<2||inventory.wood<1;torchButton.textContent=tools.torch?"TOCHA FABRICADA":"FABRICAR TOCHA · 2 GALHOS + 1 MADEIRA";}
     if(campfireButton){campfireButton.disabled=inventory.wood<1||inventory.branches<5||inventory.stones<3;campfireButton.textContent="MONTAR FOGUEIRA · 1 MADEIRA + 5 GALHOS + 3 PEDRAS";}
+    if(cordButton){cordButton.disabled=inventory.fibers<3;cordButton.textContent="TORCER CORDA · 3 FIBRAS";}
     buildingConfirm.disabled = !buildMode || !buildPreviewValid || Boolean(builtCabin) || inventory.wood < 12 || inventory.branches < 8;
     craftAxeButton.disabled = tools.axe || inventory.branches < 3 || inventory.stones < 2;
     craftAxeButton.textContent = tools.axe ? "MACHADO FABRICADO" : "FABRICAR MACHADO";
     const bowButton=document.getElementById("craft-bow-button"),arrowButton=document.getElementById("craft-arrows-button");
-    if(bowButton){bowButton.disabled=tools.bow||inventory.branches<4||inventory.fabric<2;bowButton.textContent=tools.bow?"ARCO FABRICADO":"FABRICAR ARCO";}
+    if(bowButton){bowButton.disabled=tools.bow||inventory.branches<4||(inventory.fabric<2&&inventory.cord<1);bowButton.textContent=tools.bow?"ARCO FABRICADO":"FABRICAR ARCO · 4 GALHOS + 2 TECIDOS OU 1 CORDA";}
     if(arrowButton)arrowButton.disabled=inventory.branches<2||inventory.stones<1;
-    const rodButton=document.getElementById("craft-fishing-rod-button");if(rodButton){rodButton.disabled=tools.fishingRod||inventory.branches<3||inventory.fabric<1;rodButton.textContent=tools.fishingRod?"VARA FABRICADA":"FABRICAR VARA DE PESCA";}
+    const rodButton=document.getElementById("craft-fishing-rod-button");if(rodButton){rodButton.disabled=tools.fishingRod||inventory.branches<3||(inventory.fabric<1&&inventory.cord<1);rodButton.textContent=tools.fishingRod?"VARA FABRICADA":"FABRICAR VARA · 3 GALHOS + 1 TECIDO OU 1 CORDA";}
     document.getElementById("bow-count").textContent=tools.bow?"1":"0";
     const rodCount=document.getElementById("fishing-rod-count");if(rodCount)rodCount.textContent=tools.fishingRod?"1":"0";
     eatBerryButton.setAttribute(
@@ -2268,9 +2306,9 @@ function startGame(THREE) {
     craftingPanel.classList.remove("hidden");
     updateInventoryUI();
   }
-  function craftFishingRod(){if(tools.fishingRod){showToast("Você já possui uma vara de pesca.");return;}if(inventory.branches<3||inventory.fabric<1){showToast("Para fabricar a vara: 3 galhos e 1 tecido.");return;}inventory.branches-=3;inventory.fabric--;tools.fishingRod=true;updateInventoryUI();saveProgress(true);showToast("Vara de pesca fabricada! Procure os juncos nas margens do rio.");}
+  function craftFishingRod(){if(tools.fishingRod){showToast("Você já possui uma vara de pesca.");return;}const useFabric=inventory.fabric>=1;if(inventory.branches<3||(!useFabric&&inventory.cord<1)){showToast("Para fabricar a vara: 3 galhos e 1 tecido ou 1 corda feita com fibras.");return;}inventory.branches-=3;if(useFabric)inventory.fabric--;else inventory.cord--;tools.fishingRod=true;updateInventoryUI();saveProgress(true);showToast("Vara de pesca fabricada! Procure os juncos nas margens do rio.");}
   document.getElementById("craft-fishing-rod-button").addEventListener("click",craftFishingRod);
-  function craftBow(){if(tools.bow){showToast("Você já possui um arco.");return;}if(inventory.branches<4||inventory.fabric<2){showToast("Para fabricar o arco: 4 galhos e 2 tecidos.");return;}inventory.branches-=4;inventory.fabric-=2;tools.bow=true;updateInventoryUI();saveProgress(true);showToast("Arco fabricado! Mire em um animal e pressione E.");}
+  function craftBow(){if(tools.bow){showToast("Você já possui um arco.");return;}const useFabric=inventory.fabric>=2;if(inventory.branches<4||(!useFabric&&inventory.cord<1)){showToast("Para fabricar o arco: 4 galhos e 2 tecidos ou 1 corda feita com fibras.");return;}inventory.branches-=4;if(useFabric)inventory.fabric-=2;else inventory.cord--;tools.bow=true;updateInventoryUI();saveProgress(true);showToast("Arco fabricado! Mire em um animal e pressione E.");}
   function craftArrows(){if(inventory.branches<2||inventory.stones<1){showToast("Para fabricar flechas: 2 galhos e 1 pedra.");return;}inventory.branches-=2;inventory.stones--;inventory.arrows=Math.min(9999,inventory.arrows+5);updateInventoryUI();saveProgress(true);showToast("Você fabricou 5 flechas.");}
   document.getElementById("craft-bow-button").addEventListener("click",craftBow);
   document.getElementById("craft-arrows-button").addEventListener("click",craftArrows);
@@ -2294,10 +2332,11 @@ function startGame(THREE) {
     showToast("Machado fabricado! Materiais guardados na mochila foram usados.");
   }
   craftAxeButton.addEventListener("click", craftAxe);
-  const manualCraftToggle=document.createElement("button");manualCraftToggle.type="button";manualCraftToggle.textContent="FABRICAÇÃO MANUAL";manualCraftToggle.setAttribute("aria-label","Abrir fabricação manual");Object.assign(manualCraftToggle.style,{position:"fixed",right:"14px",bottom:"104px",zIndex:"45",padding:"12px 15px",border:"1px solid #b8955d",borderRadius:"8px",background:"#33271c",color:"#f5e6c7",fontWeight:"800",fontSize:"12px",letterSpacing:".04em",boxShadow:"0 3px 12px #0008",display:landClaimed?"block":"none"});game.appendChild(manualCraftToggle);manualCraftToggle.addEventListener("click",openCrafting);
+  const manualCraftToggle=document.createElement("button");manualCraftToggle.type="button";manualCraftToggle.className="manual-craft-toggle";manualCraftToggle.textContent="FABRICAÇÃO MANUAL";manualCraftToggle.setAttribute("aria-label","Abrir fabricação manual");Object.assign(manualCraftToggle.style,{position:"fixed",right:"14px",bottom:"104px",zIndex:"45",padding:"12px 15px",border:"1px solid #b8955d",borderRadius:"8px",background:"#33271c",color:"#f5e6c7",fontWeight:"800",fontSize:"12px",letterSpacing:".04em",boxShadow:"0 3px 12px #0008",display:landClaimed?"block":"none"});game.appendChild(manualCraftToggle);manualCraftToggle.addEventListener("click",openCrafting);
   function updateManualCraftAvailability(){manualCraftToggle.style.display=landClaimed?"block":"none";}
   updateManualCraftAvailability();
-  const manualRecipeButtons=document.createElement("div");manualRecipeButtons.className="manual-recipe-buttons";manualRecipeButtons.innerHTML='<button type="button" id="craft-pickaxe-button" class="craft-action-button">FABRICAR PICARETA · 3 GALHOS + 3 PEDRAS</button><button type="button" id="craft-torch-button" class="craft-action-button">FABRICAR TOCHA · 2 GALHOS + 1 MADEIRA</button><button type="button" id="craft-campfire-button" class="craft-action-button">MONTAR FOGUEIRA · 5 GALHOS + 3 PEDRAS</button><p class="inventory-note">Fabricação manual: reúna os materiais e produza os itens sem usar uma bancada.</p>';craftingPanel.appendChild(manualRecipeButtons);
+  const manualRecipeButtons=document.createElement("div");manualRecipeButtons.className="manual-recipe-buttons";manualRecipeButtons.innerHTML='<button type="button" id="craft-pickaxe-button" class="craft-action-button">FABRICAR PICARETA · 3 GALHOS + 3 PEDRAS</button><button type="button" id="craft-torch-button" class="craft-action-button">FABRICAR TOCHA · 2 GALHOS + 1 MADEIRA</button><button type="button" id="craft-campfire-button" class="craft-action-button">MONTAR FOGUEIRA · 1 MADEIRA + 5 GALHOS + 3 PEDRAS</button><button type="button" id="craft-cord-button" class="craft-action-button">TORCER CORDA · 3 FIBRAS</button><p class="inventory-note">Recolha fibras das plantas e torça-as em cordas. A corda pode substituir o tecido na fabricação do arco e da vara de pesca.</p>';craftingPanel.appendChild(manualRecipeButtons);
+  document.getElementById("craft-cord-button").addEventListener("click",()=>{if(inventory.fibers<3){showToast("Reúna 3 fibras vegetais para torcer uma corda.");return;}if(!canCarry(1))return;inventory.fibers-=3;inventory.cord=Math.min(9999,inventory.cord+1);updateInventoryUI();saveProgress(true);showToast("Você torceu 1 corda com fibras vegetais.");});
   document.getElementById("craft-pickaxe-button").addEventListener("click",()=>{if(tools.pickaxe||inventory.branches<3||inventory.stones<3)return;inventory.branches-=3;inventory.stones-=3;tools.pickaxe=true;updatePickaxeVisual();updateInventoryUI();saveProgress(true);showToast("Picareta fabricada!");});
   document.getElementById("craft-torch-button").addEventListener("click",()=>{if(tools.torch||inventory.branches<2||inventory.wood<1)return;inventory.branches-=2;inventory.wood--;tools.torch=true;updateTorchVisual();updateInventoryUI();saveProgress(true);showToast("Tocha fabricada! Ela ilumina o caminho à sua frente.");});
   document.getElementById("craft-campfire-button").addEventListener("click",()=>{if(inventory.wood<1||inventory.branches<5||inventory.stones<3){showToast("Para montar a fogueira: 1 madeira, 5 galhos e 3 pedras.");return;}if(placedCampfires.length>=40){showToast("Você já montou muitas fogueiras.");return;}closeCrafting();buildMode=true;buildSelectedId="campfire";buildSelectedItem={id:"campfire-placement",label:"Fogueira",radius:1.25};buildRotation=0;buildingOptions.innerHTML="";buildingOptions.style.display="none";buildingPanel.classList.remove("hidden");buildingPanel.querySelector(".eyebrow").textContent="POSICIONAMENTO";buildingPanel.querySelector("header strong").textContent="MONTAR FOGUEIRA";buildingPanel.querySelector(".building-description").textContent="Mova-se e gire a câmera para escolher o local. A prévia acompanha o terreno.";buildingMaterials.textContent="1 madeira · 5 galhos · 3 pedras";buildingStatus.textContent="Escolha um local livre dentro da sua propriedade.";buildingConfirm.textContent="CONFIRMAR POSIÇÃO";buildingConfirm.disabled=true;buildingRotate.textContent="GIRAR 45°";if(buildPreview)scene.remove(buildPreview);const campfireGhost=createCampfire({x:0,z:0});scene.remove(campfireGhost);buildPreview=cabinGhost(campfireGhost);scene.add(buildPreview);updateBuildPreview();});
@@ -2552,7 +2591,7 @@ function startGame(THREE) {
           : [],
         resourceRespawnAt: saved.resourceRespawnAt && typeof saved.resourceRespawnAt === "object"
           ? Object.fromEntries(Object.entries(saved.resourceRespawnAt).filter(([id,value]) =>
-              ["branch-pile-01","branch-pile-02","branch-pile-03","branch-pile-04","branch-pile-05","branch-pile-06","stone-cluster-01","stone-cluster-02","stone-cluster-03","berry-bush-01"].includes(id) &&
+              ["branch-pile-01","branch-pile-02","branch-pile-03","branch-pile-04","branch-pile-05","branch-pile-06","stone-cluster-01","stone-cluster-02","stone-cluster-03","rock-outcrop-01","rock-outcrop-02","rock-outcrop-03","fiber-patch-01","fiber-patch-02","fiber-patch-03","fiber-patch-04","berry-bush-01"].includes(id) &&
               Number.isSafeInteger(value) && value >= 0
             ))
           : {},
@@ -2957,11 +2996,13 @@ function startGame(THREE) {
     interactionPrompt.classList.toggle("hidden", !hasInteraction);
     collectButton.classList.toggle("hidden", !hasInteraction || !isMobile);
 
+    collectButton.disabled=false;
     if (match) {
-      interactionType.textContent = "RECURSO AO ALCANCE";
+      interactionType.textContent = match.toolRequired&&!tools[match.toolRequired] ? "FERRAMENTA NECESSÁRIA" : "RECURSO AO ALCANCE";
       interactionName.textContent = match.label + " · " + match.amount;
-      interactionVerb.textContent = "recolher";
-      collectButton.textContent = "RECOLHER";
+      interactionVerb.textContent = match.toolRequired&&!tools[match.toolRequired] ? "fabrique uma picareta para extrair as pedras" : "recolher";
+      collectButton.textContent = match.toolRequired&&!tools[match.toolRequired] ? "PRECISA DE PICARETA" : (match.toolRequired ? "QUEBRAR ROCHA" : "RECOLHER");
+      collectButton.disabled=Boolean(match.toolRequired&&!tools[match.toolRequired]);
     } else if (canTalkToElder) {
       interactionType.textContent="VILA VIZINHA";interactionName.textContent="Alina · Anciã";interactionVerb.textContent="contar sobre o ataque à sua aldeia";collectButton.textContent="FALAR";
     } else if (currentVillager) {
@@ -3035,8 +3076,10 @@ function startGame(THREE) {
   }
   function collectCurrentResource() {
     const node = currentResourceTarget;
-    if (!node || collectedResources.has(node.id) || !canCarry(node.amount)) return;
+    if (!node || collectedResources.has(node.id)) return;
+    if(node.toolRequired&&!tools[node.toolRequired]){showToast("Você precisa fabricar uma picareta para retirar pedras desta rocha.");return;}
     const gatheredAmount=node.amount+(node.itemKey==="stones"&&tools.pickaxe?2:0);
+    if(!canCarry(gatheredAmount))return;
     inventory[node.itemKey] = Math.min(9999, inventory[node.itemKey] + gatheredAmount);
     collectedResources.add(node.id);
     resourceRespawnAt.set(node.id, totalGameMinutes() + 360);
