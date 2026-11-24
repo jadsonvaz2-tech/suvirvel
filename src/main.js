@@ -24,11 +24,53 @@ function createWorld(THREE){
  for(const side of[-1,1]){const rail=new THREE.Mesh(new THREE.BoxGeometry(19.2,.18,.2),railMat);rail.position.set(0,BRIDGE_Y+.78,side*2.72);bridge.add(rail);for(let i=0;i<7;i++){const post=new THREE.Mesh(new THREE.BoxGeometry(.22,1.05,.22),railMat);post.position.set(-8.8+i*(17.6/6),BRIDGE_Y+.48,side*2.72);bridge.add(post);}}
  bridge.position.set(riverX(BRIDGE_Z),0,BRIDGE_Z);scene.add(bridge);
  const sunDisk=new THREE.Mesh(new THREE.SphereGeometry(3.5,14,10),new THREE.MeshBasicMaterial({color:0xffe2a0}));sunDisk.position.set(-72,48,-118);scene.add(sunDisk);
- // Vegetação natural independente dos antigos sistemas de coleta e construção.
- let seed=73421;const random=()=>{seed=seed*16807%2147483647;return(seed-1)/2147483646;},treeTrunk=new THREE.MeshStandardMaterial({color:0x68462e,roughness:1}),pineA=new THREE.MeshStandardMaterial({color:0x315b3b,roughness:1,flatShading:true}),pineB=new THREE.MeshStandardMaterial({color:0x416d45,roughness:1,flatShading:true}),broad=new THREE.MeshStandardMaterial({color:0x426b3e,roughness:1,flatShading:true});
- for(let i=0;i<520;i++){const x=-104+random()*208,z=-104+random()*208;if(riverDistance(x,z)<11||Math.hypot(x,z-35)<10||Math.hypot((x-49)/22,(z+83)/19)<1.05||Math.hypot((x-92)/21,(z+84)/19)<1.05||Math.hypot(x/20,(z+72)/17)<1.05)continue;const scale=.78+random()*.7,tree=new THREE.Group(),trunk=new THREE.Mesh(new THREE.CylinderGeometry(.2,.34,3.2*scale,6),treeTrunk);trunk.position.y=1.6*scale;tree.add(trunk);if(random()<.72){for(let tier=0;tier<3;tier++){const crown=new THREE.Mesh(new THREE.ConeGeometry((2.1-tier*.34)*scale,(3.1-tier*.22)*scale,7),tier===0?pineA:pineB);crown.position.y=(3+tier*.9)*scale;tree.add(crown);}}else{const crown=new THREE.Mesh(new THREE.IcosahedronGeometry(1.55*scale,1),broad);crown.position.y=3.55*scale;crown.scale.set(1.1,.92,1.05);tree.add(crown);}tree.position.set(x,groundHeight(x,z),z);tree.rotation.y=random()*Math.PI*2;scene.add(tree);}
- const rockMat=new THREE.MeshStandardMaterial({color:0x777d78,roughness:1,flatShading:true}),rockDark=new THREE.MeshStandardMaterial({color:0x5e655f,roughness:1,flatShading:true});for(let i=0;i<115;i++){const x=-100+random()*200,z=-100+random()*200;if(riverDistance(x,z)<9||Math.hypot(x,z-35)<7||Math.hypot((x-49)/22,(z+83)/19)<1)continue;const s=.28+random()*.95,rock=new THREE.Mesh(new THREE.DodecahedronGeometry(s,0),random()>.7?rockDark:rockMat);rock.position.set(x,groundHeight(x,z)+s*.38,z);rock.rotation.set(random(),random()*Math.PI,random());rock.scale.set(1.2,.72+random()*.55,.9);scene.add(rock);}
- const reedMat=new THREE.MeshStandardMaterial({color:0x687c3c,roughness:1});for(const z of[-48,-8,34,78]){const x=riverX(z)+11.2,reeds=new THREE.Group();for(let i=0;i<4;i++){const reed=new THREE.Mesh(new THREE.CylinderGeometry(.025,.04,.95+(i%2)*.25,5),reedMat);reed.position.set((i-1.5)*.22,.48+(i%2)*.08,(i%2)*.18);reed.rotation.z=(i-1.5)*.09;reeds.add(reed);}reeds.position.set(x,groundHeight(x,z),z);scene.add(reeds);}
+ // Distribuição e modelos originais da floresta preservados sem os sistemas de derrubada.
+ const treeSpots=[];
+ for(let i=0;i<470;i++){
+  const x=(random()-.5)*198,z=(random()-.5)*198;
+  if(Math.abs(x)<27&&z>-4&&z<83)continue;
+  if(x>25&&x<67&&z>-102&&z<-66)continue;
+  if(riverDistance(x,z)<11)continue;
+  if(Math.abs(x)>96||Math.abs(z)>96)continue;
+  treeSpots.push({x,z,scale:.72+random()*.76,turn:random()*Math.PI*2});
+ }
+ const trunkGeometry=new THREE.CylinderGeometry(.28,.48,4.2,6);
+ const crownGeometry=new THREE.ConeGeometry(3.05,7,7);
+ const crownTopGeometry=new THREE.ConeGeometry(2.35,6,7);
+ const trunkMaterial=new THREE.MeshStandardMaterial({color:0x705039,roughness:1});
+ const crownMaterial=new THREE.MeshStandardMaterial({color:0x315d3b,roughness:1,flatShading:true});
+ const trunkMesh=new THREE.InstancedMesh(trunkGeometry,trunkMaterial,treeSpots.length);
+ const crownMesh=new THREE.InstancedMesh(crownGeometry,crownMaterial,treeSpots.length);
+ const crownTopMesh=new THREE.InstancedMesh(crownTopGeometry,crownMaterial,treeSpots.length);
+ const dummy=new THREE.Object3D();
+ treeSpots.forEach((tree,index)=>{
+  const y=groundHeight(tree.x,tree.z),s=tree.scale;
+  const tint=new THREE.Color().setHSL(.29+random()*.035,.32,.22+random()*.12);
+  dummy.position.set(tree.x,y+2.1*s,tree.z);dummy.rotation.set(0,tree.turn,0);dummy.scale.set(s,s,s);dummy.updateMatrix();trunkMesh.setMatrixAt(index,dummy.matrix);
+  dummy.position.set(tree.x,y+6.2*s,tree.z);dummy.scale.set(s,s,s);dummy.updateMatrix();crownMesh.setMatrixAt(index,dummy.matrix);
+  dummy.position.set(tree.x,y+10*s,tree.z);dummy.scale.set(s*.78,s*.78,s*.78);dummy.updateMatrix();crownTopMesh.setMatrixAt(index,dummy.matrix);
+  crownMesh.setColorAt(index,tint);crownTopMesh.setColorAt(index,tint.clone().multiplyScalar(1.12));
+ });
+ scene.add(trunkMesh,crownMesh,crownTopMesh);
+ trunkMesh.instanceMatrix.needsUpdate=true;crownMesh.instanceMatrix.needsUpdate=true;crownTopMesh.instanceMatrix.needsUpdate=true;
+
+ // Afloramentos e grupos de pedras do terreno inicial, agora apenas como cenário.
+ const stoneMat=new THREE.MeshStandardMaterial({color:0x969b91,roughness:1,flatShading:true});
+ const outcropMat=new THREE.MeshStandardMaterial({color:0x777d78,roughness:1,flatShading:true});
+ const darkStoneMat=new THREE.MeshStandardMaterial({color:0x5e655f,roughness:1,flatShading:true});
+ function placeStoneGroup(x,z,kind){
+  const group=new THREE.Group();
+  if(kind==="pile"){
+   const geo=new THREE.DodecahedronGeometry(.48,0);
+   [[-.42,.35,0,1.05],[.2,.32,.12,.9],[.48,.28,-.36,.82],[-.12,.25,-.5,.88],[.03,.66,-.14,.72]].forEach(([sx,y,sz,k])=>{const mesh=new THREE.Mesh(geo,stoneMat);mesh.position.set(sx,y,sz);mesh.scale.set(k*1.15,k*.82,k);group.add(mesh);});
+  }else{
+   [[-.55,.72,.05,1.05],[.18,.88,-.12,1.25],[.72,.48,.16,.82],[-.05,.42,.62,.78]].forEach(([sx,y,sz,k],i)=>{const mesh=new THREE.Mesh(new THREE.DodecahedronGeometry(.72,0),i===2?darkStoneMat:outcropMat);mesh.position.set(sx,y,sz);mesh.scale.set(k*1.1,k,k*.92);mesh.rotation.set(.12*i,.25*i,.08*i);group.add(mesh);});
+  }
+  group.position.set(x,groundHeight(x,z),z);scene.add(group);
+ }
+ placeStoneGroup(1.55,31.35,"pile");
+ placeStoneGroup(-5.2,21,"pile");placeStoneGroup(5.2,21,"pile");
+ placeStoneGroup(-8.5,13,"outcrop");placeStoneGroup(8.5,13,"outcrop");placeStoneGroup(0,4,"outcrop");
  const keys=new Set(),player={x:state.x,z:state.z,yaw:Number.isFinite(state.yaw)?state.yaw:0,pitch:0,bob:0},eye=1.68;camera.position.set(player.x,groundHeight(player.x,player.z)+eye,player.z);camera.rotation.set(0,player.yaw,0);
  let running=false,moveX=0,moveZ=0,lookPointer=null,lastLookX=0,lastLookY=0,lastSave=0,elapsedGame=0,lastFrame=performance.now();
  function updateClock(add){state.minute+=add;while(state.minute>=DAY_MINUTES){state.minute-=DAY_MINUTES;state.day++;}const h=Math.floor(state.minute/60),m=Math.floor(state.minute%60);clockLabel.textContent="DIA "+state.day+" · "+String(h).padStart(2,"0")+":"+String(m).padStart(2,"0");}updateClock(0);
