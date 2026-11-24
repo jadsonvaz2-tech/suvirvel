@@ -27,12 +27,12 @@ function createWorld(THREE){
  // Distribuição e modelos originais da floresta preservados sem os sistemas de derrubada.
  const treeSpots=[];
  for(let i=0;i<470;i++){
-  const x=(random()-.5)*198,z=(random()-.5)*198;
+  const x=(Math.random()-.5)*198,z=(Math.random()-.5)*198;
   if(Math.abs(x)<27&&z>-4&&z<83)continue;
   if(x>25&&x<67&&z>-102&&z<-66)continue;
   if(riverDistance(x,z)<11)continue;
   if(Math.abs(x)>96||Math.abs(z)>96)continue;
-  treeSpots.push({x,z,scale:.72+random()*.76,turn:random()*Math.PI*2});
+  treeSpots.push({x,z,scale:.72+Math.random()*.76,turn:Math.random()*Math.PI*2});
  }
  const trunkGeometry=new THREE.CylinderGeometry(.28,.48,4.2,6);
  const crownGeometry=new THREE.ConeGeometry(3.05,7,7);
@@ -45,7 +45,7 @@ function createWorld(THREE){
  const dummy=new THREE.Object3D();
  treeSpots.forEach((tree,index)=>{
   const y=groundHeight(tree.x,tree.z),s=tree.scale;
-  const tint=new THREE.Color().setHSL(.29+random()*.035,.32,.22+random()*.12);
+  const tint=new THREE.Color().setHSL(.29+Math.random()*.035,.32,.22+Math.random()*.12);
   dummy.position.set(tree.x,y+2.1*s,tree.z);dummy.rotation.set(0,tree.turn,0);dummy.scale.set(s,s,s);dummy.updateMatrix();trunkMesh.setMatrixAt(index,dummy.matrix);
   dummy.position.set(tree.x,y+6.2*s,tree.z);dummy.scale.set(s,s,s);dummy.updateMatrix();crownMesh.setMatrixAt(index,dummy.matrix);
   dummy.position.set(tree.x,y+10*s,tree.z);dummy.scale.set(s*.78,s*.78,s*.78);dummy.updateMatrix();crownTopMesh.setMatrixAt(index,dummy.matrix);
