@@ -217,10 +217,23 @@ function startPlacement(kind){
  if(kind==="shelter"&&!canBuildShelter()){craftStatus.textContent=!state.selectedPlot?"Escolha primeiro o terreno da sua vila.":"Materiais necessários: 12 madeiras, 8 galhos e 6 fibras.";return;}
  selectedPlacementKind=kind;placementRotation=0;placementMode=true;pendingPlacement=null;placementPreview.visible=false;
  if(activeShelterPreview){scene.remove(activeShelterPreview);activeShelterPreview=null;}
- if(kind==="shelter"){activeShelterPreview=buildShelter(0,0,0,true);activeShelterPreview.visible=false;root.classList.add("placing-shelter");}
+ if(kind==="shelter"){
+  activeShelterPreview=buildShelter(0,0,0,true);activeShelterPreview.visible=false;root.classList.add("placing-shelter");
+  // Prévia inicial próxima ao jogador e dentro dos limites do terreno escolhido.
+  const plot=state.selectedPlot,forwardX=-Math.sin(player.yaw),forwardZ=-Math.cos(player.yaw);
+  let candidate={x:player.x+forwardX*3.8,z:player.z+forwardZ*3.8};
+  candidate.x=clamp(candidate.x,plot.x-4.4,plot.x+4.4);
+  candidate.z=clamp(candidate.z,plot.z-4.4,plot.z+4.4);
+  if(placementError(candidate.x,candidate.z,"shelter"))candidate={x:plot.x,z:plot.z};
+  if(!placementError(candidate.x,candidate.z,"shelter")){
+   pendingPlacement={x:Math.round(candidate.x*10)/10,z:Math.round(candidate.z*10)/10};
+   activeShelterPreview.position.set(pendingPlacement.x,groundHeight(pendingPlacement.x,pendingPlacement.z),pendingPlacement.z);
+   activeShelterPreview.rotation.y=placementRotation;activeShelterPreview.visible=true;
+  }
+ }
  craftVisible=false;craftPanel.hidden=true;placementPrompt.hidden=false;root.classList.add("placing-structure");
- placementHint.textContent=kind==="shelter"?"Toque no terreno para pré-visualizar o abrigo.":"Toque no terreno para pré-visualizar a fogueira.";
- placementConfirm.disabled=true;document.exitPointerLock?.();keys.clear();resetStick();
+ placementHint.textContent=kind==="shelter"?(pendingPlacement?"Prévia do abrigo exibida perto de você. Toque no chão para mudar o local ou gire a casa.":"Caminhe até o terreno escolhido para visualizar o abrigo."):"Toque no terreno para pré-visualizar a fogueira.";
+ placementConfirm.disabled=!pendingPlacement;document.exitPointerLock?.();keys.clear();resetStick();
 }
 function cancelPlacement(){placementMode=false;pendingPlacement=null;selectedPlacementKind=null;placementPreview.visible=false;if(activeShelterPreview){scene.remove(activeShelterPreview);activeShelterPreview=null;}placementPrompt.hidden=true;root.classList.remove("placing-structure","placing-shelter");}
 function selectPlacementPoint(clientX,clientY){if(!placementMode)return;const rect=renderer.domElement.getBoundingClientRect();placementPointer.set((clientX-rect.left)/rect.width*2-1,-((clientY-rect.top)/rect.height)*2+1);placementRaycaster.setFromCamera(placementPointer,camera);const hit=placementRaycaster.intersectObject(terrainMesh,false)[0];if(!hit){placementHint.textContent="Toque em uma parte visível do chão do vale.";placementConfirm.disabled=true;return;}const x=hit.point.x,z=hit.point.z,reason=placementError(x,z,selectedPlacementKind);if(reason){pendingPlacement=null;placementPreview.visible=false;if(activeShelterPreview)activeShelterPreview.visible=false;placementConfirm.disabled=true;placementHint.textContent=reason;return;}pendingPlacement={x:Math.round(x*10)/10,z:Math.round(z*10)/10};if(selectedPlacementKind==="campfire"){placementPreview.position.set(pendingPlacement.x,groundHeight(pendingPlacement.x,pendingPlacement.z)+.05,pendingPlacement.z);placementPreview.visible=true;}else if(activeShelterPreview){activeShelterPreview.position.set(pendingPlacement.x,groundHeight(pendingPlacement.x,pendingPlacement.z),pendingPlacement.z);activeShelterPreview.rotation.y=placementRotation;activeShelterPreview.visible=true;}placementConfirm.disabled=false;placementHint.textContent="Prévia posicionada. Confirme para construir ou gire para ajustar.";}
