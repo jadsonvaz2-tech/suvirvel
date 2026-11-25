@@ -50,3 +50,6 @@
 .bench-panel{z-index:65}.bench-panel .craft-card{border-color:rgba(197,154,89,.9)}.bench-panel .craft-heading h2{color:#f0cd8c}.bench-panel .craft-recipes button{min-height:68px;text-align:left}.bench-panel .craft-recipes button:disabled{opacity:.38;filter:grayscale(.7)}
 
 .carpentry-panel{z-index:66}.carpentry-panel .craft-card{border-color:rgba(197,154,89,.9)}.carpentry-panel .craft-heading h2{color:#f0cd8c}.carpentry-panel .craft-recipes button{min-height:68px;text-align:left}.carpentry-panel .craft-recipes button:disabled{opacity:.38;filter:grayscale(.7)}
+
+/* Etapa 11: armazenamento no baú. */
+.storage-panel{z-index:68}.storage-panel .craft-card{border-color:rgba(197,154,89,.9)}.storage-label{display:block;margin:10px 0 5px;color:#e8d8b8;font-size:10px;font-weight:800;letter-spacing:.06em}.storage-panel select,.storage-panel input{width:100%;min-height:42px;padding:8px 10px;border:1px solid rgba(230,202,151,.55);border-radius:5px;background:#202e23;color:#f3ead8;font-size:13px}.storage-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:12px}.storage-actions button{min-height:44px;border:1px solid #e5c58a;border-radius:5px;background:linear-gradient(#e6c78d,#c49a59);color:#211b12;font-size:10px;font-weight:900;letter-spacing:.06em}
