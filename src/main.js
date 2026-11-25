@@ -6,7 +6,8 @@ const gatherPrompt=document.getElementById("gather-prompt"),gatherLabel=document
 const STORE_KEY="legado-do-vale.chapter1.v1",DAY_MINUTES=1440,clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 function loadState(){try{const v=JSON.parse(localStorage.getItem(STORE_KEY)||"null");if(v&&v.version===1&&Number.isFinite(v.x)&&Number.isFinite(v.z))return v;}catch{}return{version:1,x:0,z:35,yaw:0,day:1,minute:375,started:false};}
 const state=loadState();if(typeof state.alinaTalked!=="boolean")state.alinaTalked=false;if(!state.selectedPlot||!Number.isFinite(state.selectedPlot.x)||!Number.isFinite(state.selectedPlot.z))state.selectedPlot=null;
-state.inventory=Object.assign({branches:0,stones:0,fiber:0,wood:0,planks:0,beams:0,berries:0},state.inventory||{});\nstate.hunger=Number.isFinite(state.hunger)?clamp(state.hunger,0,100):100;state.hungerProgress=Number.isFinite(state.hungerProgress)?Math.max(0,state.hungerProgress):0;
+state.inventory=Object.assign({branches:0,stones:0,fiber:0,wood:0,planks:0,beams:0,berries:0},state.inventory||{});
+state.hunger=Number.isFinite(state.hunger)?clamp(state.hunger,0,100):100;state.hungerProgress=Number.isFinite(state.hungerProgress)?Math.max(0,state.hungerProgress):0;
 state.tools=Object.assign({axe:false,pickaxe:false,axeAdvanced:false,pickaxeAdvanced:false},state.tools||{});
 state.items=Object.assign({torches:0,campfires:0},state.items||{});
 if(!state.campfireReset05){state.campfires=[];state.campfireReset05=true;saveState();}
@@ -164,7 +165,8 @@ addResourceNode("fiber-a","fiber",6,32,3);addResourceNode("fiber-b","fiber",-8,3
  addResourceNode("fiber-m","fiber",18,-55,3);addResourceNode("fiber-n","fiber",44,-38,3);
  addResourceNode("fiber-o","fiber",67,-8,3);addResourceNode("fiber-p","fiber",72,38,3);
  addResourceNode("fiber-q","fiber",38,61,3);addResourceNode("fiber-r","fiber",-28,53,3);
-addResourceNode("ore-a","ore",16,12,3);addResourceNode("ore-b","ore",-16,9,3);\n// Bagas silvestres coletáveis, com regeneração junto aos demais recursos.\naddResourceNode("berry-a","berry",22,46,3);addResourceNode("berry-b","berry",-24,42,3);addResourceNode("berry-c","berry",36,18,3);addResourceNode("berry-d","berry",-38,12,3);addResourceNode("berry-e","berry",48,-24,3);addResourceNode("berry-f","berry",-46,-34,3);addResourceNode("berry-g","berry",18,-58,3);addResourceNode("berry-h","berry",-12,64,3);
+addResourceNode("ore-a","ore",16,12,3);addResourceNode("ore-b","ore",-16,9,3);
+// Bagas silvestres coletáveis, com regeneração junto aos demais recursos.\naddResourceNode("berry-a","berry",22,46,3);addResourceNode("berry-b","berry",-24,42,3);addResourceNode("berry-c","berry",36,18,3);addResourceNode("berry-d","berry",-38,12,3);addResourceNode("berry-e","berry",48,-24,3);addResourceNode("berry-f","berry",-46,-34,3);addResourceNode("berry-g","berry",18,-58,3);addResourceNode("berry-h","berry",-12,64,3);
 function buildCampfire(x,z){const fire=new THREE.Group(),wood=new THREE.MeshStandardMaterial({color:0x68462d,roughness:1}),ember=new THREE.MeshStandardMaterial({color:0xe47a32,emissive:0x9e3c10,emissiveIntensity:1.4});for(let i=0;i<3;i++){const log=new THREE.Mesh(new THREE.CylinderGeometry(.13,.16,1.35,7),wood);log.rotation.z=Math.PI/2;log.rotation.y=i*Math.PI/3;log.position.y=.18+i*.025;fire.add(log);}const flame=new THREE.Mesh(new THREE.ConeGeometry(.34,.85,7),ember);flame.position.y=.65;fire.add(flame);fire.position.set(x,groundHeight(x,z),z);scene.add(fire);return fire;}
 const placedCampfires=[];for(const pos of(state.campfires||[])){if(Number.isFinite(pos.x)&&Number.isFinite(pos.z))placedCampfires.push(buildCampfire(pos.x,pos.z));}
 function buildShelter(x,z,rotation=0,ghost=false){
