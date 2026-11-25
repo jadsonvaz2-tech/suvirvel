@@ -153,6 +153,17 @@ addResourceNode("branch-a","branch",4,35,2);addResourceNode("branch-b","branch",
 addResourceNode("stone-a","stone",2,29,3);addResourceNode("stone-b","stone",-3,25,3);addResourceNode("stone-c","stone",8,17,3);addResourceNode("stone-d","stone",-9,16,3);
 addResourceNode("stone-e","stone",12,33,3);addResourceNode("stone-f","stone",-13,31,3);addResourceNode("stone-g","stone",12,21,3);addResourceNode("stone-h","stone",-14,22,3);
 addResourceNode("fiber-a","fiber",6,32,3);addResourceNode("fiber-b","fiber",-8,35,3);addResourceNode("fiber-c","fiber",10,27,3);addResourceNode("fiber-d","fiber",-3,13,3);addResourceNode("fiber-e","fiber",1,24,3);addResourceNode("fiber-f","fiber",-12,27,3);addResourceNode("fiber-g","fiber",13,37,3);addResourceNode("fiber-h","fiber",2,5,3);
+ // Novos pontos de coleta distribuídos por diferentes regiões do vale.
+ addResourceNode("stone-i","stone",-62,62,3);addResourceNode("stone-j","stone",-58,18,3);
+ addResourceNode("stone-k","stone",-65,-22,3);addResourceNode("stone-l","stone",-22,-48,3);
+ addResourceNode("stone-m","stone",8,-62,3);addResourceNode("stone-n","stone",28,-42,3);
+ addResourceNode("stone-o","stone",62,-28,3);addResourceNode("stone-p","stone",70,18,3);
+ addResourceNode("stone-q","stone",54,55,3);addResourceNode("stone-r","stone",-12,66,3);
+ addResourceNode("fiber-i","fiber",-68,48,3);addResourceNode("fiber-j","fiber",-52,-5,3);
+ addResourceNode("fiber-k","fiber",-70,-42,3);addResourceNode("fiber-l","fiber",-18,-68,3);
+ addResourceNode("fiber-m","fiber",18,-55,3);addResourceNode("fiber-n","fiber",44,-38,3);
+ addResourceNode("fiber-o","fiber",67,-8,3);addResourceNode("fiber-p","fiber",72,38,3);
+ addResourceNode("fiber-q","fiber",38,61,3);addResourceNode("fiber-r","fiber",-28,53,3);
 addResourceNode("ore-a","ore",16,12,3);addResourceNode("ore-b","ore",-16,9,3);
 function buildCampfire(x,z){const fire=new THREE.Group(),wood=new THREE.MeshStandardMaterial({color:0x68462d,roughness:1}),ember=new THREE.MeshStandardMaterial({color:0xe47a32,emissive:0x9e3c10,emissiveIntensity:1.4});for(let i=0;i<3;i++){const log=new THREE.Mesh(new THREE.CylinderGeometry(.13,.16,1.35,7),wood);log.rotation.z=Math.PI/2;log.rotation.y=i*Math.PI/3;log.position.y=.18+i*.025;fire.add(log);}const flame=new THREE.Mesh(new THREE.ConeGeometry(.34,.85,7),ember);flame.position.y=.65;fire.add(flame);fire.position.set(x,groundHeight(x,z),z);scene.add(fire);return fire;}
 const placedCampfires=[];for(const pos of(state.campfires||[])){if(Number.isFinite(pos.x)&&Number.isFinite(pos.z))placedCampfires.push(buildCampfire(pos.x,pos.z));}
