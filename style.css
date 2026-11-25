@@ -61,3 +61,4 @@
 
 /* Etapa 14: agricultura manual. */
 .food-section [data-build-field]{width:100%;margin-top:8px;text-align:left;line-height:1.45}.food-section [data-build-field]:disabled{opacity:.4;filter:grayscale(.7)}
+\n/* Etapa 17: tear e produção têxtil. */\n#loom-panel .craft-recipes button{min-height:64px}\n
