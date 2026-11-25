@@ -190,7 +190,7 @@ const placementPreview=new THREE.Group(),previewRing=new THREE.Mesh(new THREE.Ri
  for(const [sx,sz] of [[-10,-10],[10,-10],[10,10],[-10,10]]){const post=new THREE.Mesh(new THREE.CylinderGeometry(.11,.15,1.55,6),plotPostMat);post.position.set(sx,.78,sz);plotMarker.add(post);}
  const plotPoints=[[-10,.42,-10],[10,.42,-10],[10,.42,10],[-10,.42,10],[-10,.42,-10]].map(p=>new THREE.Vector3(...p));plotMarker.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(plotPoints),plotRopeMat));plotMarker.visible=false;scene.add(plotMarker);
  function showPlotMarker(x,z){plotMarker.position.set(x,groundHeight(x,z),z);plotMarker.visible=true;}
- if(state.selectedPlot)showPlotMarker(state.selectedPlot.x,state.selectedPlot.z);
+ plotMarker.visible=false;
  const dialogueScripts={alina:["Bom dia, viajante. Você parece exausto. O que aconteceu com você?","Minha aldeia foi atacada por bárbaros... Perdi tudo e não sei se alguém conseguiu sobreviver.","Sinto muito. Meu nome é Alina, sou a anciã desta Vila Vizinha. Aqui você poderá descansar um pouco e recuperar as forças.","Há terras livres neste vale. Você poderá escolher qualquer pedaço de terra para construir um abrigo e formar sua própria vila novamente.","Mas há uma obrigação: essas terras pertencem ao rei. Todos os anos você deverá pagar ao reino pelo terreno que estiver usando.","Comece com cuidado. Não receberá uma vila pronta: cada ferramenta, cada construção e cada conquista virá do seu próprio trabalho. Quando precisar de orientação, procure-me."],tomas:["Sou Tomas, o ferreiro desta vila. Trabalho o metal e conserto ferramentas para quem traz os materiais necessários.","Um bom machado ou uma picareta exige minério, combustível e muito trabalho. Nada surge do nada, rapaz.","Quando você tiver os recursos e construir sua própria oficina, poderá aprender a produzir ferramentas melhores."],edda:["Meu nome é Edda. Cuido das pequenas plantações e conheço os ciclos da terra.","Antes de semear, prepare o solo e consiga sementes. Cada estação tem seu tempo, e uma colheita exige paciência.","Quando tiver seu próprio terreno e as ferramentas adequadas, posso lhe explicar mais sobre o cultivo."],martim:["Pode me chamar de Martim. Viajo entre povoados e negocio mercadorias quando há algo para trocar.","O comércio pode ajudar uma comunidade a prosperar, mas primeiro é preciso produzir, coletar ou comprar aquilo que será negociado.","Quando sua vila estiver de pé, procure um entreposto e teremos muito o que conversar."],bruna:["Sou Bruna. Costuro roupas e remendo tecidos para os moradores daqui.","Fios, couro e tecido têm valor. Aprender a aproveitar cada material será importante quando você construir seu próprio lar.","Por enquanto, observe como trabalhamos. Uma vila forte começa com pessoas que sabem fazer coisas diferentes."]};
  let dialogueIndex=0,dialogueOpen=false,activeNpc=null,activeDialogueLines=[],currentInteractable=null;
  function closeDialogue(){dialogue.hidden=true;dialogueOpen=false;if(activeNpc?.id==="alina"){state.alinaTalked=true;saveState();objective.querySelector("strong").textContent=state.selectedPlot?"Terreno da sua vila escolhido":"Escolha o terreno da sua futura vila";objective.querySelector("p").textContent=state.selectedPlot?"A área escolhida está marcada. Sua construção começará em uma próxima etapa.":"Explore o vale e marque uma área livre para sua futura vila.";}notify("Conversa concluída.");activeNpc=null;}
@@ -202,39 +202,40 @@ let placementDistance=0;
 let placementFollow=true;
 const placementRaycaster=new THREE.Raycaster(),placementPointer=new THREE.Vector2();
 function placementError(x,z,kind){
- if(kind==="campfire"){if(Math.abs(x)>98||Math.abs(z)>98)return"Escolha um ponto dentro do vale.";if(riverDistance(x,z)<9)return"Não é seguro colocar a fogueira tão perto do rio.";if(placedCampfires.some(f=>Math.hypot(f.position.x-x,f.position.z-z)<3.5))return"Escolha um local mais distante de outra fogueira.";}
- else{
-  if(!state.selectedPlot)return"Primeiro escolha o terreno da sua vila.";
-  if(Math.abs(x-state.selectedPlot.x)>5.4||Math.abs(z-state.selectedPlot.z)>5.4)return"Coloque o abrigo dentro da área de terreno que você escolheu.";
-  if(riverDistance(x,z)<9)return"Este ponto fica muito perto do rio.";
+ if(Math.abs(x)>98||Math.abs(z)>98)return"Escolha um ponto dentro do vale.";
+ if(Math.hypot(x-48,z+82)<28)return"Este local fica muito perto da Vila Vizinha. Afaste-se para construir sua própria vila.";
+ if(riverDistance(x,z)<9)return kind==="campfire"?"Não é seguro colocar a fogueira tão perto do rio.":"Este ponto fica muito perto do rio.";
+ if(kind==="campfire"){
+  if(placedCampfires.some(f=>Math.hypot(f.position.x-x,f.position.z-z)<3.5))return"Escolha um local mais distante de outra fogueira.";
+ }else{
   if(placedShelters.some(h=>Math.hypot(h.position.x-x,h.position.z-z)<7))return"Afaste o abrigo de outra construção.";
   if(placedCampfires.some(f=>Math.hypot(f.position.x-x,f.position.z-z)<4))return"Afaste o abrigo da fogueira.";
  }
  for(const [dx,dz] of [[-2.8,0],[2.8,0],[0,-2.5],[0,2.5],[-2,-2],[2,-2],[-2,2],[2,2]])if(Math.abs(groundHeight(x+dx,z+dz)-groundHeight(x,z))>.8)return"Este ponto é muito inclinado. Escolha um terreno mais plano.";
  return"";
 }
-function canBuildShelter(){return !!state.selectedPlot&&state.inventory.wood>=12&&state.inventory.branches>=8&&state.inventory.fiber>=6;}
+function canBuildShelter(){return state.inventory.wood>=12&&state.inventory.branches>=8&&state.inventory.fiber>=6;}
 function startPlacement(kind){
  if(kind==="campfire"&&state.items.campfires<1)return;
- if(kind==="shelter"&&!canBuildShelter()){craftStatus.textContent=!state.selectedPlot?"Escolha primeiro o terreno da sua vila.":"Materiais necessários: 12 madeiras, 8 galhos e 6 fibras.";return;}
+ if(kind==="shelter"&&!canBuildShelter()){craftStatus.textContent="Materiais necessários: 12 madeiras, 8 galhos e 6 fibras.";return;}
  selectedPlacementKind=kind;placementRotation=0;placementMode=true;placementFollow=true;pendingPlacement=null;placementPreview.visible=false;
  if(activeShelterPreview){scene.remove(activeShelterPreview);activeShelterPreview=null;}
  if(kind==="shelter"){
   activeShelterPreview=buildShelter(0,0,0,true);activeShelterPreview.visible=false;root.classList.add("placing-shelter");
   // Procura um ponto válido a pelo menos 8 m do jogador, priorizando a direção para a qual ele olha.
-  const plot=state.selectedPlot,forwardX=-Math.sin(player.yaw),forwardZ=-Math.cos(player.yaw);
+  const forwardX=-Math.sin(player.yaw),forwardZ=-Math.cos(player.yaw);
   let candidate=null,bestScore=Infinity,farthest=null,farthestDistance=-1;placementDistance=0;
   const consider=(point)=>{
    if(placementError(point.x,point.z,"shelter"))return;
    const dx=point.x-player.x,dz=point.z-player.z,distance=Math.hypot(dx,dz);
    if(distance>farthestDistance){farthest={...point};farthestDistance=distance;}
-   if(distance<8)return;
+   if(distance<7)return;
    const forwardDot=distance>0?(dx*forwardX+dz*forwardZ)/distance:0;
-   const score=Math.abs(distance-9)+Math.max(0,.15-forwardDot)*12;
+   const score=Math.abs(distance-8.5)+Math.max(0,.15-forwardDot)*12;
    if(score<bestScore){candidate={...point};bestScore=score;placementDistance=distance;}
   };
-  for(let ix=-10;ix<=10;ix++)for(let iz=-10;iz<=10;iz++){
-   consider({x:plot.x+ix*.54,z:plot.z+iz*.54});
+  for(let d=7;d<=10;d+=1)for(let ix=-5;ix<=5;ix++)for(let iz=-5;iz<=5;iz++){
+   consider({x:clamp(player.x+forwardX*d+ix*.7,-96,96),z:clamp(player.z+forwardZ*d+iz*.7,-96,96)});
   }
   if(!candidate&&farthest){candidate=farthest;placementDistance=farthestDistance;}
   if(candidate){
@@ -250,13 +251,13 @@ function startPlacement(kind){
 function cancelPlacement(){placementMode=false;placementFollow=false;pendingPlacement=null;selectedPlacementKind=null;placementPreview.visible=false;if(activeShelterPreview){scene.remove(activeShelterPreview);activeShelterPreview=null;}placementPrompt.hidden=true;root.classList.remove("placing-structure","placing-shelter");}
 function selectPlacementPoint(clientX,clientY){if(!placementMode)return;const rect=renderer.domElement.getBoundingClientRect();placementPointer.set((clientX-rect.left)/rect.width*2-1,-((clientY-rect.top)/rect.height)*2+1);placementRaycaster.setFromCamera(placementPointer,camera);const hit=placementRaycaster.intersectObject(terrainMesh,false)[0];if(!hit){placementHint.textContent="Toque em uma parte visível do chão do vale.";placementConfirm.disabled=true;return;}const x=hit.point.x,z=hit.point.z,reason=placementError(x,z,selectedPlacementKind);if(reason){pendingPlacement=null;placementPreview.visible=false;if(activeShelterPreview)activeShelterPreview.visible=false;placementConfirm.disabled=true;placementHint.textContent=reason;return;}placementFollow=false;pendingPlacement={x:Math.round(x*10)/10,z:Math.round(z*10)/10};if(selectedPlacementKind==="campfire"){placementPreview.position.set(pendingPlacement.x,groundHeight(pendingPlacement.x,pendingPlacement.z)+.05,pendingPlacement.z);placementPreview.visible=true;}else if(activeShelterPreview){activeShelterPreview.position.set(pendingPlacement.x,groundHeight(pendingPlacement.x,pendingPlacement.z),pendingPlacement.z);activeShelterPreview.rotation.y=placementRotation;activeShelterPreview.visible=true;}placementConfirm.disabled=false;placementHint.textContent="Prévia posicionada. Confirme para construir ou gire para ajustar.";}
 function updateShelterPreviewFromPlayer(){
- if(!placementMode||selectedPlacementKind!=="shelter"||!placementFollow||!activeShelterPreview||!state.selectedPlot)return;
- const plot=state.selectedPlot,fx=-Math.sin(player.yaw),fz=-Math.cos(player.yaw);
+ if(!placementMode||selectedPlacementKind!=="shelter"||!placementFollow||!activeShelterPreview)return;
+ const fx=-Math.sin(player.yaw),fz=-Math.cos(player.yaw);
  let best=null,bestScore=Infinity;
  for(let d=7;d<=10;d+=1){
-  const baseX=clamp(player.x+fx*d,plot.x-5.1,plot.x+5.1),baseZ=clamp(player.z+fz*d,plot.z-5.1,plot.z+5.1);
+  const baseX=clamp(player.x+fx*d,-96,96),baseZ=clamp(player.z+fz*d,-96,96);
   for(let ix=-2;ix<=2;ix++)for(let iz=-2;iz<=2;iz++){
-   const x=clamp(baseX+ix*.55,plot.x-5.1,plot.x+5.1),z=clamp(baseZ+iz*.55,plot.z-5.1,plot.z+5.1);
+   const x=clamp(baseX+ix*.65,-96,96),z=clamp(baseZ+iz*.65,-96,96);
    if(placementError(x,z,"shelter"))continue;
    const dist=Math.hypot(x-player.x,z-player.z),dot=dist>0?((x-player.x)*fx+(z-player.z)*fz)/dist:0;
    const score=Math.abs(dist-8.5)+Math.max(0,.2-dot)*8;
@@ -268,8 +269,8 @@ function updateShelterPreviewFromPlayer(){
   pendingPlacement={x:Math.round(best.x*10)/10,z:Math.round(best.z*10)/10};
   activeShelterPreview.position.set(pendingPlacement.x,groundHeight(pendingPlacement.x,pendingPlacement.z),pendingPlacement.z);
   activeShelterPreview.rotation.y=placementRotation;activeShelterPreview.visible=true;placementConfirm.disabled=false;
-  placementHint.textContent="A prévia acompanha seu movimento. Use o joystick para ajustar, toque no chão para fixar a posição e gire a casa.";
- }else{placementConfirm.disabled=true;placementHint.textContent="Mova-se dentro do terreno para encontrar um ponto válido para o abrigo.";}
+  placementHint.textContent="A prévia acompanha seu movimento. Agora você pode construir em qualquer área livre do vale, longe da Vila Vizinha.";
+ }else{placementConfirm.disabled=true;placementHint.textContent="Mova-se para uma área livre do vale, mantendo distância da Vila Vizinha e do rio.";}
 }
 function confirmPlacement(){
  if(!placementMode||!pendingPlacement)return;
@@ -293,9 +294,9 @@ function performGather(target){if(!target)return;if(target.kind==="tree"){const 
 gatherButton.addEventListener("click",()=>performGather(currentGatherable));
  let pendingPlot=null;
  function validPlot(x,z){if(Math.abs(x)>82||Math.abs(z)>82)return"Escolha uma área mais distante dos limites do vale.";if(riverDistance(x,z)<17)return"Esse terreno fica muito perto do rio. Procure uma área mais segura.";if(Math.hypot(x-48,z+82)<28)return"Escolha um terreno afastado da Vila Vizinha.";const base=groundHeight(x,z);for(const [dx,dz] of [[-10,0],[10,0],[0,-10],[0,10],[-7,-7],[7,-7],[-7,7],[7,7]])if(Math.abs(groundHeight(x+dx,z+dz)-base)>1.65)return"Esse terreno é muito inclinado. Procure uma área mais plana.";return"";}
- landButton.addEventListener("click",()=>{if(!state.alinaTalked||state.selectedPlot)return;const reason=validPlot(player.x,player.z);if(reason){notify(reason);return;}pendingPlot={x:Math.round(player.x),z:Math.round(player.z)};showPlotMarker(pendingPlot.x,pendingPlot.z);plotConfirmText.textContent="Você marcou uma área de aproximadamente 20 × 20 metros. Deseja confirmar este terreno para sua futura vila?";plotConfirm.hidden=false;landPrompt.hidden=true;});
- plotAccept.addEventListener("click",()=>{if(!pendingPlot)return;state.selectedPlot={x:pendingPlot.x,z:pendingPlot.z};showPlotMarker(state.selectedPlot.x,state.selectedPlot.z);saveState();plotConfirm.hidden=true;pendingPlot=null;objective.querySelector("strong").textContent="Terreno da sua vila escolhido";objective.querySelector("p").textContent="Sua área está marcada. O tributo anual ao rei será definido quando o sistema de administração for construído.";notify("Terreno escolhido e salvo.");});
- plotCancel.addEventListener("click",()=>{plotConfirm.hidden=true;pendingPlot=null;plotMarker.visible=!!state.selectedPlot;if(state.selectedPlot)showPlotMarker(state.selectedPlot.x,state.selectedPlot.z);landPrompt.hidden=false;});
+ landButton.addEventListener("click",()=>{if(!state.alinaTalked||state.selectedPlot)return;const reason=validPlot(player.x,player.z);if(reason){notify(reason);return;}pendingPlot={x:Math.round(player.x),z:Math.round(player.z)};showPlotMarker(pendingPlot.x,pendingPlot.z);plotConfirmText.textContent="Você marcou um ponto inicial para sua vila. A expansão poderá acontecer livremente pelo vale, longe das outras vilas. Deseja confirmar?";plotConfirm.hidden=false;landPrompt.hidden=true;});
+ plotAccept.addEventListener("click",()=>{if(!pendingPlot)return;state.selectedPlot={x:pendingPlot.x,z:pendingPlot.z};plotMarker.visible=false;saveState();plotConfirm.hidden=true;pendingPlot=null;objective.querySelector("strong").textContent="Local livre para sua vila";objective.querySelector("p").textContent="Você poderá construir e expandir sua vila pelo vale, mantendo distância das outras vilas.";notify("Você poderá expandir sua vila pelo vale.");});
+ plotCancel.addEventListener("click",()=>{plotConfirm.hidden=true;pendingPlot=null;plotMarker.visible=!!state.selectedPlot;plotMarker.visible=false;landPrompt.hidden=false;});
  const keys=new Set(),player={x:state.x,z:state.z,yaw:Number.isFinite(state.yaw)?state.yaw:0,pitch:0,bob:0},eye=1.68;camera.position.set(player.x,groundHeight(player.x,player.z)+eye,player.z);camera.rotation.set(0,player.yaw,0);
  let running=false,moveX=0,moveZ=0,lookPointer=null,lastLookX=0,lastLookY=0,lastSave=0,elapsedGame=0,lastFrame=performance.now();
  function updateClock(add){state.minute+=add;while(state.minute>=DAY_MINUTES){state.minute-=DAY_MINUTES;state.day++;}const h=Math.floor(state.minute/60),m=Math.floor(state.minute%60);clockLabel.textContent="DIA "+state.day+" · "+String(h).padStart(2,"0")+":"+String(m).padStart(2,"0");}updateClock(0);
@@ -310,7 +311,7 @@ function refreshRegrowth(){for(const [id,day] of Object.entries(state.harvestedN
  renderer.domElement.addEventListener("pointerdown",e=>{if(placementMode&&mobile&&e.pointerType==="touch"){e.preventDefault();selectPlacementPoint(e.clientX,e.clientY);return;}if(!mobile||!state.started||e.pointerType!=="touch")return;if(e.clientX<innerWidth*.34&&e.clientY>innerHeight*.48)return;lookPointer=e.pointerId;lastLookX=e.clientX;lastLookY=e.clientY;renderer.domElement.setPointerCapture(e.pointerId);});
  renderer.domElement.addEventListener("pointermove",e=>{if(e.pointerId!==lookPointer)return;const dx=e.clientX-lastLookX,dy=e.clientY-lastLookY;lastLookX=e.clientX;lastLookY=e.clientY;player.yaw-=dx*.004;player.pitch=clamp(player.pitch-dy*.003,-1.2,1.2);});const release=e=>{if(e.pointerId===lookPointer)lookPointer=null;};renderer.domElement.addEventListener("pointerup",release);renderer.domElement.addEventListener("pointercancel",release);
  function updateVillagers(dt,now){for(const villager of villagers){const target=villager.route[villager.index],dx=target[0]-villager.group.position.x,dz=target[1]-villager.group.position.z,dist=Math.hypot(dx,dz);if(dist<.45){villager.index=(villager.index+1)%villager.route.length;villager.walking=false;}else{villager.walking=true;const step=Math.min(dist,villager.speed*dt);villager.group.position.x+=dx/dist*step;villager.group.position.z+=dz/dist*step;villager.group.rotation.y=Math.atan2(dx,dz); }const swing=villager.walking?Math.sin(now*.009+villager.phase)*.42:Math.sin(now*.0015+villager.phase)*.025;villager.legs[0].rotation.x=swing;villager.legs[1].rotation.x=-swing;villager.group.position.y=groundHeight(villager.group.position.x,villager.group.position.z)+(villager.walking?Math.abs(Math.sin(now*.009+villager.phase))*.035:0);}}
- function frame(){requestAnimationFrame(frame);const now=performance.now(),dt=Math.min((now-lastFrame)/1000,.05);lastFrame=now;updateVillagers(dt,now);if(state.started){if(craftVisible){running=false;keys.clear();}const alinaDistance=Math.hypot(player.x-alinaX,player.z-alinaZ);let nearest=null,nearestDistance=4.6;if(!state.alinaTalked&&alinaDistance<=nearestDistance){nearest={id:"alina",name:"Alina · Anciã"};nearestDistance=alinaDistance;}for(const villager of villagers){const d=Math.hypot(player.x-villager.group.position.x,player.z-villager.group.position.z);if(d<nearestDistance){nearest={id:villager.id,name:villager.name};nearestDistance=d;}}currentInteractable=nearest;talkPrompt.hidden=dialogueOpen||craftVisible||placementMode||plotConfirm.hidden===false||!nearest;if(nearest)talkLabel.textContent=nearest.name.toUpperCase()+" ESTÁ POR PERTO";landPrompt.hidden=dialogueOpen||craftVisible||placementMode||plotConfirm.hidden===false||!state.alinaTalked||!!state.selectedPlot;
+ function frame(){requestAnimationFrame(frame);const now=performance.now(),dt=Math.min((now-lastFrame)/1000,.05);lastFrame=now;updateVillagers(dt,now);if(state.started){if(craftVisible){running=false;keys.clear();}const alinaDistance=Math.hypot(player.x-alinaX,player.z-alinaZ);let nearest=null,nearestDistance=4.6;if(!state.alinaTalked&&alinaDistance<=nearestDistance){nearest={id:"alina",name:"Alina · Anciã"};nearestDistance=alinaDistance;}for(const villager of villagers){const d=Math.hypot(player.x-villager.group.position.x,player.z-villager.group.position.z);if(d<nearestDistance){nearest={id:villager.id,name:villager.name};nearestDistance=d;}}currentInteractable=nearest;talkPrompt.hidden=dialogueOpen||craftVisible||placementMode||plotConfirm.hidden===false||!nearest;if(nearest)talkLabel.textContent=nearest.name.toUpperCase()+" ESTÁ POR PERTO";landPrompt.hidden=true;
 let best=null,bestDist=3.5;for(const node of resourceNodes){const harvested=state.harvestedNodes[node.id];node.group.visible=harvested===undefined||state.day>=harvested+2;if(!node.group.visible)continue;const d=Math.hypot(player.x-node.x,player.z-node.z);if(d<bestDist&&!(node.type==="ore"&&!state.tools.pickaxe)){best={kind:"node",node};bestDist=d;}}if(state.tools.axe){treeSpots.forEach((tree,index)=>{if(state.felledTrees.some(entry=>entry.index===index))return;const d=Math.hypot(player.x-tree.x,player.z-tree.z);if(d<bestDist){best={kind:"tree",index};bestDist=d;}});}currentGatherable=best;gatherPrompt.hidden=dialogueOpen||craftVisible||placementMode||plotConfirm.hidden===false||!best;if(best)gatherLabel.textContent=best.kind==="tree"?"ÁRVORE PRONTA PARA CORTE":best.node.type==="ore"?"VEIO DE PEDRA · EXTRAIR":best.node.type==="branch"?"GALHOS CAÍDOS · COLETAR":best.node.type==="stone"?"PEDRAS SOLTAS · COLETAR":"FIBRAS VEGETAIS · COLETAR";if(dialogueOpen||craftVisible||plotConfirm.hidden===false){running=false;keys.clear();moveX=0;moveZ=0;}marker.position.y=groundHeight(alinaX,alinaZ)+3.35+Math.sin(now*.0025)*.18;const forward=(keys.has("w")||keys.has("arrowup")?1:0)-(keys.has("s")||keys.has("arrowdown")?1:0)+moveZ,strafe=(keys.has("d")||keys.has("arrowright")?1:0)-(keys.has("a")||keys.has("arrowleft")?1:0)+moveX,mag=Math.hypot(forward,strafe);if(mag>.02){const speed=running?8.1:5.2,f=forward/Math.max(1,mag),s=strafe/Math.max(1,mag),dx=-Math.sin(player.yaw)*f+Math.cos(player.yaw)*s,dz=-Math.cos(player.yaw)*f-Math.sin(player.yaw)*s,nx=clamp(player.x+dx*speed*dt,-106,106),nz=clamp(player.z+dz*speed*dt,-106,106);if(riverDistance(nx,nz)>7.45||Math.abs(nz-BRIDGE_Z)<3.1){player.x=nx;player.z=nz;}else{if(riverDistance(nx,player.z)>7.45)player.x=nx;if(riverDistance(player.x,nz)>7.45)player.z=nz;}player.bob+=dt*(running?13:9)*Math.min(1,mag);}if(placementMode&&selectedPlacementKind==="shelter"&&mag>.02)placementFollow=true;updateShelterPreviewFromPlayer();const bob=mag>.02?Math.sin(player.bob)*.035:0;camera.position.set(player.x,groundHeight(player.x,player.z)+eye+bob,player.z);camera.rotation.set(player.pitch,player.yaw,0);elapsedGame+=dt*(running?1.2:.72);if(elapsedGame>=1){const oldDay=state.day;updateClock(Math.floor(elapsedGame));elapsedGame%=1;if(state.day!==oldDay){refreshRegrowth();saveState();}}if(now-lastSave>4000){state.x=player.x;state.z=player.z;state.yaw=player.yaw;saveState();lastSave=now;}}renderer.render(scene,camera);}
  window.addEventListener("resize",()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(Math.min(devicePixelRatio||1,mobile?1.45:1.8));});loading.hidden=true;if(mobile){joystick.hidden=false;runButton.hidden=false;}frame();
 }
