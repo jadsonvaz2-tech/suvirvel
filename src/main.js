@@ -272,7 +272,7 @@ function startPlacement(kind){
   }
  }
  craftVisible=false;craftPanel.hidden=true;placementPrompt.hidden=false;root.classList.add("placing-structure");
- placementHint.textContent=kind==="shelter"?(pendingPlacement?"Prévia do abrigo posicionada. Use o joystick ou toque no chão para ajustar.":"Mova-se para uma área livre do vale."):kind==="workbench"?(pendingPlacement?"Prévia da bancada posicionada. Use o joystick ou toque no chão para ajustar.":"Mova-se para uma área livre do vale."):"Toque no terreno para pré-visualizar a fogueira."
+ placementHint.textContent=kind==="shelter"?(pendingPlacement?"Prévia do abrigo posicionada. Use o joystick ou toque no chão para ajustar.":"Mova-se para uma área livre do vale."):kind==="workbench"?(pendingPlacement?"Prévia da bancada posicionada. Use o joystick ou toque no chão para ajustar.":"Mova-se para uma área livre do vale."):kind==="carpentry"?(pendingPlacement?"Prévia da oficina de carpintaria posicionada. Ajuste e confirme.":"Mova-se para uma área livre do vale."):"Toque no terreno para pré-visualizar a fogueira."
  placementConfirm.disabled=!pendingPlacement;document.exitPointerLock?.();keys.clear();resetStick();
 }
 function cancelPlacement(){placementMode=false;placementFollow=false;pendingPlacement=null;selectedPlacementKind=null;placementPreview.visible=false;if(activeShelterPreview){scene.remove(activeShelterPreview);activeShelterPreview=null;}placementPrompt.hidden=true;root.classList.remove("placing-structure","placing-shelter");}
