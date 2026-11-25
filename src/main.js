@@ -168,7 +168,7 @@ addResourceNode("ore-a","ore",16,12,3);addResourceNode("ore-b","ore",-16,9,3);
 function buildCampfire(x,z){const fire=new THREE.Group(),wood=new THREE.MeshStandardMaterial({color:0x68462d,roughness:1}),ember=new THREE.MeshStandardMaterial({color:0xe47a32,emissive:0x9e3c10,emissiveIntensity:1.4});for(let i=0;i<3;i++){const log=new THREE.Mesh(new THREE.CylinderGeometry(.13,.16,1.35,7),wood);log.rotation.z=Math.PI/2;log.rotation.y=i*Math.PI/3;log.position.y=.18+i*.025;fire.add(log);}const flame=new THREE.Mesh(new THREE.ConeGeometry(.34,.85,7),ember);flame.position.y=.65;fire.add(flame);fire.position.set(x,groundHeight(x,z),z);scene.add(fire);return fire;}
 const placedCampfires=[];for(const pos of(state.campfires||[])){if(Number.isFinite(pos.x)&&Number.isFinite(pos.z))placedCampfires.push(buildCampfire(pos.x,pos.z));}
 function buildShelter(x,z,rotation=0,ghost=false){
- const group=new THREE.Group(),opacity=ghost?.48:1,transparent=ghost;
+ const group=new THREE.Group(),opacity=ghost ? 0.48 : 1,transparent=ghost;
  const wood=new THREE.MeshStandardMaterial({color:0x795334,roughness:1,transparent,opacity,depthWrite:!ghost});
  const darkWood=new THREE.MeshStandardMaterial({color:0x503923,roughness:1,transparent,opacity,depthWrite:!ghost});
  const wall=new THREE.MeshStandardMaterial({color:0x9b805d,roughness:1,transparent,opacity,depthWrite:!ghost});
