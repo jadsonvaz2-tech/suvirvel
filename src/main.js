@@ -229,6 +229,7 @@ function placementError(x,z,kind){
   if(placedShelters.some(h=>Math.hypot(h.position.x-x,h.position.z-z)<5))return"Afaste a bancada do abrigo.";
   if(placedCampfires.some(f=>Math.hypot(f.position.x-x,f.position.z-z)<4))return"Afaste a bancada da fogueira.";
  }else{
+  if(placedCarpentryShops.some(b=>Math.hypot(b.position.x-x,b.position.z-z)<7))return"Afaste a construção da oficina de carpintaria.";
   if(placedShelters.some(h=>Math.hypot(h.position.x-x,h.position.z-z)<7))return"Afaste o abrigo de outra construção.";
   if(placedWorkbenches.some(b=>Math.hypot(b.position.x-x,b.position.z-z)<4))return"Afaste o abrigo da bancada.";
   if(placedCampfires.some(f=>Math.hypot(f.position.x-x,f.position.z-z)<4))return"Afaste o abrigo da fogueira.";
