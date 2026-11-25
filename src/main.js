@@ -247,7 +247,7 @@ function startPlacement(kind){
   const forwardX=-Math.sin(player.yaw),forwardZ=-Math.cos(player.yaw);
   let candidate=null,bestScore=Infinity,farthest=null,farthestDistance=-1;placementDistance=0;
   const consider=(point)=>{
-   if(placementError(point.x,point.z,"shelter"))return;
+   if(placementError(point.x,point.z,kind))return;
    const dx=point.x-player.x,dz=point.z-player.z,distance=Math.hypot(dx,dz);
    if(distance>farthestDistance){farthest={...point};farthestDistance=distance;}
    if(distance<7)return;
@@ -279,7 +279,7 @@ function updateShelterPreviewFromPlayer(){
   const baseX=clamp(player.x+fx*d,-96,96),baseZ=clamp(player.z+fz*d,-96,96);
   for(let ix=-2;ix<=2;ix++)for(let iz=-2;iz<=2;iz++){
    const x=clamp(baseX+ix*.65,-96,96),z=clamp(baseZ+iz*.65,-96,96);
-   if(placementError(x,z,"shelter"))continue;
+   if(placementError(x,z,selectedPlacementKind))continue;
    const dist=Math.hypot(x-player.x,z-player.z),dot=dist>0?((x-player.x)*fx+(z-player.z)*fz)/dist:0;
    const score=Math.abs(dist-8.5)+Math.max(0,.2-dot)*8;
    if(score<bestScore){bestScore=score;best={x,z};}
