@@ -196,7 +196,7 @@ function buildWorkbench(x,z,rotation=0,ghost=false){
  part(new THREE.BoxGeometry(.13,.42,.13),iron,.8,1.84,.25);
  part(new THREE.BoxGeometry(.75,.12,.14),iron,.8,2.08,.25);
  if(ghost){const glow=new THREE.MeshBasicMaterial({color:0xb8ff65,transparent:true,opacity:.98,depthTest:false});const outline=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(3.65,2.55,2.05)),glow);outline.position.y=1.25;outline.renderOrder=20;group.add(outline);group.traverse(o=>{if(o.isMesh&&o.material.transparent){o.material.opacity=.76;o.material.depthWrite=false;o.material.emissive=new THREE.Color(0x493817);o.material.emissiveIntensity=.5;}});}
- group.position.set(x,groundHeight(x,z),z);group.rotation.y=rotation;scene.add(group);return group;
+ group.scale.setScalar(.65);group.position.set(x,groundHeight(x,z),z);group.rotation.y=rotation;scene.add(group);return group;
 }
 const placedWorkbenches=[];for(const item of state.workbenches){if(Number.isFinite(item.x)&&Number.isFinite(item.z))placedWorkbenches.push(buildWorkbench(item.x,item.z,item.rotation||0,false));}
 const placementPreview=new THREE.Group(),previewRing=new THREE.Mesh(new THREE.RingGeometry(.75,1.05,32),new THREE.MeshBasicMaterial({color:0x8fe0a0,side:THREE.DoubleSide,transparent:true,opacity:.9}));previewRing.rotation.x=-Math.PI/2;placementPreview.add(previewRing);placementPreview.visible=false;scene.add(placementPreview);
