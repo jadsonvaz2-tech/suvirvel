@@ -48,3 +48,5 @@
 
 /* Menu exclusivo da bancada: mesmas proporções do inventário, conteúdo separado. */
 .bench-panel{z-index:65}.bench-panel .craft-card{border-color:rgba(197,154,89,.9)}.bench-panel .craft-heading h2{color:#f0cd8c}.bench-panel .craft-recipes button{min-height:68px;text-align:left}.bench-panel .craft-recipes button:disabled{opacity:.38;filter:grayscale(.7)}
+
+.carpentry-panel{z-index:66}.carpentry-panel .craft-card{border-color:rgba(197,154,89,.9)}.carpentry-panel .craft-heading h2{color:#f0cd8c}.carpentry-panel .craft-recipes button{min-height:68px;text-align:left}.carpentry-panel .craft-recipes button:disabled{opacity:.38;filter:grayscale(.7)}
