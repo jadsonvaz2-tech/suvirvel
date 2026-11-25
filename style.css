@@ -43,3 +43,5 @@
  #game.placing-structure .placement-card p{font-size:8px;}
  #game.placing-structure .placement-card button{min-height:32px;font-size:8px;}
 }
+
+.craft-advanced{margin-top:14px;padding:11px;border:1px solid rgba(226,197,137,.55);border-radius:7px;background:rgba(103,78,43,.2)}.craft-advanced[hidden]{display:none!important}.craft-advanced>strong{display:block;margin-bottom:9px;color:#e8c98f;font-size:10px;letter-spacing:.08em}.craft-advanced .craft-recipes button{border-color:#c49a59}
