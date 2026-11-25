@@ -129,7 +129,7 @@ function createWorld(THREE){
  const villagers=[];
  function createVillager(x,z,look,route,phase){
   const recruited=!!look.recruitable&&state.recruitedVillagers.includes(look.id),home=state.shelters[0]||state.selectedPlot||{x:0,z:35},residentIndex=state.recruitedVillagers.indexOf(look.id),slot=Math.max(0,residentIndex),offsetX=(slot%3-1)*2.8,offsetZ=3+Math.floor(slot/3)*2.8;
-  if(recruited){x=home.x+offsetX;z=home.z+offsetZ;route=[[x,z],[x+1.5,z],[x+1.5,z+1.5],[x,z+1.5]];const savedJob=state.villagerJobs[look.id];if(savedJob){const assignedRoute=residentWorkRoute(look.id,savedJob,slot);if(assignedRoute){route=assignedRoute;x=route[0][0];z=route[0][1];}}}
+  if(recruited){x=home.x+offsetX;z=home.z+offsetZ;route=[[x,z],[x+1.5,z],[x+1.5,z+1.5],[x,z+1.5]];}
   const person=new THREE.Group(),coatMat=new THREE.MeshStandardMaterial({color:look.coat,roughness:1}),clothMat=new THREE.MeshStandardMaterial({color:look.cloth,roughness:1}),hairMat=new THREE.MeshStandardMaterial({color:look.hair,roughness:1}),skinMat=new THREE.MeshStandardMaterial({color:look.skin,roughness:1});
   const body=new THREE.Mesh(new THREE.CylinderGeometry(.34,.46,1.15,8),coatMat);body.position.y=1.12;person.add(body);
   const belt=new THREE.Mesh(new THREE.BoxGeometry(.72,.12,.48),clothMat);belt.position.y=.82;person.add(belt);
@@ -322,6 +322,7 @@ const placementPreview=new THREE.Group(),previewRing=new THREE.Mesh(new THREE.Ri
   const slot=state.recruitedVillagers.indexOf(resident.id),route=residentWorkRoute(resident.id,job,Math.max(0,slot));
   resident.route=route;resident.index=0;resident.group.position.set(route[0][0],groundHeight(route[0][0],route[0][1]),route[0][1]);
  }
+ for(const resident of villagers){const savedJob=state.villagerJobs[resident.id];if(resident.recruited&&savedJob)applyResidentJob(resident,savedJob);}
  function renderVillagePanel(){
   const ids=state.recruitedVillagers,assigned=ids.filter(id=>state.villagerJobs[id]&&state.villagerJobs[id]!=="general").length;
   villageSummary.textContent=ids.length+" habitante(s) na sua vila · "+assigned+" com profissão definida";
