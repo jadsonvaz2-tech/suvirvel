@@ -399,6 +399,7 @@ const placementPreview=new THREE.Group(),previewRing=new THREE.Mesh(new THREE.Ri
  function addVillageLog(message){state.villageProductionLog.push("Dia "+state.day+": "+message);state.villageProductionLog=state.villageProductionLog.slice(-12);}
  function produceVillageDay(day){
   const stock=state.villageStock,workers=state.recruitedVillagers;
+  function takeVillageWheat(amount){let remaining=amount,fromStock=Math.min(stock.wheat,remaining);stock.wheat-=fromStock;remaining-=fromStock;for(const barn of state.barns){if(remaining<=0)break;const have=barn.inventory?.wheat||0,take=Math.min(have,remaining);barn.inventory.wheat=have-take;remaining-=take;}return remaining===0;}
   for(const id of workers){
    const job=state.villagerJobs[id]||"general",resident=villagers.find(v=>v.id===id),name=resident?resident.name.split(" · ")[0]:id;
    if(job==="gatherer"){stock.branches+=1;stock.stones+=1;stock.fiber+=1;addVillageLog(name+" coletou 1 galho, 1 pedra e 1 fibra.");}
@@ -417,8 +418,8 @@ const placementPreview=new THREE.Group(),previewRing=new THREE.Mesh(new THREE.Ri
    let wool=0;for(const sheep of state.sheep){if(sheep.woolReady){stock.wool+=2;sheep.woolReady=false;wool+=2;}}
    if(collected||wool)addVillageLog("Criador recolheu "+collected+" ovo(s) e "+wool+" lã do plantel.");
    let fed=0,spent=0;
-   for(const hen of state.chickens){if(hen.fedDay!==day&&stock.wheat>=1){stock.wheat-=1;hen.fedDay=day;fed++;spent++;}}
-   for(const sheep of state.sheep){if((sheep.fedDay===null||sheep.fedDay===undefined)&&stock.wheat>=2){stock.wheat-=2;sheep.fedDay=day;fed++;spent+=2;}}
+   for(const hen of state.chickens){if(hen.fedDay!==day&&takeVillageWheat(1)){hen.fedDay=day;fed++;spent++;}}
+   for(const sheep of state.sheep){if((sheep.fedDay===null||sheep.fedDay===undefined)&&takeVillageWheat(2)){sheep.fedDay=day;fed++;spent+=2;}}
    if(fed)addVillageLog("Criador alimentou "+fed+" animal(is), usando "+spent+" trigo(s).");
   }
   state.lastVillageProductionDay=day;
@@ -588,7 +589,7 @@ document.getElementById("eat-meal").addEventListener("click",()=>{if(state.inven
 const barnStorageKeys=["wheat","wheatSeeds","berries","meals","meat","eggs"];
 function storageUsed(chest){return Object.values(chest.inventory||{}).reduce((sum,value)=>sum+Math.max(0,Number(value)||0),0);}
 function renderStorage(){if(!activeStorageChest)return;const warehouse=!!activeStorageChest.isWarehouse,barn=!!activeStorageChest.isBarn,used=storageUsed(activeStorageChest),keys=barn?barnStorageKeys:Object.keys(storageLabels);Array.from(storageSelect.options).forEach(option=>{option.disabled=barn&&!barnStorageKeys.includes(option.value);});storageInventory.textContent=keys.map(key=>storageLabels[key]+": "+(activeStorageChest.inventory[key]||0)+(barn?" no celeiro":warehouse?" no depósito":" no baú")+" · "+(state.inventory[key]||0)+" na mochila").join("\n")+(warehouse?"\n\nCapacidade: "+used+" / 1.500 unidades":barn?"\n\nCapacidade: "+used+" / 1.200 unidades":"");}
-function openStorage(chest){activeStorageChest=chest;storagePanel.hidden=false;renderStorage();gatherPrompt.hidden=true;talkPrompt.hidden=true;storageStatus.textContent=chest.isBarn?"Celeiro da vila · trigo, sementes e alimentos · capacidade de 1.200 unidades.":chest.isWarehouse?"Depósito da vila · capacidade total de 1.500 unidades. Escolha o material e a quantidade.":"Escolha o material e a quantidade para guardar ou retirar.";}
+function openStorage(chest){activeStorageChest=chest;if(chest.isBarn&&!barnStorageKeys.includes(storageSelect.value))storageSelect.value="wheat";storagePanel.hidden=false;renderStorage();gatherPrompt.hidden=true;talkPrompt.hidden=true;storageStatus.textContent=chest.isBarn?"Celeiro da vila · trigo, sementes e alimentos · capacidade de 1.200 unidades.":chest.isWarehouse?"Depósito da vila · capacidade total de 1.500 unidades. Escolha o material e a quantidade.":"Escolha o material e a quantidade para guardar ou retirar.";}
 function closeStorage(){storagePanel.hidden=true;activeStorageChest=null;Array.from(storageSelect.options).forEach(option=>option.disabled=false);}
 document.getElementById("storage-close").addEventListener("click",closeStorage);
 document.getElementById("storage-deposit").addEventListener("click",()=>{if(!activeStorageChest)return;const key=storageSelect.value,amount=Math.max(1,Math.floor(Number(storageAmount.value)||1)),available=state.inventory[key]||0;if(activeStorageChest.isBarn&&!barnStorageKeys.includes(key)){storageStatus.textContent="O celeiro aceita somente trigo, sementes e alimentos.";return;}if(available<1){storageStatus.textContent="Você não tem esse material na mochila.";return;}const capacity=activeStorageChest.isWarehouse?1500:activeStorageChest.isBarn?1200:Infinity,free=Math.max(0,capacity-storageUsed(activeStorageChest)),moved=Math.min(amount,available,free);if(!moved){storageStatus.textContent=activeStorageChest.isWarehouse?"O depósito está cheio. Retire materiais antes de guardar mais.":"Você não tem esse material na mochila.";return;}state.inventory[key]-=moved;activeStorageChest.inventory[key]=(activeStorageChest.inventory[key]||0)+moved;saveState();storageStatus.textContent="Guardado: "+moved+" · "+storageLabels[key]+".";renderStorage();renderCrafting();});
