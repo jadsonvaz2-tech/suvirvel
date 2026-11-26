@@ -316,7 +316,8 @@ function buildMill(x,z,rotation=0,ghost=false){
  if(ghost){const edge=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.BoxGeometry(7.4,9.5,7.4)),new THREE.LineBasicMaterial({color:0xb8ff65,transparent:true,opacity:.98,depthTest:false}));edge.position.y=4.6;g.add(edge);}
  g.position.set(x,groundHeight(x,z),z);g.rotation.y=rotation;scene.add(g);return g;
 }
-const placedMills=[];for(const item of state.mills){if(Number.isFinite(item.x)&&Number.isFinite(item.z))placedMills.push(buildMill(item.x,item.z,item.rotation||0,false));}\n
+const placedMills=[];for(const item of state.mills){if(Number.isFinite(item.x)&&Number.isFinite(item.z))placedMills.push(buildMill(item.x,item.z,item.rotation||0,false));}
+
 state.bakeries=Array.isArray(state.bakeries)?state.bakeries:[];
 function buildBakery(x,z,rotation=0,ghost=false){
  const g=new THREE.Group(),o=ghost?.48:1,mat=(color,extra={})=>new THREE.MeshStandardMaterial({color,roughness:1,transparent:ghost,opacity:o,depthWrite:!ghost,...extra}),wood=mat(0x79502f),dark=mat(0x493321),wall=mat(0xb99a72),roof=mat(0x55402e),brick=mat(0x914d35),iron=mat(0x4b4741),glow=mat(0xff8b24,{emissive:0xff4b08,emissiveIntensity:1.4});
@@ -386,7 +387,8 @@ const placementPreview=new THREE.Group(),previewRing=new THREE.Mesh(new THREE.Ri
   {id:"farmer",label:"Agricultor",needs:()=>!!state.tools.hoe&&state.fields.length>0,area:"field"},
   {id:"rancher",label:"Criador de animais",needs:()=>state.chickenCoops.length>0||state.sheepPens.length>0,area:"animals"},
   {id:"artisan",label:"Artesão",needs:()=>state.workbenches.length>0||state.carpentryShops.length>0||state.tailoringShops.length>0||state.looms.length>0,area:"workshop"},
-  {id:"miller",label:"Moleiro",needs:()=>state.mills.length>0,area:"mill"},\n  {id:"baker",label:"Padeiro",needs:()=>state.bakeries.length>0,area:"bakery"},
+  {id:"miller",label:"Moleiro",needs:()=>state.mills.length>0,area:"mill"},
+  {id:"baker",label:"Padeiro",needs:()=>state.bakeries.length>0,area:"bakery"},
   {id:"builder",label:"Construtor",needs:()=>state.shelters.length>0,area:"shelter"}
  ];
  function residentWorkRoute(id,job,slot){
@@ -410,7 +412,8 @@ const placementPreview=new THREE.Group(),previewRing=new THREE.Mesh(new THREE.Ri
   if(job==="farmer")return state.tools.hoe&&state.fields.length?"Trabalhando · cuida dos canteiros plantados por você.":"Aguardando · precisa de enxada e canteiro construído.";
   if(job==="rancher"){const animals=state.chickens.length+state.sheep.length;return animals?"Trabalhando · recolhe ovos e lã, e alimenta os animais usando trigo do estoque.":"Aguardando animais · adquira galinhas ou ovelhas e mantenha trigo no estoque.";}
   if(job==="artisan")return state.carpentryShops.length?"Trabalhando · transforma madeira do estoque em tábuas.":"Aguardando oficina de carpintaria.";
-  if(job==="miller")return state.mills.length?"Trabalhando · mói trigo e armazena farinha no celeiro.":"Aguardando moinho construído.";\n  if(job==="baker")return state.bakeries.length?"Trabalhando · transforma farinha e ovos em pão para a vila.":"Aguardando padaria construída.";
+  if(job==="miller")return state.mills.length?"Trabalhando · mói trigo e armazena farinha no celeiro.":"Aguardando moinho construído.";
+  if(job==="baker")return state.bakeries.length?"Trabalhando · transforma farinha e ovos em pão para a vila.":"Aguardando padaria construída.";
   if(job==="builder")return "Disponível para ajudar em obras; não há construção automática ativa nesta etapa.";
   return "Aguardando tarefa.";
  }
@@ -443,7 +446,7 @@ const placementPreview=new THREE.Group(),previewRing=new THREE.Mesh(new THREE.Ri
     if(harvested)addVillageLog(name+" colheu "+harvested+" canteiro(s): "+(harvested*5)+" trigos e "+harvested+" sementes."+(barnStoredWheat||barnStoredSeeds?" Depositou no celeiro "+barnStoredWheat+" trigos e "+barnStoredSeeds+" sementes.":""));
    }
    else if(job==="artisan"&&state.carpentryShops.length&&stock.wood>=3){stock.wood-=3;stock.planks+=2;addVillageLog(name+" fabricou 2 tábuas usando 3 madeiras do estoque.");}
-   else if(job==="miller"&&state.mills.length&&takeVillageWheat(2)){const millBarn=state.barns.find(b=>storageUsed(b)<1200);if(millBarn){millBarn.inventory.flour=(millBarn.inventory.flour||0)+1;addVillageLog(name+" moeu 2 trigos e armazenou 1 farinha no celeiro.");}else{stock.flour=(stock.flour||0)+1;addVillageLog(name+" moeu 2 trigos e produziu 1 farinha para o estoque da vila.");}}else if(job==="baker"&&state.bakeries.length){let flour=stock.flour||0,eggs=stock.eggs||0;for(const barn of state.barns){if(flour<1&&barn.inventory.flour>0){barn.inventory.flour--;flour++;}if(eggs<1&&barn.inventory.eggs>0){barn.inventory.eggs--;eggs++;}}if(flour>=1&&eggs>=1){if(stock.flour>0)stock.flour--;else{const barn=state.barns.find(b=>b.inventory.flour>0);if(barn)barn.inventory.flour--;}if(stock.eggs>0)stock.eggs--;else{const barn=state.barns.find(b=>b.inventory.eggs>0);if(barn)barn.inventory.eggs--;}const bakeryBarn=state.barns.find(b=>storageUsed(b)<1200);if(bakeryBarn)bakeryBarn.inventory.bread=(bakeryBarn.inventory.bread||0)+2;else stock.bread=(stock.bread||0)+2;addVillageLog(name+" assou 2 pães usando 1 farinha e 1 ovo.");}}
+   else if(job==="miller"&&state.mills.length&&takeVillageWheat(2)){const millBarn=state.barns.find(b=>storageUsed(b)<1200);if(millBarn){millBarn.inventory.flour=(millBarn.inventory.flour||0)+1;addVillageLog(name+" moeu 2 trigos e armazenou 1 farinha no celeiro.");}else{stock.flour=(stock.flour||0)+1;addVillageLog(name+" moeu 2 trigos e produziu 1 farinha para o estoque da vila.");}}else if(job==="baker"&&state.bakeries.length){const flourAvailable=(stock.flour||0)+state.barns.reduce((n,b)=>n+(b.inventory.flour||0),0),eggsAvailable=(stock.eggs||0)+state.barns.reduce((n,b)=>n+(b.inventory.eggs||0),0);if(flourAvailable>=1&&eggsAvailable>=1){if(stock.flour>0)stock.flour--;else{const barn=state.barns.find(b=>b.inventory.flour>0);if(barn)barn.inventory.flour--;}if(stock.eggs>0)stock.eggs--;else{const barn=state.barns.find(b=>b.inventory.eggs>0);if(barn)barn.inventory.eggs--;}const bakeryBarn=state.barns.find(b=>storageUsed(b)<1200);if(bakeryBarn)bakeryBarn.inventory.bread=(bakeryBarn.inventory.bread||0)+2;else stock.bread=(stock.bread||0)+2;addVillageLog(name+" assou 2 pães usando 1 farinha e 1 ovo.");}}
   }
   if(workers.some(id=>(state.villagerJobs[id]||"general")==="rancher")){
    let collected=0;
@@ -590,7 +593,14 @@ const advancedRecipes={axe:{label:"Machado reforçado",cost:{wood:5,stones:5,bra
 function canCraftAdvanced(key){const r=advancedRecipes[key];return nearWorkbench()&&state.tools[key]&&!state.tools[key+"Advanced"]&&Object.entries(r.cost).every(([k,v])=>state.inventory[k]>=v);}
 const carpentryPanel=document.getElementById("carpentry-panel"),carpentryInventory=document.getElementById("carpentry-inventory"),carpentryStatus=document.getElementById("carpentry-status");
 const millPanel=document.getElementById("mill-panel"),millInfo=document.getElementById("mill-info"),millStatus=document.getElementById("mill-status");
-function nearMill(){return placedMills.some(m=>Math.hypot(player.x-m.position.x,player.z-m.position.z)<8);}\nconst bakeryPanel=document.getElementById("bakery-panel"),bakeryInfo=document.getElementById("bakery-info"),bakeryStatus=document.getElementById("bakery-status");\nfunction nearBakery(){return placedBakeries.some(b=>Math.hypot(player.x-b.position.x,player.z-b.position.z)<8);}\nfunction renderBakery(){bakeryInfo.textContent="Farinha na mochila: "+state.inventory.flour+" · Ovos na mochila: "+state.inventory.eggs+" · Pães na mochila: "+state.inventory.bread+" · Farinha no estoque da vila: "+state.villageStock.flour+" · Ovos no estoque: "+state.villageStock.eggs;bakeryPanel.querySelector("#bakery-bake").disabled=!nearBakery()||state.inventory.flour<1||state.inventory.eggs<1;}\nfunction openBakery(){bakeryPanel.hidden=false;gatherPrompt.hidden=true;talkPrompt.hidden=true;renderBakery();bakeryStatus.textContent="Use 1 farinha e 1 ovo para assar 2 pães.";}\nfunction closeBakery(){bakeryPanel.hidden=true;}\ndocument.getElementById("bakery-close").addEventListener("click",closeBakery);\ndocument.getElementById("bakery-bake").addEventListener("click",()=>{if(!nearBakery()){bakeryStatus.textContent="Aproxime-se da padaria para usar o forno.";return;}if(state.inventory.flour<1||state.inventory.eggs<1){bakeryStatus.textContent="Você precisa de 1 farinha e 1 ovo na mochila.";return;}state.inventory.flour--;state.inventory.eggs--;state.inventory.bread+=2;saveState();renderBakery();renderCrafting();bakeryStatus.textContent="Forno pronto: você assou 2 pães.";notify("Você produziu 2 pães.");});
+function nearMill(){return placedMills.some(m=>Math.hypot(player.x-m.position.x,player.z-m.position.z)<8);}
+const bakeryPanel=document.getElementById("bakery-panel"),bakeryInfo=document.getElementById("bakery-info"),bakeryStatus=document.getElementById("bakery-status");
+function nearBakery(){return placedBakeries.some(b=>Math.hypot(player.x-b.position.x,player.z-b.position.z)<8);}
+function renderBakery(){bakeryInfo.textContent="Farinha na mochila: "+state.inventory.flour+" · Ovos na mochila: "+state.inventory.eggs+" · Pães na mochila: "+state.inventory.bread+" · Farinha no estoque da vila: "+state.villageStock.flour+" · Ovos no estoque: "+state.villageStock.eggs;bakeryPanel.querySelector("#bakery-bake").disabled=!nearBakery()||state.inventory.flour<1||state.inventory.eggs<1;}
+function openBakery(){bakeryPanel.hidden=false;gatherPrompt.hidden=true;talkPrompt.hidden=true;renderBakery();bakeryStatus.textContent="Use 1 farinha e 1 ovo para assar 2 pães.";}
+function closeBakery(){bakeryPanel.hidden=true;}
+document.getElementById("bakery-close").addEventListener("click",closeBakery);
+document.getElementById("bakery-bake").addEventListener("click",()=>{if(!nearBakery()){bakeryStatus.textContent="Aproxime-se da padaria para usar o forno.";return;}if(state.inventory.flour<1||state.inventory.eggs<1){bakeryStatus.textContent="Você precisa de 1 farinha e 1 ovo na mochila.";return;}state.inventory.flour--;state.inventory.eggs--;state.inventory.bread+=2;saveState();renderBakery();renderCrafting();bakeryStatus.textContent="Forno pronto: você assou 2 pães.";notify("Você produziu 2 pães.");});
 function renderMill(){millInfo.textContent="Trigo na mochila: "+state.inventory.wheat+" · Farinha na mochila: "+state.inventory.flour+" · Trigo no celeiro: "+state.barns.reduce((n,b)=>n+(b.inventory.wheat||0),0);millPanel.querySelector("#mill-grind").disabled=!nearMill()||state.inventory.wheat<2;}
 function openMill(){millPanel.hidden=false;gatherPrompt.hidden=true;talkPrompt.hidden=true;renderMill();millStatus.textContent="O moinho transforma 2 trigos em 1 farinha. Aproxime-se para trabalhar.";}
 function closeMill(){millPanel.hidden=true;}
