@@ -97,3 +97,5 @@
 .market-panel .market-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}.market-panel select,.market-panel input{width:100%;min-height:42px;margin:4px 0 12px;padding:8px 10px;border:1px solid rgba(230,202,151,.55);border-radius:5px;background:#202e23;color:#f3ead8;font-size:14px}.market-panel .market-actions button{min-height:46px;border:1px solid #d9bd8c;border-radius:5px;background:#59452e;color:#f8edda;font-size:10px;font-weight:900}.market-panel .market-actions button:disabled{opacity:.4}.village-coins{padding:8px 10px;border:1px solid #c69b48;border-radius:5px;background:rgba(164,119,35,.2);color:#f0c86d;font-weight:800}
 
 .infrastructure-note{color:#d9c8a8;font-size:12px;line-height:1.5}.craft-panel [data-build-decoration]{border-left:3px solid #8d744b}
+
+#quest-journal-open{position:relative;z-index:12;margin:6px;padding:9px 12px;border:1px solid #b99b69;border-radius:8px;background:#342a20;color:#f1e4ca;font-weight:700}
