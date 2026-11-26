@@ -427,7 +427,8 @@ const placementPreview=new THREE.Group(),previewRing=new THREE.Mesh(new THREE.Ri
   {id:"miller",label:"Moleiro",needs:()=>state.mills.length>0,area:"mill"},
   {id:"baker",label:"Padeiro",needs:()=>state.bakeries.length>0,area:"bakery"},
   {id:"tavernkeeper",label:"Taverneiro",needs:()=>state.taverns.length>0,area:"tavern"},
-  {id:"trader",label:"Comerciante",needs:()=>state.marketStalls.length>0,area:"market"},\n  {id:"guard",label:"Guarda da vila",needs:()=>state.defensiveStructures.length>0,area:"guard"},
+  {id:"trader",label:"Comerciante",needs:()=>state.marketStalls.length>0,area:"market"},
+  {id:"guard",label:"Guarda da vila",needs:()=>state.defensiveStructures.length>0,area:"guard"},
   {id:"builder",label:"Construtor",needs:()=>state.shelters.length>0,area:"shelter"}
  ];
  function residentWorkRoute(id,job,slot){
@@ -455,7 +456,8 @@ const placementPreview=new THREE.Group(),previewRing=new THREE.Mesh(new THREE.Ri
   if(job==="miller")return state.mills.length?"Trabalhando · mói trigo e armazena farinha no celeiro.":"Aguardando moinho construído.";
   if(job==="baker")return state.bakeries.length?"Trabalhando · transforma farinha e ovos em pão para a vila.":"Aguardando padaria construída.";if(job==="tavernkeeper")return state.taverns.length?"Trabalhando · prepara ensopados com alimentos do estoque e abastece a taverna.":"Aguardando taverna construída.";
   if(job==="trader")return state.marketStalls.length?"Trabalhando · vende 1 unidade disponível do estoque por dia e registra as moedas recebidas.":"Aguardando mercado construído.";
-  if(job==="guard")return state.defensiveStructures.length?"Em patrulha · percorre a área das estruturas defensivas da vila.":"Aguardando paliçada, portão ou torre de vigia.";\n  if(job==="builder")return "Disponível para ajudar em obras; não há construção automática ativa nesta etapa.";
+  if(job==="guard")return state.defensiveStructures.length?"Em patrulha · percorre a área das estruturas defensivas da vila.":"Aguardando paliçada, portão ou torre de vigia.";
+  if(job==="builder")return "Disponível para ajudar em obras; não há construção automática ativa nesta etapa.";
   return "Aguardando tarefa.";
  }
  function residentHomeInfo(id){const slot=state.recruitedVillagers.indexOf(id);if(slot<0)return null;const shelterBeds=state.shelters.length*3;if(slot<shelterBeds){const index=Math.floor(slot/3);return state.shelters[index]?{label:"Abrigo "+(index+1),kind:"abrigo"}:null;}const index=Math.floor((slot-shelterBeds)/3);return state.villageHouses[index]?{label:"Casa "+(index+1),kind:"casa"}:null;}
