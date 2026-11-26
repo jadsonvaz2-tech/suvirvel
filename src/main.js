@@ -328,11 +328,10 @@ const placementPreview=new THREE.Group(),previewRing=new THREE.Mesh(new THREE.Ri
  }
  for(const resident of villagers){const savedJob=state.villagerJobs[resident.id];if(resident.recruited&&savedJob)applyResidentJob(resident,savedJob);}
  function villageJobStatus(id,job){
-  const stock=state.villageStock;
   if(job==="general")return "Ajudante geral · sem produção automática definida.";
   if(job==="gatherer")return "Trabalhando · coleta galhos, pedras e fibras para o estoque.";
-  if(job==="woodcutter")return state.tools.axe||state.tools.axeAdvanced?"Trabalhando · precisa de machado para trazer madeira.":"Aguardando ferramenta · fabrique um machado.";
-  if(job==="hunter")return state.tools.spear?"Trabalhando · precisa de lança para trazer carne e couro.":"Aguardando ferramenta · fabrique uma lança.";
+  if(job==="woodcutter")return state.tools.axe||state.tools.axeAdvanced?"Trabalhando · produz madeira usando seu machado.":"Aguardando ferramenta · fabrique um machado.";
+  if(job==="hunter")return state.tools.spear?"Trabalhando · realiza expedições de caça com sua lança.":"Aguardando ferramenta · fabrique uma lança.";
   if(job==="farmer")return state.tools.hoe&&state.fields.length?"Trabalhando · cuida dos canteiros plantados por você.":"Aguardando · precisa de enxada e canteiro construído.";
   if(job==="rancher"){const animals=state.chickens.length+state.sheep.length;return animals?"Trabalhando · recolhe ovos e lã, e alimenta os animais usando trigo do estoque.":"Aguardando animais · adquira galinhas ou ovelhas e mantenha trigo no estoque.";}
   if(job==="artisan")return state.carpentryShops.length?"Trabalhando · transforma madeira do estoque em tábuas.":"Aguardando oficina de carpintaria.";
