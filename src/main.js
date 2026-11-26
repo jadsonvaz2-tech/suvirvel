@@ -381,7 +381,7 @@ const placementPreview=new THREE.Group(),previewRing=new THREE.Mesh(new THREE.Ri
   state.lastVillageProductionDay=day;
  }
  function processVillageProduction(){
-  if(!Array.isArray(state.recruitedVillagers)||!state.recruitedVillagers.length)return;
+  if(!Array.isArray(state.recruitedVillagers)||!state.recruitedVillagers.length){state.lastVillageProductionDay=state.day;return;}
   const first=Math.max(state.lastVillageProductionDay+1,state.day-30);
   for(let day=first;day<=state.day;day++)produceVillageDay(day);
   if(!villagePanel.hidden)renderVillagePanel();
