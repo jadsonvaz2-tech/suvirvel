@@ -21,6 +21,8 @@ state.harvestedNodes=state.harvestedNodes||{};state.felledTrees=Array.isArray(st
 let toastTimer=0;
 function notify(message){toast.textContent=message;toast.classList.add("visible");clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.classList.remove("visible"),2400);}
 function saveState(){try{localStorage.setItem(STORE_KEY,JSON.stringify(state));}catch{notify("Não foi possível salvar neste dispositivo.");}}
+// Recupera o desbloqueio da Fortaleza caso o save tenha voltado para o estado do resgate.
+if(state.prisonerRescue?.completed&&Array.isArray(state.rescueDebrief?.survivorReports)&&state.rescueDebrief.survivorReports.length>=3&&!state.rescueDebrief.nextLead){state.rescueDebrief.alinaReceived=true;state.rescueDebrief.darianRecognized=true;state.rescueDebrief.nextLead=true;saveState();}
 function showError(error){console.error(error);errorBox.textContent="Não foi possível iniciar o vale 3D. Atualize a página e tente novamente. "+(error?.message||"");errorBox.hidden=false;loading.hidden=true;}
 async function boot(){try{createWorld(await import(THREE_URL));}catch(error){showError(error);}}
 function createWorld(THREE){
