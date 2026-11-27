@@ -98,4 +98,4 @@
 
 .infrastructure-note{color:#d9c8a8;font-size:12px;line-height:1.5}.craft-panel [data-build-decoration]{border-left:3px solid #8d744b}
 
-#quest-journal-open{position:relative;z-index:12;margin:6px;padding:9px 12px;border:1px solid #b99b69;border-radius:8px;background:#342a20;color:#f1e4ca;font-weight:700}
+#quest-journal-open{position:relative;z-index:10001;pointer-events:auto!important;touch-action:manipulation;cursor:pointer;margin:6px;padding:9px 12px;border:1px solid #b99b69;border-radius:8px;background:#342a20;color:#f1e4ca;font-weight:700}
